@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { getSessionProfile } from "@/lib/auth/get-session";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, isEditableDate } from "@/lib/utils/dates";
+import { getKpiRules, upsertDailySnapshot } from "@/services/kpi/kpi.service";
 import {
   createTaskSchema,
   deleteTaskSchema,
@@ -263,5 +265,72 @@ export async function deleteTaskAction(id: string): Promise<TaskActionState> {
   if (error) return { error: error.message };
 
   revalidateTaskViews();
+  return { success: true };
+}
+
+/**
+ * Admin deletes any employee's task, including approved (completed) ones.
+ * If a finalized KPI snapshot already exists for that employee/date, it is
+ * recomputed so historical KPI stays accurate after the deletion.
+ */
+export async function adminDeleteTaskAction(
+  id: string,
+): Promise<TaskActionState> {
+  const profile = await getSessionProfile();
+  if (!profile) return { error: "Not authenticated." };
+  if (profile.role !== "admin") return { error: "Forbidden. Admin only." };
+
+  const parsed = deleteTaskSchema.safeParse({ id });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: task, error: fetchError } = await supabase
+    .from("tasks")
+    .select("employee_id, task_date")
+    .eq("id", parsed.data.id)
+    .single();
+
+  if (fetchError || !task) return { error: "Task not found." };
+
+  const { error } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", parsed.data.id);
+
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    actor_id: profile.id,
+    action: "task.deleted_by_admin",
+    entity_type: "task",
+    entity_id: parsed.data.id,
+    metadata: { employee_id: task.employee_id, task_date: task.task_date },
+  });
+
+  // Recompute the finalized snapshot for that day (if one exists) so KPI
+  // history reflects the deletion. Uses the service-role client.
+  try {
+    const admin = createAdminClient();
+    const { data: snapshot } = await admin
+      .from("daily_kpi_snapshots")
+      .select("id")
+      .eq("employee_id", task.employee_id)
+      .eq("kpi_date", task.task_date)
+      .maybeSingle();
+
+    if (snapshot) {
+      const rules = await getKpiRules(admin);
+      await upsertDailySnapshot(admin, task.employee_id, task.task_date, rules);
+    }
+  } catch {
+    // Snapshot recompute is best-effort; the daily pipeline will reconcile.
+  }
+
+  revalidateTaskViews();
+  revalidateApprovalViews();
+  revalidatePath(`/admin/employees/${task.employee_id}`);
   return { success: true };
 }

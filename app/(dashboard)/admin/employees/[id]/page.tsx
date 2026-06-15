@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateLabel } from "@/lib/utils/dates";
+import { AdminTaskDeleteButton } from "@/components/admin/admin-task-delete-button";
 import { FlagBadge } from "@/components/kpi/flag-badge";
 import { RewardStatusBadge } from "@/components/rewards/reward-status-badge";
 import {
@@ -47,29 +48,51 @@ export default async function EmployeeDetailPage({
 
   if (!profile) notFound();
 
-  const [{ data: snapshotData }, { data: warningData }, { data: rewardData }] =
-    await Promise.all([
-      supabase
-        .from("daily_kpi_snapshots")
-        .select("*")
-        .eq("employee_id", id)
-        .order("kpi_date", { ascending: false })
-        .limit(30),
-      supabase
-        .from("warnings")
-        .select("*")
-        .eq("employee_id", id)
-        .order("issued_at", { ascending: false }),
-      supabase
-        .from("rewards")
-        .select("*")
-        .eq("employee_id", id)
-        .order("eligible_at", { ascending: false }),
-    ]);
+  const [
+    { data: snapshotData },
+    { data: warningData },
+    { data: rewardData },
+    { data: taskData },
+  ] = await Promise.all([
+    supabase
+      .from("daily_kpi_snapshots")
+      .select("*")
+      .eq("employee_id", id)
+      .order("kpi_date", { ascending: false })
+      .limit(30),
+    supabase
+      .from("warnings")
+      .select("*")
+      .eq("employee_id", id)
+      .order("issued_at", { ascending: false }),
+    supabase
+      .from("rewards")
+      .select("*")
+      .eq("employee_id", id)
+      .order("eligible_at", { ascending: false }),
+    supabase
+      .from("tasks")
+      .select("*")
+      .eq("employee_id", id)
+      .order("task_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
 
   const snapshots = (snapshotData ?? []) as Tables<"daily_kpi_snapshots">[];
   const warnings = (warningData ?? []) as Tables<"warnings">[];
   const rewards = (rewardData ?? []) as Tables<"rewards">[];
+  const tasks = (taskData ?? []) as Tables<"tasks">[];
+
+  const TASK_STATUS_META: Record<
+    Tables<"tasks">["status"],
+    { label: string; variant: "secondary" | "warning" | "success" | "destructive" }
+  > = {
+    pending: { label: "To do", variant: "secondary" },
+    submitted: { label: "Pending approval", variant: "warning" },
+    completed: { label: "Approved", variant: "success" },
+    rejected: { label: "Rejected", variant: "destructive" },
+  };
 
   const flagCounts = snapshots.reduce<Record<string, number>>((acc, s) => {
     acc[s.flag] = (acc[s.flag] ?? 0) + 1;
@@ -171,6 +194,54 @@ export default async function EmployeeDetailPage({
                     <TableCell>{s.completion_pct}%</TableCell>
                     <TableCell className="text-right">
                       <FlagBadge flag={s.flag} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tasks</CardTitle>
+          <CardDescription>
+            Most recent 50 tasks. Admins can delete any task, including approved
+            ones; the day&apos;s KPI snapshot is recomputed automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {tasks.length === 0 ? (
+            <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+              No tasks yet.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Task</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {formatDateLabel(task.task_date)}
+                    </TableCell>
+                    <TableCell className="font-medium">{task.title}</TableCell>
+                    <TableCell>
+                      <Badge variant={TASK_STATUS_META[task.status].variant}>
+                        {TASK_STATUS_META[task.status].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end">
+                        <AdminTaskDeleteButton taskId={task.id} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
