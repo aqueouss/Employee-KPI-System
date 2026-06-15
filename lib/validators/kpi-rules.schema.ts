@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isValidTimezone } from "@/lib/utils/dates";
+
 export const kpiRulesSchema = z
   .object({
     green_threshold: z.coerce
@@ -27,7 +29,12 @@ export const kpiRulesSchema = z
       .int()
       .min(1, "Must be at least 1 day."),
     count_weekends: z.coerce.boolean(),
-    company_timezone: z.string().min(1, "Timezone is required."),
+    company_timezone: z
+      .string()
+      .min(1, "Timezone is required.")
+      .refine(isValidTimezone, {
+        message: "Enter a valid IANA timezone, e.g. Asia/Kolkata.",
+      }),
   })
   .refine((data) => data.green_threshold > data.yellow_threshold, {
     message: "Green threshold must be greater than the yellow threshold.",
