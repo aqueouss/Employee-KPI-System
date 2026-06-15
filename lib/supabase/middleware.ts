@@ -31,8 +31,10 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = pathname.startsWith("/login");
+  // API routes enforce their own auth (session checks in server actions /
+  // CRON_SECRET for cron), so the middleware must not redirect them to login.
   const isPublicRoute =
-    pathname.startsWith("/api/health") || pathname.startsWith("/_next");
+    pathname.startsWith("/api") || pathname.startsWith("/_next");
 
   if (!user && !isAuthRoute && !isPublicRoute) {
     const url = request.nextUrl.clone();
