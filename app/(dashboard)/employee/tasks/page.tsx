@@ -1,0 +1,111 @@
+import { requireRole } from "@/lib/auth/require-role";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getTodayDateString,
+  isEditableDate,
+  parseDateString,
+} from "@/lib/utils/dates";
+import { DateNavigator } from "@/components/tasks/date-navigator";
+import { TaskCreateForm } from "@/components/tasks/task-create-form";
+import { TaskItem } from "@/components/tasks/task-item";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import type { Tables } from "@/types/database.types";
+
+export default async function EmployeeTasksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const profile = await requireRole(["admin", "employee"]);
+  const today = getTodayDateString();
+  const params = await searchParams;
+  const date = parseDateString(params.date) ?? today;
+  const editable = isEditableDate(date, today);
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("employee_id", profile.id)
+    .eq("task_date", date)
+    .order("created_at", { ascending: true });
+
+  const tasks = (data ?? []) as Tables<"tasks">[];
+  const total = tasks.length;
+  const completed = tasks.filter((t) => t.status === "completed").length;
+  const submitted = tasks.filter((t) => t.status === "submitted").length;
+  const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
+        <p className="text-muted-foreground">
+          Plan your day and check off what you complete.
+        </p>
+      </div>
+
+      <Card>
+        <CardContent className="py-4">
+          <DateNavigator date={date} today={today} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Completion</CardTitle>
+              <CardDescription>
+                {completed} of {total} approved
+                {submitted > 0 ? ` · ${submitted} awaiting approval` : ""}
+              </CardDescription>
+            </div>
+            <Badge
+              variant={
+                total === 0 ? "secondary" : pct >= 90 ? "success" : pct >= 70 ? "warning" : "destructive"
+              }
+            >
+              {total === 0 ? "No tasks" : `${pct}%`}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {editable ? (
+        <TaskCreateForm taskDate={date} />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          This day is in the past and is read-only.
+        </p>
+      )}
+
+      <div className="space-y-2">
+        {tasks.length === 0 ? (
+          <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+            No tasks for this day.
+          </div>
+        ) : (
+          tasks.map((task) => (
+            <TaskItem key={task.id} task={task} editable={editable} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,72 @@
+-- =============================================================================
+-- 012_cron_schedule.sql (TEMPLATE / OPTIONAL)
+-- =============================================================================
+-- Schedules the daily KPI pipeline directly from Postgres using pg_cron + pg_net.
+--
+-- Use this ONLY if you are NOT using Vercel Cron (vercel.json). Pick one
+-- scheduler, not both, or KPI snapshots will be computed twice (idempotent, but
+-- wasteful and noisy in the audit log).
+--
+-- HOW TO USE:
+--   1. Copy this file to `012_cron_schedule.sql` (drop the .example suffix).
+--   2. Replace <YOUR_APP_URL> and <YOUR_CRON_SECRET> below, OR (recommended)
+--      store them in Supabase Vault and read them via vault.decrypted_secrets.
+--   3. Apply via the Supabase MCP `apply_migration` tool or the SQL editor.
+--
+-- REQUIREMENTS: pg_cron and pg_net extensions (available on Supabase).
+-- =============================================================================
+
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+-- ---------------------------------------------------------------------------
+-- Option A: inline secret (simplest; secret is visible in cron.job definition)
+-- ---------------------------------------------------------------------------
+-- Runs every day at 00:30 UTC.
+select cron.schedule(
+  'daily-kpi-pipeline',
+  '30 0 * * *',
+  $$
+  select net.http_post(
+    url     := '<YOUR_APP_URL>/api/cron/daily-kpi',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer <YOUR_CRON_SECRET>'
+    ),
+    body    := '{}'::jsonb
+  );
+  $$
+);
+
+-- ---------------------------------------------------------------------------
+-- Option B (recommended): pull secret from Supabase Vault
+-- ---------------------------------------------------------------------------
+-- First store the values once:
+--   select vault.create_secret('https://your-app.vercel.app', 'app_url');
+--   select vault.create_secret('your-long-random-secret', 'cron_secret');
+--
+-- Then schedule using them:
+--
+-- select cron.schedule(
+--   'daily-kpi-pipeline',
+--   '30 0 * * *',
+--   $$
+--   select net.http_post(
+--     url := (select decrypted_secret from vault.decrypted_secrets where name = 'app_url')
+--            || '/api/cron/daily-kpi',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'Authorization', 'Bearer ' ||
+--         (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')
+--     ),
+--     body := '{}'::jsonb
+--   );
+--   $$
+-- );
+
+-- ---------------------------------------------------------------------------
+-- Management helpers
+-- ---------------------------------------------------------------------------
+-- Inspect scheduled jobs:        select * from cron.job;
+-- Inspect recent runs:           select * from cron.job_run_details order by start_time desc limit 20;
+-- Unschedule:                    select cron.unschedule('daily-kpi-pipeline');
