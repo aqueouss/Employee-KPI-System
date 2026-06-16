@@ -5,8 +5,10 @@ import { ArrowLeft } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateLabel } from "@/lib/utils/dates";
+import { AdminTaskCreateForm } from "@/components/admin/admin-task-create-form";
 import { AdminTaskDeleteButton } from "@/components/admin/admin-task-delete-button";
 import { FlagBadge } from "@/components/kpi/flag-badge";
+import { getTodayDateString } from "@/lib/utils/dates";
 import { RewardStatusBadge } from "@/components/rewards/reward-status-badge";
 import {
   ReviewStatusBadge,
@@ -83,6 +85,7 @@ export default async function EmployeeDetailPage({
   const warnings = (warningData ?? []) as Tables<"warnings">[];
   const rewards = (rewardData ?? []) as Tables<"rewards">[];
   const tasks = (taskData ?? []) as Tables<"tasks">[];
+  const today = getTodayDateString();
 
   const TASK_STATUS_META: Record<
     Tables<"tasks">["status"],
@@ -211,9 +214,10 @@ export default async function EmployeeDetailPage({
             ones; the day&apos;s KPI snapshot is recomputed automatically.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="space-y-4">
+          <AdminTaskCreateForm employeeId={id} today={today} />
           {tasks.length === 0 ? (
-            <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
               No tasks yet.
             </div>
           ) : (

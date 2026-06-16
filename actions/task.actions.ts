@@ -63,6 +63,50 @@ export async function createTaskAction(
   return { success: true };
 }
 
+/** Admin creates a task on behalf of an employee. */
+export async function adminCreateTaskAction(
+  _prevState: TaskActionState,
+  formData: FormData,
+): Promise<TaskActionState> {
+  const profile = await getSessionProfile();
+  if (!profile) return { error: "Not authenticated." };
+  if (profile.role !== "admin") return { error: "Forbidden. Admin only." };
+
+  const employeeId = String(formData.get("employee_id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(employeeId)) {
+    return { error: "Invalid employee." };
+  }
+
+  const parsed = createTaskSchema.safeParse({
+    title: formData.get("title"),
+    task_date: formData.get("task_date"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("tasks").insert({
+    employee_id: employeeId,
+    title: parsed.data.title,
+    task_date: parsed.data.task_date,
+  });
+
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    actor_id: profile.id,
+    action: "task.created_by_admin",
+    entity_type: "task",
+    entity_id: null,
+    metadata: { employee_id: employeeId, task_date: parsed.data.task_date },
+  });
+
+  revalidateTaskViews();
+  revalidatePath(`/admin/employees/${employeeId}`);
+  return { success: true };
+}
+
 /**
  * Employee submits a task for approval (completed=true) or withdraws a pending
  * submission back to "pending" (completed=false). Submitting does NOT mark the
