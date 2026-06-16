@@ -44,7 +44,8 @@ export function TaskItem({
   // Employee can tick (submit) when not approved; ticking a submitted task
   // withdraws it. Approved tasks are locked.
   const canToggle = editable && !isApproved;
-  const canModify = editable && (status === "pending" || status === "rejected");
+  const canEdit = editable && (status === "pending" || status === "rejected");
+  const canDelete = editable && status === "pending";
 
   function handleToggle() {
     if (!canToggle) return;
@@ -149,30 +150,34 @@ export function TaskItem({
               {task.title}
             </span>
             <Badge variant={meta.variant}>{meta.label}</Badge>
-            {canModify ? (
+            {canEdit || canDelete ? (
               <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  onClick={() => setIsEditing(true)}
-                  disabled={isPending}
-                  aria-label="Edit task"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={handleDelete}
-                  disabled={isPending}
-                  aria-label="Delete task"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {canEdit ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setIsEditing(true)}
+                    disabled={isPending}
+                    aria-label="Edit task"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={handleDelete}
+                    disabled={isPending}
+                    aria-label="Delete task"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                ) : null}
               </div>
             ) : null}
           </>

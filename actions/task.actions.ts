@@ -253,8 +253,10 @@ export async function deleteTaskAction(id: string): Promise<TaskActionState> {
     return { error: "Past tasks are locked." };
   }
 
-  if (task.status === "completed") {
-    return { error: "Approved tasks cannot be deleted." };
+  if (task.status !== "pending") {
+    return {
+      error: "Only to-do tasks can be deleted. Ask an admin to remove others.",
+    };
   }
 
   const { error } = await supabase
