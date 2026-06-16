@@ -126,6 +126,8 @@ export async function adminCreateTaskAction(
     title: parsed.data.title,
     task_date: taskDate,
     period,
+    created_by_admin: true,
+    seen_by_employee: false,
   });
 
   if (error) return { error: error.message };

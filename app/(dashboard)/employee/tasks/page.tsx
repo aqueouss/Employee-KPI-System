@@ -47,6 +47,15 @@ export default async function EmployeeTasksPage({
   const editable = isEditableDate(date, today);
 
   const supabase = await createClient();
+
+  // Opening the tasks page clears the "new task" notification badge.
+  await supabase
+    .from("tasks")
+    .update({ seen_by_employee: true })
+    .eq("employee_id", profile.id)
+    .eq("created_by_admin", true)
+    .eq("seen_by_employee", false);
+
   const { data } = await supabase
     .from("tasks")
     .select("*")

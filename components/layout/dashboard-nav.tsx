@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { useNotifications } from "@/components/notifications/notifications-provider";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/domain";
 
@@ -26,26 +27,49 @@ type NavItem = {
   label: string;
   icon: LucideIcon;
   exact?: boolean;
+  badgeKey?: string;
 };
 
 const adminNav: NavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/employees", label: "Employees", icon: Users },
-  { href: "/admin/approvals", label: "Approvals", icon: ClipboardCheck },
-  { href: "/admin/warnings", label: "Warnings", icon: AlertTriangle },
+  {
+    href: "/admin/approvals",
+    label: "Approvals",
+    icon: ClipboardCheck,
+    badgeKey: "approvals",
+  },
+  {
+    href: "/admin/warnings",
+    label: "Warnings",
+    icon: AlertTriangle,
+    badgeKey: "warnings",
+  },
   {
     href: "/admin/termination-reviews",
     label: "Reviews",
     icon: Gavel,
+    badgeKey: "reviews",
   },
-  { href: "/admin/rewards", label: "Rewards", icon: Award },
+  { href: "/admin/rewards", label: "Rewards", icon: Award, badgeKey: "rewards" },
   { href: "/admin/kpi-rules", label: "KPI Rules", icon: SlidersHorizontal },
   { href: "/admin/activity", label: "Activity", icon: ScrollText },
 ];
 
 const employeeNav: NavItem[] = [
-  { href: "/employee", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/employee/tasks", label: "Tasks", icon: ClipboardList },
+  {
+    href: "/employee",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    exact: true,
+    badgeKey: "newTasks",
+  },
+  {
+    href: "/employee/tasks",
+    label: "Tasks",
+    icon: ClipboardList,
+    badgeKey: "newTasks",
+  },
   { href: "/employee/kpi", label: "KPI", icon: Gauge },
   { href: "/employee/rewards", label: "Rewards", icon: Award },
   { href: "/employee/warnings", label: "Warnings", icon: AlertTriangle },
@@ -58,6 +82,7 @@ const sharedNav: NavItem[] = [
 
 export function DashboardNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const { counts } = useNotifications();
   const items = [...(role === "admin" ? adminNav : employeeNav), ...sharedNav];
 
   return (
@@ -67,6 +92,7 @@ export function DashboardNav({ role }: { role: UserRole }) {
           ? pathname === item.href
           : pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
+        const badge = item.badgeKey ? (counts[item.badgeKey] ?? 0) : 0;
 
         return (
           <Link
@@ -80,7 +106,12 @@ export function DashboardNav({ role }: { role: UserRole }) {
             )}
           >
             <Icon className="h-4 w-4" />
-            {item.label}
+            <span className="flex-1">{item.label}</span>
+            {badge > 0 ? (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
+                {badge > 99 ? "99+" : badge}
+              </span>
+            ) : null}
           </Link>
         );
       })}

@@ -240,9 +240,11 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          created_by_admin: boolean
           employee_id: string
           id: string
           period: Database["public"]["Enums"]["task_period"]
+          seen_by_employee: boolean
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -255,9 +257,11 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          created_by_admin?: boolean
           employee_id: string
           id?: string
           period?: Database["public"]["Enums"]["task_period"]
+          seen_by_employee?: boolean
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -270,9 +274,11 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          created_by_admin?: boolean
           employee_id?: string
           id?: string
           period?: Database["public"]["Enums"]["task_period"]
+          seen_by_employee?: boolean
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
