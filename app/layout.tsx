@@ -3,6 +3,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 
+import {
+  ThemeProvider,
+  themeBootScript,
+} from "@/components/theme/theme-provider";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,9 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

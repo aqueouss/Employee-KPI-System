@@ -8,6 +8,7 @@ import { DashboardNav } from "@/components/layout/dashboard-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -41,6 +42,7 @@ export default async function DashboardLayout({
                   {profile.role}
                 </Badge>
               </div>
+              <ThemeToggle />
               <NotificationBell />
               <form action={logoutAction}>
                 <Button type="submit" variant="outline" size="sm">
