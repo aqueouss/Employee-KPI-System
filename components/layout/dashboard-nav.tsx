@@ -13,6 +13,7 @@ import {
   Gauge,
   Gavel,
   ScrollText,
+  Trophy,
   UserCircle,
   type LucideIcon,
 } from "lucide-react";
@@ -51,6 +52,7 @@ const employeeNav: NavItem[] = [
 ];
 
 const sharedNav: NavItem[] = [
+  { href: "/rankings", label: "Rankings", icon: Trophy },
   { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 

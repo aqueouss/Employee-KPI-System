@@ -53,6 +53,19 @@ export function addDaysToDateString(value: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Monday of the week containing the given YYYY-MM-DD date. */
+export function startOfWeekDateString(value: string): string {
+  const d = new Date(`${value}T00:00:00Z`);
+  const day = d.getUTCDay(); // 0 = Sunday
+  const diff = day === 0 ? 6 : day - 1; // days since Monday
+  return addDaysToDateString(value, -diff);
+}
+
+/** First day of the month containing the given YYYY-MM-DD date. */
+export function startOfMonthDateString(value: string): string {
+  return `${value.slice(0, 7)}-01`;
+}
+
 /** Human-friendly label, e.g. "Mon, Jun 12, 2026". */
 export function formatDateLabel(value: string): string {
   const d = new Date(`${value}T00:00:00Z`);

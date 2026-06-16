@@ -409,6 +409,16 @@ export type Database = {
         }[]
       }
       current_profile_id: { Args: never; Returns: string }
+      get_employee_rankings: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          avg_completion: number
+          days_tracked: number
+          employee_id: string
+          full_name: string
+          green_days: number
+        }[]
+      }
       determine_kpi_flag: {
         Args: {
           p_completion_pct: number
