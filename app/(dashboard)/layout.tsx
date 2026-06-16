@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { logoutAction } from "@/actions/auth.actions";
 import { requireRole } from "@/lib/auth/require-role";
 import { DashboardNav } from "@/components/layout/dashboard-nav";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -18,9 +19,12 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-muted/30">
       <header className="sticky top-0 z-10 border-b bg-card">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-          <Link href="/" className="font-semibold tracking-tight">
-            KPI System
-          </Link>
+          <div className="flex items-center gap-3">
+            <MobileNav role={profile.role} />
+            <Link href="/" className="font-semibold tracking-tight">
+              KPI System
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-2 text-sm sm:flex">
               <span className="text-muted-foreground">{profile.full_name}</span>
