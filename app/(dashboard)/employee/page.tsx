@@ -3,7 +3,8 @@ import { ArrowRight } from "lucide-react";
 
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { getTodayDateString } from "@/lib/utils/dates";
+import { getTodayDateString, addDaysToDateString } from "@/lib/utils/dates";
+import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
 import { TaskCreateForm } from "@/components/tasks/task-create-form";
 import { TaskItem } from "@/components/tasks/task-item";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,19 @@ export default async function EmployeeDashboardPage() {
     .eq("employee_id", profile.id)
     .eq("task_date", today)
     .order("created_at", { ascending: true });
+
+  const { data: snapshotRows } = await supabase
+    .from("daily_kpi_snapshots")
+    .select("kpi_date, flag")
+    .eq("employee_id", profile.id)
+    .gte("kpi_date", addDaysToDateString(today, -29))
+    .lte("kpi_date", today)
+    .order("kpi_date", { ascending: true });
+
+  const flagSnapshots = (snapshotRows ?? []) as Pick<
+    Tables<"daily_kpi_snapshots">,
+    "kpi_date" | "flag"
+  >[];
 
   const tasks = (data ?? []) as Tables<"tasks">[];
   const total = tasks.length;
@@ -104,6 +118,16 @@ export default async function EmployeeDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Last 30 days</CardTitle>
+          <CardDescription>Your daily KPI flags</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <KpiFlagGrid snapshots={flagSnapshots} endDate={today} days={30} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
