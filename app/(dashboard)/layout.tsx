@@ -22,7 +22,7 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-3">
             <MobileNav role={profile.role} />
             <Link href="/" className="font-semibold tracking-tight">
-              KPI System
+              AQUEOUSS - KPI System
             </Link>
           </div>
           <div className="flex items-center gap-3">

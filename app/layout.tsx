@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KPI System",
+  title: "AQUEOUSS - KPI System",
   description: "Internal KPI and Performance Management System",
 };
 
