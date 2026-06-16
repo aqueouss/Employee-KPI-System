@@ -236,7 +236,16 @@ export default async function EmployeeDetailPage({
                     <TableCell className="whitespace-nowrap text-muted-foreground">
                       {formatDateLabel(task.task_date)}
                     </TableCell>
-                    <TableCell className="font-medium">{task.title}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        {task.title}
+                        {task.period !== "daily" ? (
+                          <Badge variant="outline" className="capitalize">
+                            {task.period}
+                          </Badge>
+                        ) : null}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={TASK_STATUS_META[task.status].variant}>
                         {TASK_STATUS_META[task.status].label}

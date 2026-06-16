@@ -4,6 +4,13 @@ const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format.");
 
+export const taskPeriodEnum = z.enum([
+  "daily",
+  "weekly",
+  "monthly",
+  "quarterly",
+]);
+
 export const createTaskSchema = z.object({
   title: z
     .string()
@@ -11,6 +18,7 @@ export const createTaskSchema = z.object({
     .min(1, "Task title is required.")
     .max(200, "Task title is too long."),
   task_date: dateString,
+  period: taskPeriodEnum.default("daily"),
 });
 
 export const updateTaskSchema = z.object({

@@ -66,6 +66,51 @@ export function startOfMonthDateString(value: string): string {
   return `${value.slice(0, 7)}-01`;
 }
 
+/** First day of the quarter containing the given YYYY-MM-DD date. */
+export function startOfQuarterDateString(value: string): string {
+  const year = value.slice(0, 4);
+  const month = Number(value.slice(5, 7));
+  const quarterStartMonth = Math.floor((month - 1) / 3) * 3 + 1;
+  return `${year}-${String(quarterStartMonth).padStart(2, "0")}-01`;
+}
+
+export type TaskPeriod = "daily" | "weekly" | "monthly" | "quarterly";
+
+/** The period-start date (used as task_date) for a given period and reference day. */
+export function periodStartDate(period: TaskPeriod, value: string): string {
+  switch (period) {
+    case "weekly":
+      return startOfWeekDateString(value);
+    case "monthly":
+      return startOfMonthDateString(value);
+    case "quarterly":
+      return startOfQuarterDateString(value);
+    default:
+      return value;
+  }
+}
+
+/** Human label for a period's current window, e.g. "Week of Mon, Jun 16, 2026". */
+export function periodLabel(period: TaskPeriod, startValue: string): string {
+  switch (period) {
+    case "weekly":
+      return `Week of ${formatDateLabel(startValue)}`;
+    case "monthly":
+      return new Date(`${startValue}T00:00:00Z`).toLocaleDateString(undefined, {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+    case "quarterly": {
+      const m = Number(startValue.slice(5, 7));
+      const q = Math.floor((m - 1) / 3) + 1;
+      return `Q${q} ${startValue.slice(0, 4)}`;
+    }
+    default:
+      return formatDateLabel(startValue);
+  }
+}
+
 /** Human-friendly label, e.g. "Mon, Jun 12, 2026". */
 export function formatDateLabel(value: string): string {
   const d = new Date(`${value}T00:00:00Z`);

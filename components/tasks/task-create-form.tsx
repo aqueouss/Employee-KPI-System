@@ -9,7 +9,15 @@ import { Input } from "@/components/ui/input";
 
 const initialState: TaskActionState = {};
 
-export function TaskCreateForm({ taskDate }: { taskDate: string }) {
+export function TaskCreateForm({
+  taskDate,
+  period = "daily",
+  placeholder = "Add a task for this day...",
+}: {
+  taskDate: string;
+  period?: "daily" | "weekly" | "monthly" | "quarterly";
+  placeholder?: string;
+}) {
   const [state, formAction, isPending] = useActionState(
     createTaskAction,
     initialState,
@@ -25,10 +33,11 @@ export function TaskCreateForm({ taskDate }: { taskDate: string }) {
   return (
     <form ref={formRef} action={formAction} className="space-y-2">
       <input type="hidden" name="task_date" value={taskDate} />
+      <input type="hidden" name="period" value={period} />
       <div className="flex gap-2">
         <Input
           name="title"
-          placeholder="Add a task for this day..."
+          placeholder={placeholder}
           required
           maxLength={200}
           autoComplete="off"

@@ -28,6 +28,7 @@ export default async function EmployeeDashboardPage() {
     .select("*")
     .eq("employee_id", profile.id)
     .eq("task_date", today)
+    .eq("period", "daily")
     .order("created_at", { ascending: true });
 
   const { data: snapshotRows } = await supabase

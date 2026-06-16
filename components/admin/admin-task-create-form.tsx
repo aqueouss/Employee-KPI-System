@@ -32,7 +32,7 @@ export function AdminTaskCreateForm({
   return (
     <form ref={formRef} action={formAction} className="space-y-3">
       <input type="hidden" name="employee_id" value={employeeId} />
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
         <div className="space-y-1.5">
           <Label htmlFor="admin-task-title">Task title</Label>
           <Input
@@ -44,7 +44,21 @@ export function AdminTaskCreateForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="admin-task-date">Date</Label>
+          <Label htmlFor="admin-task-period">Period</Label>
+          <select
+            id="admin-task-period"
+            name="period"
+            defaultValue="daily"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="admin-task-date">Date (daily only)</Label>
           <Input
             id="admin-task-date"
             name="task_date"

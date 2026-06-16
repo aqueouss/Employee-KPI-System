@@ -2,8 +2,9 @@ import Link from "next/link";
 
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateLabel } from "@/lib/utils/dates";
+import { formatDateLabel, periodLabel } from "@/lib/utils/dates";
 import { TaskReviewControls } from "@/components/admin/task-review-controls";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -80,9 +81,20 @@ export default async function AdminApprovalsPage() {
                   className="flex flex-col gap-2 rounded-md border px-3 py-3 lg:flex-row lg:items-center lg:justify-between"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{task.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium">
+                        {task.title}
+                      </p>
+                      {task.period !== "daily" ? (
+                        <Badge variant="outline" className="capitalize">
+                          {task.period}
+                        </Badge>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      {formatDateLabel(task.task_date)}
+                      {task.period === "daily"
+                        ? formatDateLabel(task.task_date)
+                        : periodLabel(task.period, task.task_date)}
                       {task.submitted_at
                         ? ` · submitted ${new Date(task.submitted_at).toLocaleString()}`
                         : ""}

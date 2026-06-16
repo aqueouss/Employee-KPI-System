@@ -242,6 +242,7 @@ export type Database = {
           created_at: string
           employee_id: string
           id: string
+          period: Database["public"]["Enums"]["task_period"]
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -256,6 +257,7 @@ export type Database = {
           created_at?: string
           employee_id: string
           id?: string
+          period?: Database["public"]["Enums"]["task_period"]
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -270,6 +272,7 @@ export type Database = {
           created_at?: string
           employee_id?: string
           id?: string
+          period?: Database["public"]["Enums"]["task_period"]
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -434,6 +437,7 @@ export type Database = {
       kpi_flag: "green" | "yellow" | "red" | "no_tasks"
       review_status: "eligible" | "under_review" | "resolved"
       reward_status: "eligible" | "issued" | "declined"
+      task_period: "daily" | "weekly" | "monthly" | "quarterly"
       task_status: "pending" | "completed" | "submitted" | "rejected"
       termination_status: "none" | "eligible" | "under_review" | "resolved"
       user_role: "admin" | "employee"
@@ -568,6 +572,7 @@ export const Constants = {
       kpi_flag: ["green", "yellow", "red", "no_tasks"],
       review_status: ["eligible", "under_review", "resolved"],
       reward_status: ["eligible", "issued", "declined"],
+      task_period: ["daily", "weekly", "monthly", "quarterly"],
       task_status: ["pending", "completed", "submitted", "rejected"],
       termination_status: ["none", "eligible", "under_review", "resolved"],
       user_role: ["admin", "employee"],

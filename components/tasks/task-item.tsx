@@ -149,6 +149,11 @@ export function TaskItem({
             >
               {task.title}
             </span>
+            {task.period !== "daily" ? (
+              <Badge variant="outline" className="capitalize">
+                {task.period}
+              </Badge>
+            ) : null}
             <Badge variant={meta.variant}>{meta.label}</Badge>
             {canEdit || canDelete ? (
               <div className="flex items-center gap-1">

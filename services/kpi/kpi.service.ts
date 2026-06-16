@@ -40,7 +40,8 @@ export async function upsertDailySnapshot(
     .from("tasks")
     .select("status")
     .eq("employee_id", employeeId)
-    .eq("task_date", date);
+    .eq("task_date", date)
+    .eq("period", "daily");
 
   if (error) {
     throw new Error(`Failed to load tasks: ${error.message}`);

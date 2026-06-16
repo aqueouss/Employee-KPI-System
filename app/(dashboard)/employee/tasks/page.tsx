@@ -4,6 +4,9 @@ import {
   getTodayDateString,
   isEditableDate,
   parseDateString,
+  periodStartDate,
+  periodLabel,
+  type TaskPeriod,
 } from "@/lib/utils/dates";
 import { DateNavigator } from "@/components/tasks/date-navigator";
 import { TaskCreateForm } from "@/components/tasks/task-create-form";
@@ -17,6 +20,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Tables } from "@/types/database.types";
+
+const NON_DAILY: { period: TaskPeriod; title: string; placeholder: string }[] = [
+  { period: "weekly", title: "Weekly tasks", placeholder: "Add a weekly task..." },
+  {
+    period: "monthly",
+    title: "Monthly tasks",
+    placeholder: "Add a monthly task...",
+  },
+  {
+    period: "quarterly",
+    title: "Quarterly tasks",
+    placeholder: "Add a quarterly task...",
+  },
+];
 
 export default async function EmployeeTasksPage({
   searchParams,
@@ -35,6 +52,7 @@ export default async function EmployeeTasksPage({
     .select("*")
     .eq("employee_id", profile.id)
     .eq("task_date", date)
+    .eq("period", "daily")
     .order("created_at", { ascending: true });
 
   const tasks = (data ?? []) as Tables<"tasks">[];
@@ -43,12 +61,27 @@ export default async function EmployeeTasksPage({
   const submitted = tasks.filter((t) => t.status === "submitted").length;
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
+  // Current-period non-daily tasks.
+  const periodStarts = Object.fromEntries(
+    NON_DAILY.map((n) => [n.period, periodStartDate(n.period, today)]),
+  ) as Record<TaskPeriod, string>;
+
+  const { data: nonDailyData } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("employee_id", profile.id)
+    .in("period", ["weekly", "monthly", "quarterly"])
+    .in("task_date", Object.values(periodStarts))
+    .order("created_at", { ascending: true });
+
+  const nonDailyTasks = (nonDailyData ?? []) as Tables<"tasks">[];
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
         <p className="text-muted-foreground">
-          Plan your day and check off what you complete.
+          Plan your work across daily, weekly, monthly, and quarterly goals.
         </p>
       </div>
 
@@ -62,7 +95,7 @@ export default async function EmployeeTasksPage({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Completion</CardTitle>
+              <CardTitle>Daily completion</CardTitle>
               <CardDescription>
                 {completed} of {total} approved
                 {submitted > 0 ? ` · ${submitted} awaiting approval` : ""}
@@ -98,7 +131,7 @@ export default async function EmployeeTasksPage({
       <div className="space-y-2">
         {tasks.length === 0 ? (
           <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
-            No tasks for this day.
+            No daily tasks for this day.
           </div>
         ) : (
           tasks.map((task) => (
@@ -106,6 +139,39 @@ export default async function EmployeeTasksPage({
           ))
         )}
       </div>
+
+      {NON_DAILY.map(({ period, title, placeholder }) => {
+        const start = periodStarts[period];
+        const items = nonDailyTasks.filter(
+          (t) => t.period === period && t.task_date === start,
+        );
+        return (
+          <Card key={period}>
+            <CardHeader>
+              <CardTitle>{title}</CardTitle>
+              <CardDescription>{periodLabel(period, start)}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <TaskCreateForm
+                taskDate={start}
+                period={period}
+                placeholder={placeholder}
+              />
+              <div className="space-y-2">
+                {items.length === 0 ? (
+                  <div className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">
+                    No {period} tasks yet.
+                  </div>
+                ) : (
+                  items.map((task) => (
+                    <TaskItem key={task.id} task={task} editable />
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
