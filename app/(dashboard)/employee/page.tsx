@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString } from "@/lib/utils/dates";
 import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
+import { SuggestionsCard } from "@/components/tasks/suggestions-card";
 import { TaskCreateForm } from "@/components/tasks/task-create-form";
 import { TaskItem } from "@/components/tasks/task-item";
 import { Badge } from "@/components/ui/badge";
@@ -23,22 +24,33 @@ export default async function EmployeeDashboardPage() {
   const today = getTodayDateString();
 
   const supabase = await createClient();
-  const [{ data }, { data: snapshotRows }] = await Promise.all([
-    supabase
-      .from("tasks")
-      .select("*")
-      .eq("employee_id", profile.id)
-      .eq("task_date", today)
-      .eq("period", "daily")
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("daily_kpi_snapshots")
-      .select("kpi_date, flag")
-      .eq("employee_id", profile.id)
-      .gte("kpi_date", addDaysToDateString(today, -29))
-      .lte("kpi_date", today)
-      .order("kpi_date", { ascending: true }),
-  ]);
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }] =
+    await Promise.all([
+      supabase
+        .from("tasks")
+        .select("*")
+        .eq("employee_id", profile.id)
+        .eq("task_date", today)
+        .eq("period", "daily")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("daily_kpi_snapshots")
+        .select("kpi_date, flag")
+        .eq("employee_id", profile.id)
+        .gte("kpi_date", addDaysToDateString(today, -29))
+        .lte("kpi_date", today)
+        .order("kpi_date", { ascending: true }),
+      supabase
+        .from("task_suggestions")
+        .select("id, title")
+        .eq("employee_id", profile.id)
+        .order("created_at", { ascending: true }),
+    ]);
+
+  const suggestions = (suggestionRows ?? []) as {
+    id: string;
+    title: string;
+  }[];
 
   const flagSnapshots = (snapshotRows ?? []) as Pick<
     Tables<"daily_kpi_snapshots">,
@@ -130,6 +142,8 @@ export default async function EmployeeDashboardPage() {
           <KpiFlagGrid snapshots={flagSnapshots} endDate={today} days={30} />
         </CardContent>
       </Card>
+
+      <SuggestionsCard suggestions={suggestions} />
 
       <Card>
         <CardHeader>
