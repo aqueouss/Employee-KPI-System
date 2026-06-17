@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import {
+  ReminderDeleteButton,
   ReminderReopenButton,
   ReminderResolveControls,
 } from "@/components/reminders/reminder-actions";
@@ -66,12 +67,13 @@ export default async function AdminRemindersPage() {
             </p>
           ) : null}
         </div>
-        <div className="shrink-0">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
           {r.status === "open" ? (
             <ReminderResolveControls id={r.id} />
           ) : (
             <ReminderReopenButton id={r.id} />
           )}
+          <ReminderDeleteButton id={r.id} />
         </div>
       </div>
     </div>

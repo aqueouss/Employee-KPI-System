@@ -53,6 +53,19 @@ export function AddEmployeeForm() {
         </p>
       </div>
       <div className="space-y-2">
+        <Label htmlFor="job_designation">Job designation</Label>
+        <Input
+          id="job_designation"
+          name="job_designation"
+          maxLength={120}
+          placeholder="e.g. Frontend Engineer"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="hire_date">Hire date</Label>
+        <Input id="hire_date" name="hire_date" type="date" />
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="role">Role</Label>
         <select
           id="role"

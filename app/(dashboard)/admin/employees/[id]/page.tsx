@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateLabel } from "@/lib/utils/dates";
 import { AdminTaskCreateForm } from "@/components/admin/admin-task-create-form";
 import { AdminTaskDeleteButton } from "@/components/admin/admin-task-delete-button";
+import { EmployeeDetailsForm } from "@/components/admin/employee-details-form";
 import { FlagBadge } from "@/components/kpi/flag-badge";
 import { getTodayDateString } from "@/lib/utils/dates";
 import { RewardStatusBadge } from "@/components/rewards/reward-status-badge";
@@ -123,7 +124,37 @@ export default async function EmployeeDetailPage({
           </Badge>
         </div>
         <p className="text-muted-foreground">{profile.email}</p>
+        <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+          <span>
+            Designation:{" "}
+            <span className="text-foreground">
+              {profile.job_designation || "—"}
+            </span>
+          </span>
+          <span>
+            Hire date:{" "}
+            <span className="text-foreground">
+              {profile.hire_date ? formatDateLabel(profile.hire_date) : "—"}
+            </span>
+          </span>
+        </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Employee details</CardTitle>
+          <CardDescription>
+            Job designation and hire date (admin only).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmployeeDetailsForm
+            employeeId={profile.id}
+            hireDate={profile.hire_date}
+            jobDesignation={profile.job_designation}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>

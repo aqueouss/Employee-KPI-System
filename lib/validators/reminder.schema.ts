@@ -14,6 +14,10 @@ export const createReminderSchema = z.object({
     .or(z.literal("")),
 });
 
+export const updateReminderSchema = createReminderSchema.extend({
+  id: z.string().uuid("Invalid reminder id."),
+});
+
 export const reminderIdSchema = z.object({
   id: z.string().uuid("Invalid reminder id."),
 });

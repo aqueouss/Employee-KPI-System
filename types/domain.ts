@@ -24,6 +24,7 @@ export type Profile = {
   is_active: boolean;
   termination_review_status: TerminationStatus;
   hire_date: string | null;
+  job_designation: string | null;
   created_at: string;
   updated_at: string;
 };

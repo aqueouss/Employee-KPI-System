@@ -56,6 +56,12 @@ export default async function ProfilePage() {
               </Badge>
             </div>
             <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Designation</span>
+              <span className="font-medium">
+                {profile.job_designation || "—"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Hire date</span>
               <span className="font-medium">{formatDate(profile.hire_date)}</span>
             </div>

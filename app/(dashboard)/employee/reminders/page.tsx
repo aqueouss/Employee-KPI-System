@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { ReminderDeleteButton } from "@/components/reminders/reminder-actions";
+import { ReminderEditControls } from "@/components/reminders/reminder-actions";
 import { ReminderForm } from "@/components/reminders/reminder-form";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -81,7 +81,11 @@ export default async function EmployeeRemindersPage() {
                     ) : null}
                   </div>
                   {r.status === "open" ? (
-                    <ReminderDeleteButton id={r.id} />
+                    <ReminderEditControls
+                      id={r.id}
+                      title={r.title}
+                      details={r.details}
+                    />
                   ) : null}
                 </div>
               </div>
