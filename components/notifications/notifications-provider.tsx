@@ -35,6 +35,7 @@ const MESSAGES: Record<string, string> = {
   warnings: "A new warning was issued",
   reviews: "A termination review needs attention",
   rewards: "An employee is eligible for a reward",
+  reminders: "An employee raised a reminder / blocker",
   newTasks: "An admin assigned you a new task",
 };
 

@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   Gauge,
   Gavel,
+  MessageSquareWarning,
   ScrollText,
   Trophy,
   UserCircle,
@@ -52,6 +53,12 @@ const adminNav: NavItem[] = [
     badgeKey: "reviews",
   },
   { href: "/admin/rewards", label: "Rewards", icon: Award, badgeKey: "rewards" },
+  {
+    href: "/admin/reminders",
+    label: "Reminders",
+    icon: MessageSquareWarning,
+    badgeKey: "reminders",
+  },
   { href: "/admin/kpi-rules", label: "KPI Rules", icon: SlidersHorizontal },
   { href: "/admin/activity", label: "Activity", icon: ScrollText },
 ];
@@ -69,6 +76,11 @@ const employeeNav: NavItem[] = [
     label: "Tasks",
     icon: ClipboardList,
     badgeKey: "newTasks",
+  },
+  {
+    href: "/employee/reminders",
+    label: "Reminders",
+    icon: MessageSquareWarning,
   },
   { href: "/employee/kpi", label: "KPI", icon: Gauge },
   { href: "/employee/rewards", label: "Rewards", icon: Award },

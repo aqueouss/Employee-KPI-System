@@ -185,6 +185,60 @@ export type Database = {
         }
         Relationships: []
       }
+      reminders: {
+        Row: {
+          created_at: string
+          details: string | null
+          employee_id: string
+          id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["reminder_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          employee_id: string
+          id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          employee_id?: string
+          id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["reminder_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rewards: {
         Row: {
           eligible_at: string
@@ -473,6 +527,7 @@ export type Database = {
     }
     Enums: {
       kpi_flag: "green" | "yellow" | "red" | "no_tasks"
+      reminder_status: "open" | "resolved"
       review_status: "eligible" | "under_review" | "resolved"
       reward_status: "eligible" | "issued" | "declined"
       task_period: "daily" | "weekly" | "monthly" | "quarterly"
@@ -609,6 +664,7 @@ export const Constants = {
     Enums: {
       kpi_flag: ["green", "yellow", "red", "no_tasks"],
       review_status: ["eligible", "under_review", "resolved"],
+      reminder_status: ["open", "resolved"],
       reward_status: ["eligible", "issued", "declined"],
       task_period: ["daily", "weekly", "monthly", "quarterly"],
       task_status: ["pending", "completed", "submitted", "rejected"],
