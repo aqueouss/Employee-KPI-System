@@ -251,8 +251,10 @@ export async function reviewTaskAction(
   const approve = parsed.data.decision === "approve";
 
   if (approve) {
-    if (task.status !== "submitted") {
-      return { error: "Only submitted tasks can be approved." };
+    if (task.status !== "submitted" && task.status !== "pending") {
+      return {
+        error: "Only pending or submitted tasks can be approved.",
+      };
     }
   } else if (task.status !== "submitted" && task.status !== "completed") {
     return {
@@ -262,6 +264,7 @@ export async function reviewTaskAction(
 
   const now = new Date().toISOString();
   const wasApproved = task.status === "completed";
+  const directApproval = approve && task.status === "pending";
 
   const { error } = await supabase
     .from("tasks")
@@ -279,7 +282,9 @@ export async function reviewTaskAction(
   await supabase.from("audit_logs").insert({
     actor_id: profile.id,
     action: approve
-      ? "task.approved"
+      ? directApproval
+        ? "task.approved_directly"
+        : "task.approved"
       : wasApproved
         ? "task.approval_revoked"
         : "task.rejected",

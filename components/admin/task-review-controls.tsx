@@ -59,6 +59,40 @@ export function TaskReviewControls({ taskId }: { taskId: string }) {
   );
 }
 
+export function TaskDirectApproveControls({ taskId }: { taskId: string }) {
+  const [isPending, startTransition] = useTransition();
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function approve() {
+    setError(null);
+    startTransition(async () => {
+      const res = await reviewTaskAction(taskId, "approve", note.trim());
+      if (res.error) setError(res.error);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Optional note"
+        maxLength={500}
+        className="h-9 sm:w-48"
+        disabled={isPending}
+      />
+      <Button type="button" size="sm" onClick={approve} disabled={isPending}>
+        <Check className="mr-1 h-4 w-4" />
+        Approve directly
+      </Button>
+      {error ? (
+        <span className="text-xs text-destructive">{error}</span>
+      ) : null}
+    </div>
+  );
+}
+
 export function TaskRevokeControls({ taskId }: { taskId: string }) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState("");
