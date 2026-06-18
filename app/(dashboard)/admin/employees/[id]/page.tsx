@@ -8,6 +8,10 @@ import { formatDateLabel } from "@/lib/utils/dates";
 import { AdminTaskCreateForm } from "@/components/admin/admin-task-create-form";
 import { AdminTaskDeleteButton } from "@/components/admin/admin-task-delete-button";
 import { EmployeeDetailsForm } from "@/components/admin/employee-details-form";
+import {
+  TaskReviewControls,
+  TaskRevokeControls,
+} from "@/components/admin/task-review-controls";
 import { FlagBadge } from "@/components/kpi/flag-badge";
 import { getTodayDateString } from "@/lib/utils/dates";
 import { RewardStatusBadge } from "@/components/rewards/reward-status-badge";
@@ -241,8 +245,9 @@ export default async function EmployeeDetailPage({
         <CardHeader>
           <CardTitle>Tasks</CardTitle>
           <CardDescription>
-            Most recent 50 tasks. Admins can delete any task, including approved
-            ones; the day&apos;s KPI snapshot is recomputed automatically.
+            Most recent 50 tasks. Approve pending tasks anytime — KPI for that
+            day updates when you approve, even on a later date. You can also
+            revoke a previously approved task.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -283,7 +288,13 @@ export default async function EmployeeDetailPage({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end">
+                      <div className="flex flex-col items-end gap-2">
+                        {task.status === "submitted" ? (
+                          <TaskReviewControls taskId={task.id} />
+                        ) : null}
+                        {task.status === "completed" ? (
+                          <TaskRevokeControls taskId={task.id} />
+                        ) : null}
                         <AdminTaskDeleteButton taskId={task.id} />
                       </div>
                     </TableCell>

@@ -35,6 +35,22 @@ function revalidateApprovalViews() {
   revalidatePath("/admin");
 }
 
+/** Recompute the daily KPI snapshot for a task's date after approval changes. */
+async function recomputeDailyKpiSnapshot(
+  employeeId: string,
+  taskDate: string,
+  period: TaskPeriod,
+) {
+  if (period !== "daily") return;
+  try {
+    const admin = createAdminClient();
+    const rules = await getKpiRules(admin);
+    await upsertDailySnapshot(admin, employeeId, taskDate, rules);
+  } catch {
+    // Best-effort; the nightly pipeline will reconcile.
+  }
+}
+
 /**
  * Whether an employee may still modify a task. Daily tasks are editable today
  * or in the future; weekly/monthly/quarterly tasks are editable while they
@@ -226,17 +242,26 @@ export async function reviewTaskAction(
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("status")
+    .select("status, employee_id, task_date, period")
     .eq("id", parsed.data.id)
     .single();
 
   if (fetchError || !task) return { error: "Task not found." };
-  if (task.status !== "submitted") {
-    return { error: "Only submitted tasks can be reviewed." };
-  }
 
   const approve = parsed.data.decision === "approve";
+
+  if (approve) {
+    if (task.status !== "submitted") {
+      return { error: "Only submitted tasks can be approved." };
+    }
+  } else if (task.status !== "submitted" && task.status !== "completed") {
+    return {
+      error: "Only submitted or approved tasks can be rejected.",
+    };
+  }
+
   const now = new Date().toISOString();
+  const wasApproved = task.status === "completed";
 
   const { error } = await supabase
     .from("tasks")
@@ -253,14 +278,27 @@ export async function reviewTaskAction(
 
   await supabase.from("audit_logs").insert({
     actor_id: profile.id,
-    action: approve ? "task.approved" : "task.rejected",
+    action: approve
+      ? "task.approved"
+      : wasApproved
+        ? "task.approval_revoked"
+        : "task.rejected",
     entity_type: "task",
     entity_id: parsed.data.id,
     metadata: parsed.data.note ? { note: parsed.data.note } : {},
   });
 
+  await recomputeDailyKpiSnapshot(
+    task.employee_id,
+    task.task_date,
+    task.period,
+  );
+
   revalidateApprovalViews();
   revalidateTaskViews();
+  revalidatePath("/employee/kpi");
+  revalidatePath("/rankings");
+  revalidatePath(`/admin/employees/${task.employee_id}`);
   return { success: true };
 }
 
@@ -373,7 +411,7 @@ export async function adminDeleteTaskAction(
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("employee_id, task_date")
+    .select("employee_id, task_date, period")
     .eq("id", parsed.data.id)
     .single();
 
@@ -394,24 +432,11 @@ export async function adminDeleteTaskAction(
     metadata: { employee_id: task.employee_id, task_date: task.task_date },
   });
 
-  // Recompute the finalized snapshot for that day (if one exists) so KPI
-  // history reflects the deletion. Uses the service-role client.
-  try {
-    const admin = createAdminClient();
-    const { data: snapshot } = await admin
-      .from("daily_kpi_snapshots")
-      .select("id")
-      .eq("employee_id", task.employee_id)
-      .eq("kpi_date", task.task_date)
-      .maybeSingle();
-
-    if (snapshot) {
-      const rules = await getKpiRules(admin);
-      await upsertDailySnapshot(admin, task.employee_id, task.task_date, rules);
-    }
-  } catch {
-    // Snapshot recompute is best-effort; the daily pipeline will reconcile.
-  }
+  await recomputeDailyKpiSnapshot(
+    task.employee_id,
+    task.task_date,
+    task.period,
+  );
 
   revalidateTaskViews();
   revalidateApprovalViews();

@@ -58,3 +58,44 @@ export function TaskReviewControls({ taskId }: { taskId: string }) {
     </div>
   );
 }
+
+export function TaskRevokeControls({ taskId }: { taskId: string }) {
+  const [isPending, startTransition] = useTransition();
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function revoke() {
+    setError(null);
+    startTransition(async () => {
+      const res = await reviewTaskAction(taskId, "reject", note.trim());
+      if (res.error) setError(res.error);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <Input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Reason for revoking approval"
+        maxLength={500}
+        className="h-9 sm:w-48"
+        disabled={isPending}
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="text-destructive hover:text-destructive"
+        onClick={revoke}
+        disabled={isPending}
+      >
+        <X className="mr-1 h-4 w-4" />
+        Revoke approval
+      </Button>
+      {error ? (
+        <span className="text-xs text-destructive">{error}</span>
+      ) : null}
+    </div>
+  );
+}

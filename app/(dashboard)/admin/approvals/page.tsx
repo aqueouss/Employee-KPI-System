@@ -46,8 +46,9 @@ export default async function AdminApprovalsPage() {
           Task Approvals
         </h1>
         <p className="text-muted-foreground">
-          Review tasks employees marked as done. Approved tasks count toward KPI;
-          rejected tasks do not.
+          Review tasks employees marked as done. You can approve anytime — even
+          days later — and the KPI for that task&apos;s date will update. You
+          can also revoke a previously approved task.
         </p>
       </div>
 
