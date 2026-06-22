@@ -8,11 +8,13 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getTodayDateString,
   isEditableDate,
+  isTaskEditableNow,
   periodStartDate,
   type TaskPeriod,
 } from "@/lib/utils/dates";
 import { getKpiRules, upsertDailySnapshot } from "@/services/kpi/kpi.service";
 import {
+  adminCreateTaskSchema,
   createTaskSchema,
   deleteTaskSchema,
   reviewTaskSchema,
@@ -51,20 +53,6 @@ async function recomputeDailyKpiSnapshot(
   }
 }
 
-/**
- * Whether an employee may still modify a task. Daily tasks are editable today
- * or in the future; weekly/monthly/quarterly tasks are editable while they
- * belong to the current period.
- */
-function isTaskEditableNow(
-  period: TaskPeriod,
-  taskDate: string,
-  today: string,
-): boolean {
-  if (period === "daily") return isEditableDate(taskDate, today);
-  return taskDate === periodStartDate(period, today);
-}
-
 export async function createTaskAction(
   _prevState: TaskActionState,
   formData: FormData,
@@ -83,6 +71,11 @@ export async function createTaskAction(
 
   const today = getTodayDateString();
   const period = parsed.data.period;
+
+  if (period === "custom") {
+    return { error: "Custom tasks can only be added by an admin." };
+  }
+
   // Non-daily tasks are auto-assigned to the current period's start date.
   const taskDate =
     period === "daily"
@@ -121,26 +114,33 @@ export async function adminCreateTaskAction(
     return { error: "Invalid employee." };
   }
 
-  const parsed = createTaskSchema.safeParse({
+  const parsed = adminCreateTaskSchema.safeParse({
     title: formData.get("title"),
     task_date: formData.get("task_date"),
     period: formData.get("period") ?? "daily",
+    due_date: formData.get("due_date") ?? "",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   const period = parsed.data.period;
+  const today = getTodayDateString();
   const taskDate =
-    period === "daily"
+    period === "daily" || period === "custom"
       ? parsed.data.task_date
-      : periodStartDate(period, getTodayDateString());
+      : periodStartDate(period, today);
+  const dueDate =
+    period === "custom" && parsed.data.due_date
+      ? parsed.data.due_date
+      : null;
 
   const supabase = await createClient();
   const { error } = await supabase.from("tasks").insert({
     employee_id: employeeId,
     title: parsed.data.title,
     task_date: taskDate,
+    due_date: dueDate,
     period,
     created_by_admin: true,
     seen_by_employee: false,
@@ -153,7 +153,12 @@ export async function adminCreateTaskAction(
     action: "task.created_by_admin",
     entity_type: "task",
     entity_id: null,
-    metadata: { employee_id: employeeId, task_date: taskDate, period },
+    metadata: {
+      employee_id: employeeId,
+      task_date: taskDate,
+      due_date: dueDate,
+      period,
+    },
   });
 
   revalidateTaskViews();
@@ -182,7 +187,7 @@ export async function toggleTaskAction(
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("task_date, employee_id, status, period")
+    .select("task_date, employee_id, status, period, due_date")
     .eq("id", parsed.data.id)
     .single();
 
@@ -190,7 +195,7 @@ export async function toggleTaskAction(
   if (task.employee_id !== profile.id) return { error: "Forbidden." };
 
   const today = getTodayDateString();
-  if (!isTaskEditableNow(task.period, task.task_date, today)) {
+  if (!isTaskEditableNow(task.period, task.task_date, today, task.due_date)) {
     return { error: "Past tasks are locked." };
   }
 
@@ -323,7 +328,7 @@ export async function updateTaskAction(
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("task_date, employee_id, status, period")
+    .select("task_date, employee_id, status, period, due_date")
     .eq("id", parsed.data.id)
     .single();
 
@@ -331,7 +336,7 @@ export async function updateTaskAction(
   if (task.employee_id !== profile.id) return { error: "Forbidden." };
 
   const today = getTodayDateString();
-  if (!isTaskEditableNow(task.period, task.task_date, today)) {
+  if (!isTaskEditableNow(task.period, task.task_date, today, task.due_date)) {
     return { error: "Past tasks are locked." };
   }
 
@@ -366,7 +371,7 @@ export async function deleteTaskAction(id: string): Promise<TaskActionState> {
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("task_date, employee_id, status, period")
+    .select("task_date, employee_id, status, period, due_date")
     .eq("id", parsed.data.id)
     .single();
 
@@ -374,7 +379,7 @@ export async function deleteTaskAction(id: string): Promise<TaskActionState> {
   if (task.employee_id !== profile.id) return { error: "Forbidden." };
 
   const today = getTodayDateString();
-  if (!isTaskEditableNow(task.period, task.task_date, today)) {
+  if (!isTaskEditableNow(task.period, task.task_date, today, task.due_date)) {
     return { error: "Past tasks are locked." };
   }
 

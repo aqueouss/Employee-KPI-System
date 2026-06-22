@@ -9,6 +9,7 @@ export const taskPeriodEnum = z.enum([
   "weekly",
   "monthly",
   "quarterly",
+  "custom",
 ]);
 
 export const createTaskSchema = z.object({
@@ -19,7 +20,34 @@ export const createTaskSchema = z.object({
     .max(200, "Task title is too long."),
   task_date: dateString,
   period: taskPeriodEnum.default("daily"),
+  due_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format.")
+    .optional()
+    .or(z.literal("")),
 });
+
+export const adminCreateTaskSchema = createTaskSchema.superRefine(
+  (data, ctx) => {
+    if (data.period === "custom") {
+      if (!data.due_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Custom tasks require a due date.",
+          path: ["due_date"],
+        });
+        return;
+      }
+      if (data.due_date < data.task_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Due date must be on or after the start date.",
+          path: ["due_date"],
+        });
+      }
+    }
+  },
+);
 
 export const updateTaskSchema = z.object({
   id: z.string().uuid("Invalid task id."),

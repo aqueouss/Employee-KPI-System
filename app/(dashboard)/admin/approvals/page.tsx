@@ -80,23 +80,30 @@ export default async function AdminApprovalsPage() {
               {employeeTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex flex-col gap-2 rounded-md border px-3 py-3 lg:flex-row lg:items-center lg:justify-between"
+                  className="space-y-3 rounded-md border px-4 py-4"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <p className="min-w-0 flex-1 break-words text-sm font-medium leading-snug">
                         {task.title}
                       </p>
                       {task.period !== "daily" ? (
-                        <Badge variant="outline" className="capitalize">
+                        <Badge
+                          variant="outline"
+                          className="shrink-0 capitalize"
+                        >
                           {task.period}
                         </Badge>
                       ) : null}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="break-words text-xs text-muted-foreground">
                       {task.period === "daily"
                         ? formatDateLabel(task.task_date)
-                        : periodLabel(task.period, task.task_date)}
+                        : periodLabel(
+                            task.period,
+                            task.task_date,
+                            task.due_date,
+                          )}
                       {task.submitted_at
                         ? ` · submitted ${new Date(task.submitted_at).toLocaleString()}`
                         : ""}

@@ -74,7 +74,60 @@ export function startOfQuarterDateString(value: string): string {
   return `${year}-${String(quarterStartMonth).padStart(2, "0")}-01`;
 }
 
-export type TaskPeriod = "daily" | "weekly" | "monthly" | "quarterly";
+export type TaskPeriod = "daily" | "weekly" | "monthly" | "quarterly" | "custom";
+
+/** Last day of the month containing the given YYYY-MM-DD date. */
+export function endOfMonthDateString(value: string): string {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return `${value.slice(0, 7)}-${String(lastDay).padStart(2, "0")}`;
+}
+
+/** Last day of the quarter containing the given YYYY-MM-DD date. */
+export function endOfQuarterDateString(value: string): string {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const endMonth = Math.floor((month - 1) / 3) * 3 + 3;
+  const lastDay = new Date(Date.UTC(year, endMonth, 0)).getUTCDate();
+  return `${year}-${String(endMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
+/** Deadline for a task (inclusive). Custom tasks use due_date; others derive from period. */
+export function taskDeadline(
+  period: TaskPeriod,
+  taskDate: string,
+  dueDate?: string | null,
+): string {
+  if (period === "custom" && dueDate) return dueDate;
+  if (period === "daily") return taskDate;
+  if (period === "weekly") return addDaysToDateString(taskDate, 6);
+  if (period === "monthly") return endOfMonthDateString(taskDate);
+  if (period === "quarterly") return endOfQuarterDateString(taskDate);
+  return taskDate;
+}
+
+/** True when today is on or before the task deadline. */
+export function isTaskWithinDeadline(
+  period: TaskPeriod,
+  taskDate: string,
+  today: string,
+  dueDate?: string | null,
+): boolean {
+  return today <= taskDeadline(period, taskDate, dueDate);
+}
+
+/** True for tasks still awaiting completion or approval before the deadline. */
+export function isOpenTask(
+  status: "pending" | "submitted" | "completed" | "rejected",
+  period: TaskPeriod,
+  taskDate: string,
+  today: string,
+  dueDate?: string | null,
+): boolean {
+  if (status !== "pending" && status !== "submitted") return false;
+  return isTaskWithinDeadline(period, taskDate, today, dueDate);
+}
 
 /** The period-start date (used as task_date) for a given period and reference day. */
 export function periodStartDate(period: TaskPeriod, value: string): string {
@@ -85,27 +138,37 @@ export function periodStartDate(period: TaskPeriod, value: string): string {
       return startOfMonthDateString(value);
     case "quarterly":
       return startOfQuarterDateString(value);
+    case "custom":
+      return value;
     default:
       return value;
   }
 }
 
-/** Human label for a period's current window, e.g. "Week of Mon, Jun 16, 2026". */
-export function periodLabel(period: TaskPeriod, startValue: string): string {
+/** Human label for a period's window or deadline. */
+export function periodLabel(
+  period: TaskPeriod,
+  startValue: string,
+  dueDate?: string | null,
+): string {
   switch (period) {
     case "weekly":
-      return `Week of ${formatDateLabel(startValue)}`;
+      return `Week of ${formatDateLabel(startValue)} · due ${formatDateLabel(addDaysToDateString(startValue, 6))}`;
     case "monthly":
-      return new Date(`${startValue}T00:00:00Z`).toLocaleDateString(undefined, {
+      return `${new Date(`${startValue}T00:00:00Z`).toLocaleDateString(undefined, {
         month: "long",
         year: "numeric",
         timeZone: "UTC",
-      });
+      })} · due ${formatDateLabel(endOfMonthDateString(startValue))}`;
     case "quarterly": {
       const m = Number(startValue.slice(5, 7));
       const q = Math.floor((m - 1) / 3) + 1;
-      return `Q${q} ${startValue.slice(0, 4)}`;
+      return `Q${q} ${startValue.slice(0, 4)} · due ${formatDateLabel(endOfQuarterDateString(startValue))}`;
     }
+    case "custom":
+      return dueDate
+        ? `${formatDateLabel(startValue)} – ${formatDateLabel(dueDate)}`
+        : formatDateLabel(startValue);
     default:
       return formatDateLabel(startValue);
   }
@@ -129,4 +192,21 @@ export function formatDateLabel(value: string): string {
  */
 export function isEditableDate(value: string, todayValue: string): boolean {
   return value >= todayValue;
+}
+
+/**
+ * Whether an employee may still modify a task before its deadline.
+ */
+export function isTaskEditableNow(
+  period: TaskPeriod,
+  taskDate: string,
+  today: string,
+  dueDate?: string | null,
+): boolean {
+  if (period === "daily") return isEditableDate(taskDate, today);
+  if (period === "custom") {
+    if (!dueDate) return false;
+    return today <= dueDate;
+  }
+  return taskDate === periodStartDate(period, today);
 }

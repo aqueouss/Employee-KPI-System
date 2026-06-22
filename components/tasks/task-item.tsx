@@ -11,6 +11,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  formatDateLabel,
+  taskDeadline,
+  periodLabel,
+} from "@/lib/utils/dates";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/types/database.types";
 
@@ -192,6 +197,16 @@ export function TaskItem({
       {status === "rejected" && task.review_note ? (
         <p className="mt-1.5 pl-8 text-xs text-destructive">
           Admin note: {task.review_note}
+        </p>
+      ) : null}
+
+      {task.period !== "daily" ? (
+        <p className="mt-1.5 pl-8 text-xs text-muted-foreground">
+          {periodLabel(task.period, task.task_date, task.due_date)}
+          {" · Due "}
+          {formatDateLabel(
+            taskDeadline(task.period, task.task_date, task.due_date),
+          )}
         </p>
       ) : null}
 

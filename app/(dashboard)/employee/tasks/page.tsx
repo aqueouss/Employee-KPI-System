@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getTodayDateString,
   isEditableDate,
+  isOpenTask,
+  isTaskEditableNow,
   parseDateString,
   periodStartDate,
   periodLabel,
@@ -21,7 +23,11 @@ import {
 } from "@/components/ui/card";
 import type { Tables } from "@/types/database.types";
 
-const NON_DAILY: { period: TaskPeriod; title: string; placeholder: string }[] = [
+const NON_DAILY: {
+  period: Exclude<TaskPeriod, "daily" | "custom">;
+  title: string;
+  placeholder: string;
+}[] = [
   { period: "weekly", title: "Weekly tasks", placeholder: "Add a weekly task..." },
   {
     period: "monthly",
@@ -73,7 +79,7 @@ export default async function EmployeeTasksPage({
   // Current-period non-daily tasks.
   const periodStarts = Object.fromEntries(
     NON_DAILY.map((n) => [n.period, periodStartDate(n.period, today)]),
-  ) as Record<TaskPeriod, string>;
+  ) as Record<Exclude<TaskPeriod, "daily" | "custom">, string>;
 
   const { data: nonDailyData } = await supabase
     .from("tasks")
@@ -83,7 +89,18 @@ export default async function EmployeeTasksPage({
     .in("task_date", Object.values(periodStarts))
     .order("created_at", { ascending: true });
 
+  const { data: customTaskData } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("employee_id", profile.id)
+    .eq("period", "custom")
+    .order("due_date", { ascending: true });
+
   const nonDailyTasks = (nonDailyData ?? []) as Tables<"tasks">[];
+  const customTasks = ((customTaskData ?? []) as Tables<"tasks">[]).filter(
+    (task) =>
+      isOpenTask(task.status, task.period, task.task_date, today, task.due_date),
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -173,7 +190,16 @@ export default async function EmployeeTasksPage({
                   </div>
                 ) : (
                   items.map((task) => (
-                    <TaskItem key={task.id} task={task} editable />
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      editable={isTaskEditableNow(
+                        task.period,
+                        task.task_date,
+                        today,
+                        task.due_date,
+                      )}
+                    />
                   ))
                 )}
               </div>
@@ -181,6 +207,31 @@ export default async function EmployeeTasksPage({
           </Card>
         );
       })}
+
+      {customTasks.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Custom duration tasks</CardTitle>
+            <CardDescription>
+              Assigned by admin with a specific deadline
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {customTasks.map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                editable={isTaskEditableNow(
+                  task.period,
+                  task.task_date,
+                  today,
+                  task.due_date,
+                )}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

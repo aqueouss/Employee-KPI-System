@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString } from "@/lib/utils/dates";
 import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
+import { OpenTasksSection } from "@/components/tasks/open-tasks-section";
 import { SuggestionsCard } from "@/components/tasks/suggestions-card";
 import { TaskCreateForm } from "@/components/tasks/task-create-form";
 import { TaskItem } from "@/components/tasks/task-item";
@@ -24,7 +25,7 @@ export default async function EmployeeDashboardPage() {
   const today = getTodayDateString();
 
   const supabase = await createClient();
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }] =
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -45,7 +46,15 @@ export default async function EmployeeDashboardPage() {
         .select("id, title")
         .eq("employee_id", profile.id)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("tasks")
+        .select("*")
+        .eq("employee_id", profile.id)
+        .in("status", ["pending", "submitted"])
+        .order("task_date", { ascending: true }),
     ]);
+
+  const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
 
   const suggestions = (suggestionRows ?? []) as {
     id: string;
@@ -177,6 +186,8 @@ export default async function EmployeeDashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      <OpenTasksSection tasks={openTaskCandidates} today={today} />
     </div>
   );
 }

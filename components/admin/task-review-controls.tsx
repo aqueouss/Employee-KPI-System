@@ -21,16 +21,16 @@ export function TaskReviewControls({ taskId }: { taskId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex w-full flex-col gap-2">
       <Input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Optional note (shown on reject)"
         maxLength={500}
-        className="h-9 sm:w-64"
+        className="h-9 w-full"
         disabled={isPending}
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
@@ -51,10 +51,10 @@ export function TaskReviewControls({ taskId }: { taskId: string }) {
           <X className="mr-1 h-4 w-4" />
           Reject
         </Button>
+        {error ? (
+          <span className="text-xs text-destructive">{error}</span>
+        ) : null}
       </div>
-      {error ? (
-        <span className="text-xs text-destructive">{error}</span>
-      ) : null}
     </div>
   );
 }

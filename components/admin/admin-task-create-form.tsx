@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import {
   adminCreateTaskAction,
@@ -19,6 +19,7 @@ export function AdminTaskCreateForm({
   employeeId: string;
   today: string;
 }) {
+  const [period, setPeriod] = useState("daily");
   const [state, formAction, isPending] = useActionState(
     adminCreateTaskAction,
     initialState,
@@ -26,19 +27,25 @@ export function AdminTaskCreateForm({
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state.success) formRef.current?.reset();
+    if (state.success) {
+      formRef.current?.reset();
+      setPeriod("daily");
+    }
   }, [state.success]);
+
+  const isCustom = period === "custom";
+  const usesStartDate = period === "daily" || period === "custom";
 
   return (
     <form ref={formRef} action={formAction} className="space-y-3">
       <input type="hidden" name="employee_id" value={employeeId} />
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+      <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto_auto] lg:items-end">
         <div className="space-y-1.5">
           <Label htmlFor="admin-task-title">Task title</Label>
           <Input
             id="admin-task-title"
             name="title"
-            placeholder="e.g. Submit weekly report"
+            placeholder="e.g. Complete onboarding checklist"
             maxLength={200}
             required
           />
@@ -48,25 +55,47 @@ export function AdminTaskCreateForm({
           <select
             id="admin-task-period"
             name="period"
-            defaultValue="daily"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
+            <option value="custom">Custom duration</option>
           </select>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="admin-task-date">Date (daily only)</Label>
-          <Input
-            id="admin-task-date"
-            name="task_date"
-            type="date"
-            defaultValue={today}
-            required
-          />
-        </div>
+        {usesStartDate ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-task-date">
+              {isCustom ? "Start date" : "Date (daily only)"}
+            </Label>
+            <Input
+              id="admin-task-date"
+              name="task_date"
+              type="date"
+              defaultValue={today}
+              required
+            />
+          </div>
+        ) : (
+          <input type="hidden" name="task_date" value={today} />
+        )}
+        {isCustom ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="admin-task-due">Due date</Label>
+            <Input
+              id="admin-task-due"
+              name="due_date"
+              type="date"
+              defaultValue={today}
+              required
+            />
+          </div>
+        ) : (
+          <input type="hidden" name="due_date" value="" />
+        )}
         <Button type="submit" disabled={isPending}>
           {isPending ? "Adding..." : "Add task"}
         </Button>

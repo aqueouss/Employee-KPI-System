@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { createTaskAction, type TaskActionState } from "@/actions/task.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { TaskPeriod } from "@/lib/utils/dates";
 
 const initialState: TaskActionState = {};
 
@@ -15,7 +16,7 @@ export function TaskCreateForm({
   placeholder = "Add a task for this day...",
 }: {
   taskDate: string;
-  period?: "daily" | "weekly" | "monthly" | "quarterly";
+  period?: Exclude<TaskPeriod, "custom">;
   placeholder?: string;
 }) {
   const [state, formAction, isPending] = useActionState(
