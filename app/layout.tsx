@@ -24,7 +24,8 @@ export const metadata: Metadata = {
   title: "AQUEOUSS - KPI System",
   description: "Internal KPI and Performance Management System",
   icons: {
-    icon: "/kpilogo.png",
+    icon: [{ url: "/kpilogo.png", type: "image/png" }],
+    shortcut: "/kpilogo.png",
     apple: "/kpilogo.png",
   },
 };
