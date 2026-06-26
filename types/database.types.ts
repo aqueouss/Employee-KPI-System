@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_records: {
+        Row: {
+          attendance_date: string
+          created_at: string
+          employee_id: string
+          id: string
+          is_auto_generated: boolean
+          marked_by: string | null
+          notes: string | null
+          short_leave_type: Database["public"]["Enums"]["short_leave_type"] | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at: string
+        }
+        Insert: {
+          attendance_date: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_auto_generated?: boolean
+          marked_by?: string | null
+          notes?: string | null
+          short_leave_type?: Database["public"]["Enums"]["short_leave_type"] | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+        }
+        Update: {
+          attendance_date?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_auto_generated?: boolean
+          marked_by?: string | null
+          notes?: string | null
+          short_leave_type?: Database["public"]["Enums"]["short_leave_type"] | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -142,6 +196,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "kpi_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_balances: {
+        Row: {
+          employee_id: string
+          half_day_allowance: number
+          id: string
+          late_allowance: number
+          month: string
+          paid_leave_allowance: number
+          short_leave_allowance: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          employee_id: string
+          half_day_allowance?: number
+          id?: string
+          late_allowance?: number
+          month: string
+          paid_leave_allowance?: number
+          short_leave_allowance?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          employee_id?: string
+          half_day_allowance?: number
+          id?: string
+          late_allowance?: number
+          month?: string
+          paid_leave_allowance?: number
+          short_leave_allowance?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_balances_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -532,10 +637,19 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      attendance_status:
+        | "present"
+        | "late"
+        | "paid_leave"
+        | "half_day"
+        | "short_leave"
+        | "absent"
+        | "sunday_leave"
       kpi_flag: "green" | "yellow" | "red" | "no_tasks"
       reminder_status: "open" | "resolved"
       review_status: "eligible" | "under_review" | "resolved"
       reward_status: "eligible" | "issued" | "declined"
+      short_leave_type: "late_arrival" | "early_departure"
       task_period: "daily" | "weekly" | "monthly" | "quarterly" | "custom"
       task_status: "pending" | "completed" | "submitted" | "rejected"
       termination_status: "none" | "eligible" | "under_review" | "resolved"
@@ -668,10 +782,20 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      attendance_status: [
+        "present",
+        "late",
+        "paid_leave",
+        "half_day",
+        "short_leave",
+        "absent",
+        "sunday_leave",
+      ],
       kpi_flag: ["green", "yellow", "red", "no_tasks"],
       review_status: ["eligible", "under_review", "resolved"],
       reminder_status: ["open", "resolved"],
       reward_status: ["eligible", "issued", "declined"],
+      short_leave_type: ["late_arrival", "early_departure"],
       task_period: ["daily", "weekly", "monthly", "quarterly", "custom"],
       task_status: ["pending", "completed", "submitted", "rejected"],
       termination_status: ["none", "eligible", "under_review", "resolved"],

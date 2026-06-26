@@ -10,6 +10,7 @@ import {
   SlidersHorizontal,
   ClipboardList,
   ClipboardCheck,
+  CalendarCheck,
   Gauge,
   Gavel,
   MessageSquareWarning,
@@ -53,6 +54,7 @@ const adminNav: NavItem[] = [
     badgeKey: "reviews",
   },
   { href: "/admin/rewards", label: "Rewards", icon: Award, badgeKey: "rewards" },
+  { href: "/admin/attendance", label: "Attendance", icon: CalendarCheck },
   {
     href: "/admin/reminders",
     label: "Reminders",
@@ -83,6 +85,7 @@ const employeeNav: NavItem[] = [
     icon: MessageSquareWarning,
   },
   { href: "/employee/kpi", label: "KPI", icon: Gauge },
+  { href: "/employee/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/employee/rewards", label: "Rewards", icon: Award },
   { href: "/employee/warnings", label: "Warnings", icon: AlertTriangle },
 ];

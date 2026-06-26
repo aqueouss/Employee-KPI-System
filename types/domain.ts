@@ -16,6 +16,17 @@ export type RewardStatus = "eligible" | "issued" | "declined";
 
 export type ReviewStatus = "eligible" | "under_review" | "resolved";
 
+export type AttendanceStatus =
+  | "present"
+  | "late"
+  | "paid_leave"
+  | "half_day"
+  | "short_leave"
+  | "absent"
+  | "sunday_leave";
+
+export type ShortLeaveType = "late_arrival" | "early_departure";
+
 export type Profile = {
   id: string;
   email: string;
