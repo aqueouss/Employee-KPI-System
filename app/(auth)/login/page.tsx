@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { AppLogo } from "@/components/layout/app-logo";
 import {
   Card,
   CardContent,
@@ -12,8 +13,11 @@ import {
 export default function LoginPage() {
   return (
     <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-semibold">KPI System</CardTitle>
+      <CardHeader className="space-y-3">
+        <AppLogo href={null} showText={false} className="justify-center" />
+        <CardTitle className="text-center text-2xl font-semibold">
+          KPI System
+        </CardTitle>
         <CardDescription>
           Sign in to manage tasks, KPIs, and performance.
         </CardDescription>

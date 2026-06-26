@@ -23,6 +23,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AQUEOUSS - KPI System",
   description: "Internal KPI and Performance Management System",
+  icons: {
+    icon: "/kpilogo.png",
+    apple: "/kpilogo.png",
+  },
 };
 
 export default function RootLayout({
