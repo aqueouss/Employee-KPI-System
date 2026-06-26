@@ -1,11 +1,12 @@
 import { requireRole } from "@/lib/auth/require-role";
-import { createClient } from "@/lib/supabase/server";
-import { getTodayDateString, startOfMonthDateString } from "@/lib/utils/dates";
 import {
-  computeLeaveBalance,
-  type AttendanceRecordInput,
-} from "@/services/attendance/attendance.engine";
-import { AttendanceRecordsTable } from "@/components/admin/attendance-records-table";
+  getTodayDateString,
+  parseDateString,
+  startOfMonthDateString,
+} from "@/lib/utils/dates";
+import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { MonthNav } from "@/components/attendance/month-nav";
+import { AttendanceCalendarGrid } from "@/components/attendance/attendance-calendar-grid";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -14,60 +15,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { Tables } from "@/types/database.types";
 
-export default async function EmployeeAttendancePage() {
+export default async function EmployeeAttendancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   const profile = await requireRole(["admin", "employee"]);
-  const month = startOfMonthDateString(getTodayDateString());
-  const supabase = await createClient();
+  const sp = await searchParams;
+  const month =
+    parseDateString(sp.month) !== null
+      ? startOfMonthDateString(sp.month!)
+      : startOfMonthDateString(getTodayDateString());
 
-  const [{ data: records }, { data: balance }] = await Promise.all([
-    supabase
-      .from("attendance_records")
-      .select("*")
-      .eq("employee_id", profile.id)
-      .gte("attendance_date", month)
-      .lte("attendance_date", `${month.slice(0, 7)}-31`)
-      .order("attendance_date", { ascending: false }),
-    supabase
-      .from("leave_balances")
-      .select("*")
-      .eq("employee_id", profile.id)
-      .eq("month", month)
-      .maybeSingle(),
-  ]);
-
-  const recordRows = (records ?? []) as Tables<"attendance_records">[];
-  const balanceRow = balance as Tables<"leave_balances"> | null;
-
-  const inputs = recordRows.map(
-    (r): AttendanceRecordInput => ({
-      attendance_date: r.attendance_date,
-      status: r.status,
-      short_leave_type: r.short_leave_type,
-      is_auto_generated: r.is_auto_generated,
-    }),
+  const { monthStart, summary, weeks } = await loadMonthAttendance(
+    profile.id,
+    month,
   );
-
-  const allowances = balanceRow
-    ? {
-        paid_leave: Number(balanceRow.paid_leave_allowance),
-        half_day: Number(balanceRow.half_day_allowance),
-        short_leave: Number(balanceRow.short_leave_allowance),
-        late: balanceRow.late_allowance,
-      }
-    : undefined;
-
-  const summary = computeLeaveBalance(inputs, month, allowances);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
-        <p className="text-muted-foreground">
-          Your leave balance and attendance for {month.slice(0, 7)}. Office 10
-          AM – 6 PM, Sunday closed.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
+          <p className="text-muted-foreground">
+            Your leave balance and calendar for {monthStart.slice(0, 7)}.
+          </p>
+        </div>
+        <MonthNav basePath="/employee/attendance" monthStart={monthStart} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -87,7 +62,7 @@ export default async function EmployeeAttendancePage() {
           total={summary.short_leave}
         />
         <BalanceCard
-          label="Lates allowed"
+          label="Lates left"
           remaining={summary.late_remaining}
           total={summary.late}
         />
@@ -95,18 +70,21 @@ export default async function EmployeeAttendancePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>This month</CardTitle>
+          <CardTitle>Calendar</CardTitle>
           <CardDescription>
-            Used: {summary.paid_leave_used} paid, {summary.half_day_used} half
-            (incl. {summary.penalty_half_days} from extra lates),{" "}
-            {summary.short_leave_used} short, {summary.late_used} late
+            Used this month: {summary.paid_leave_used} paid ·{" "}
+            {summary.half_day_used} half · {summary.short_leave_used} short ·{" "}
+            {summary.late_used} late
+            {summary.penalty_half_days > 0
+              ? ` · ${summary.penalty_half_days} extra late half-day(s)`
+              : ""}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <AttendanceRecordsTable
-            employeeId={profile.id}
-            records={recordRows}
-            canEdit={false}
+        <CardContent>
+          <AttendanceCalendarGrid
+            weeks={weeks}
+            editable={false}
+            monthLabel={monthStart.slice(0, 7)}
           />
         </CardContent>
       </Card>

@@ -4,10 +4,7 @@ import { CalendarCheck } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, startOfMonthDateString } from "@/lib/utils/dates";
-import {
-  computeLeaveBalance,
-  type AttendanceRecordInput,
-} from "@/services/attendance/attendance.engine";
+import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,40 +43,7 @@ export default async function AdminAttendancePage() {
 
   const summaries = await Promise.all(
     list.map(async (emp) => {
-      const [{ data: records }, { data: balance }] = await Promise.all([
-        supabase
-          .from("attendance_records")
-          .select("*")
-          .eq("employee_id", emp.id)
-          .gte("attendance_date", month)
-          .lte("attendance_date", `${month.slice(0, 7)}-31`),
-        supabase
-          .from("leave_balances")
-          .select("*")
-          .eq("employee_id", emp.id)
-          .eq("month", month)
-          .maybeSingle(),
-      ]);
-
-      const inputs = ((records ?? []) as Tables<"attendance_records">[]).map(
-        (r): AttendanceRecordInput => ({
-          attendance_date: r.attendance_date,
-          status: r.status,
-          short_leave_type: r.short_leave_type,
-          is_auto_generated: r.is_auto_generated,
-        }),
-      );
-
-      const allowances = balance
-        ? {
-            paid_leave: Number(balance.paid_leave_allowance),
-            half_day: Number(balance.half_day_allowance),
-            short_leave: Number(balance.short_leave_allowance),
-            late: balance.late_allowance,
-          }
-        : undefined;
-
-      const summary = computeLeaveBalance(inputs, month, allowances);
+      const { summary } = await loadMonthAttendance(emp.id, month);
       return { emp, summary };
     }),
   );
@@ -89,8 +53,7 @@ export default async function AdminAttendancePage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
         <p className="text-muted-foreground">
-          Mark attendance and manage leave balances. Office hours 10 AM – 6 PM.
-          Sundays excluded; Saturday is a working day.
+          Click Manage to open the calendar grid and mark attendance.
         </p>
       </div>
 
@@ -98,7 +61,7 @@ export default async function AdminAttendancePage() {
         <CardHeader>
           <CardTitle>Employees — {month.slice(0, 7)}</CardTitle>
           <CardDescription>
-            Monthly leave remaining (paid / half / short / late)
+            Remaining balance (left / allowance)
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">

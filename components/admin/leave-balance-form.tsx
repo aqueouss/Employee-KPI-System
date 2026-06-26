@@ -69,7 +69,7 @@ export function LeaveBalanceForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="late_allowance">Lates allowed / month</Label>
+          <Label htmlFor="late_allowance">Lates allowed / month (allowance)</Label>
           <Input
             id="late_allowance"
             name="late_allowance"

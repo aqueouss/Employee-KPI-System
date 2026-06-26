@@ -46,6 +46,11 @@ export function parseDateString(value: string | undefined | null): string | null
   return value;
 }
 
+/** Normalizes DB / API date values to YYYY-MM-DD. */
+export function normalizeDateString(value: string): string {
+  return value.slice(0, 10);
+}
+
 /** Adds (or subtracts) days to a YYYY-MM-DD string, returning YYYY-MM-DD. */
 export function addDaysToDateString(value: string, days: number): string {
   const d = new Date(`${value}T00:00:00Z`);

@@ -9,12 +9,9 @@ import {
   parseDateString,
   startOfMonthDateString,
 } from "@/lib/utils/dates";
-import {
-  computeLeaveBalance,
-  type AttendanceRecordInput,
-} from "@/services/attendance/attendance.engine";
-import { AttendanceMarkForm } from "@/components/admin/attendance-mark-form";
-import { AttendanceRecordsTable } from "@/components/admin/attendance-records-table";
+import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { MonthNav } from "@/components/attendance/month-nav";
+import { AttendanceCalendarGrid } from "@/components/attendance/attendance-calendar-grid";
 import { LeaveBalanceForm } from "@/components/admin/leave-balance-form";
 import {
   Card,
@@ -24,7 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { Tables } from "@/types/database.types";
+import { Badge } from "@/components/ui/badge";
 
 export default async function AdminEmployeeAttendancePage({
   params,
@@ -50,44 +47,8 @@ export default async function AdminEmployeeAttendancePage({
 
   if (!profile) notFound();
 
-  const [{ data: records }, { data: balance }] = await Promise.all([
-    supabase
-      .from("attendance_records")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .gte("attendance_date", month)
-      .lte("attendance_date", `${month.slice(0, 7)}-31`)
-      .order("attendance_date", { ascending: false }),
-    supabase
-      .from("leave_balances")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .eq("month", month)
-      .maybeSingle(),
-  ]);
-
-  const recordRows = (records ?? []) as Tables<"attendance_records">[];
-  const balanceRow = balance as Tables<"leave_balances"> | null;
-
-  const inputs = recordRows.map(
-    (r): AttendanceRecordInput => ({
-      attendance_date: r.attendance_date,
-      status: r.status,
-      short_leave_type: r.short_leave_type,
-      is_auto_generated: r.is_auto_generated,
-    }),
-  );
-
-  const allowances = balanceRow
-    ? {
-        paid_leave: Number(balanceRow.paid_leave_allowance),
-        half_day: Number(balanceRow.half_day_allowance),
-        short_leave: Number(balanceRow.short_leave_allowance),
-        late: balanceRow.late_allowance,
-      }
-    : undefined;
-
-  const summary = computeLeaveBalance(inputs, month, allowances);
+  const { monthStart, summary, weeks, balanceRow } =
+    await loadMonthAttendance(employeeId, month);
 
   return (
     <div className="space-y-6">
@@ -98,72 +59,78 @@ export default async function AdminEmployeeAttendancePage({
             Back to attendance
           </Link>
         </Button>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {profile.full_name} — Attendance
-        </h1>
-        <p className="text-muted-foreground">{profile.email}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {profile.full_name} — Attendance
+            </h1>
+            <p className="text-muted-foreground">{profile.email}</p>
+          </div>
+          <MonthNav
+            basePath={`/admin/attendance/${employeeId}`}
+            monthStart={monthStart}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Paid leave left" value={`${summary.paid_leave_remaining} / ${summary.paid_leave}`} />
-        <StatCard label="Half day left" value={`${summary.half_day_remaining} / ${summary.half_day}`} />
-        <StatCard label="Short leave left" value={`${summary.short_leave_remaining} / ${summary.short_leave}`} />
-        <StatCard label="Lates left" value={`${summary.late_remaining} / ${summary.late}`} />
+        <StatCard
+          label="Paid leave left"
+          remaining={summary.paid_leave_remaining}
+          total={summary.paid_leave}
+        />
+        <StatCard
+          label="Half day left"
+          remaining={summary.half_day_remaining}
+          total={summary.half_day}
+        />
+        <StatCard
+          label="Short leave left"
+          remaining={summary.short_leave_remaining}
+          total={summary.short_leave}
+        />
+        <StatCard
+          label="Lates left"
+          remaining={summary.late_remaining}
+          total={summary.late}
+          extra={
+            summary.penalty_half_days > 0
+              ? `+${summary.penalty_half_days} half from extra lates`
+              : undefined
+          }
+        />
       </div>
-
-      {summary.penalty_half_days > 0 ? (
-        <p className="text-sm text-amber-600">
-          {summary.penalty_half_days} extra late(s) counted as half day(s) this
-          month.
-        </p>
-      ) : null}
-      {summary.sunday_leaves > 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {summary.sunday_leaves} Sunday leave(s) applied (weekly &gt;2 leave
-          rule).
-        </p>
-      ) : null}
 
       <Card>
         <CardHeader>
-          <CardTitle>Leave balance — {month.slice(0, 7)}</CardTitle>
+          <CardTitle>Calendar — {monthStart.slice(0, 7)}</CardTitle>
           <CardDescription>
-            Set monthly allowances or initial balance for this employee.
+            Click a day to mark or change attendance.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AttendanceCalendarGrid
+            weeks={weeks}
+            editable
+            employeeId={employeeId}
+            monthLabel={monthStart.slice(0, 7)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Monthly allowances — {monthStart.slice(0, 7)}</CardTitle>
+          <CardDescription>
+            Set starting allowances for this month. Remaining balances above
+            update automatically when you mark attendance.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <LeaveBalanceForm
             employeeId={employeeId}
-            month={month}
+            month={monthStart}
             balance={balanceRow}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Mark attendance</CardTitle>
-          <CardDescription>
-            Short leave: arrive 11:30 AM or leave 4:30 PM. Office 10 AM – 6 PM.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AttendanceMarkForm
-            employeeId={employeeId}
-            defaultDate={getTodayDateString()}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Records — {month.slice(0, 7)}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <AttendanceRecordsTable
-            employeeId={employeeId}
-            records={recordRows}
-            canEdit
           />
         </CardContent>
       </Card>
@@ -171,12 +138,34 @@ export default async function AdminEmployeeAttendancePage({
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  remaining,
+  total,
+  extra,
+}: {
+  label: string;
+  remaining: number;
+  total: number;
+  extra?: string;
+}) {
+  const variant =
+    remaining < 0 ? "destructive" : remaining === 0 ? "warning" : "success";
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-xl">{value}</CardTitle>
+        <CardTitle className="flex items-baseline gap-2">
+          <Badge variant={variant} className="text-lg">
+            {remaining}
+          </Badge>
+          <span className="text-sm font-normal text-muted-foreground">
+            of {total}
+          </span>
+        </CardTitle>
+        {extra ? (
+          <p className="text-xs text-amber-600">{extra}</p>
+        ) : null}
       </CardHeader>
     </Card>
   );

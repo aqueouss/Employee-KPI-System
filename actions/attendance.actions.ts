@@ -14,7 +14,7 @@ import {
   currentMonthStart,
   type AttendanceRecordInput,
 } from "@/services/attendance/attendance.engine";
-import { startOfMonthDateString } from "@/lib/utils/dates";
+import { startOfMonthDateString, endOfMonthDateString, normalizeDateString } from "@/lib/utils/dates";
 import type { Tables } from "@/types/database.types";
 
 export type AttendanceActionState = {
@@ -30,7 +30,7 @@ async function requireAdmin() {
 
 function toRecordInput(row: Tables<"attendance_records">): AttendanceRecordInput {
   return {
-    attendance_date: row.attendance_date,
+    attendance_date: normalizeDateString(row.attendance_date),
     status: row.status,
     short_leave_type: row.short_leave_type,
     is_auto_generated: row.is_auto_generated,
@@ -43,10 +43,7 @@ async function loadEmployeeRecords(
   monthStart: string,
 ) {
   const padStart = addDays(monthStart, -7);
-  const year = Number(monthStart.slice(0, 4));
-  const mon = Number(monthStart.slice(5, 7));
-  const lastDay = new Date(Date.UTC(year, mon, 0)).getUTCDate();
-  const monthEnd = `${monthStart.slice(0, 7)}-${String(lastDay).padStart(2, "0")}`;
+  const monthEnd = endOfMonthDateString(monthStart);
   const padEnd = addDays(monthEnd, 14);
 
   const { data, error } = await supabase
@@ -77,7 +74,9 @@ async function syncAutoSundayLeaves(
   const autoRows = merged.filter((r) => r.is_auto_generated);
 
   for (const auto of autoRows) {
-    const existing = rows.find((r) => r.attendance_date === auto.attendance_date);
+    const existing = rows.find(
+      (r) => normalizeDateString(r.attendance_date) === auto.attendance_date,
+    );
     if (existing) {
       if (
         existing.is_auto_generated &&
@@ -165,7 +164,7 @@ export async function markAttendanceAction(
   const { error } = await supabase.from("attendance_records").upsert(
     {
       employee_id: parsed.data.employee_id,
-      attendance_date: parsed.data.attendance_date,
+      attendance_date: normalizeDateString(parsed.data.attendance_date),
       status: parsed.data.status,
       short_leave_type:
         parsed.data.status === "short_leave"
@@ -210,6 +209,84 @@ export async function markAttendanceAction(
   revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
   revalidatePath("/employee/attendance");
   return { success: "Attendance saved." };
+}
+
+export async function markAttendanceQuickAction(
+  employeeId: string,
+  attendanceDate: string,
+  status: string,
+  shortLeaveType?: string | null,
+): Promise<AttendanceActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const parsed = markAttendanceSchema.safeParse({
+    employee_id: employeeId,
+    attendance_date: normalizeDateString(attendanceDate),
+    status,
+    short_leave_type: shortLeaveType || null,
+    notes: null,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+  const monthStart = startOfMonthDateString(parsed.data.attendance_date);
+  const date = normalizeDateString(parsed.data.attendance_date);
+
+  const { error } = await supabase.from("attendance_records").upsert(
+    {
+      employee_id: parsed.data.employee_id,
+      attendance_date: date,
+      status: parsed.data.status,
+      short_leave_type:
+        parsed.data.status === "short_leave"
+          ? parsed.data.short_leave_type
+          : null,
+      is_auto_generated: false,
+      marked_by: admin.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "employee_id,attendance_date" },
+  );
+
+  if (error) return { error: error.message };
+
+  let rows = await loadEmployeeRecords(supabase, parsed.data.employee_id, monthStart);
+  await syncAutoSundayLeaves(supabase, parsed.data.employee_id, admin.id, rows);
+
+  revalidatePath("/admin/attendance");
+  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
+  revalidatePath("/employee/attendance");
+  return { success: "Saved." };
+}
+
+export async function clearAttendanceAction(
+  employeeId: string,
+  attendanceDate: string,
+): Promise<AttendanceActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const supabase = await createClient();
+  const date = normalizeDateString(attendanceDate);
+
+  await supabase
+    .from("attendance_records")
+    .delete()
+    .eq("employee_id", employeeId)
+    .eq("attendance_date", date);
+
+  const monthStart = startOfMonthDateString(date);
+  const rows = await loadEmployeeRecords(supabase, employeeId, monthStart);
+  await syncAutoSundayLeaves(supabase, employeeId, admin.id, rows);
+
+  revalidatePath("/admin/attendance");
+  revalidatePath(`/admin/attendance/${employeeId}`);
+  revalidatePath("/employee/attendance");
+  return { success: "Cleared." };
 }
 
 export async function deleteAttendanceAction(
