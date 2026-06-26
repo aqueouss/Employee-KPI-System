@@ -28,7 +28,6 @@ export const kpiRulesSchema = z
       .number()
       .int()
       .min(1, "Must be at least 1 day."),
-    count_weekends: z.coerce.boolean(),
     company_timezone: z
       .string()
       .min(1, "Timezone is required.")

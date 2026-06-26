@@ -53,6 +53,11 @@ export function addDaysToDateString(value: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** True when the date falls on Sunday (UTC). Office is closed; KPI streaks skip Sundays. */
+export function isSunday(date: string): boolean {
+  return new Date(`${date}T00:00:00Z`).getUTCDay() === 0;
+}
+
 /** Monday of the week containing the given YYYY-MM-DD date. */
 export function startOfWeekDateString(value: string): string {
   const d = new Date(`${value}T00:00:00Z`);

@@ -119,7 +119,7 @@ export function KpiRulesForm({ rules }: { rules: Tables<"kpi_rules"> }) {
         <Field
           id="green_streak_for_reward"
           label="Reward streak (days)"
-          hint="Consecutive green days to become reward eligible."
+          hint="Consecutive green days to become reward eligible (Sundays excluded)."
         >
           <Input
             id="green_streak_for_reward"
@@ -141,20 +141,6 @@ export function KpiRulesForm({ rules }: { rules: Tables<"kpi_rules"> }) {
             defaultValue={rules.company_timezone}
             required
           />
-        </Field>
-        <Field id="count_weekends" label="Weekends count toward streaks">
-          <div className="flex h-10 items-center">
-            <input
-              id="count_weekends"
-              name="count_weekends"
-              type="checkbox"
-              defaultChecked={rules.count_weekends}
-              className="h-4 w-4 rounded border-input"
-            />
-            <span className="ml-2 text-sm text-muted-foreground">
-              Include Saturdays and Sundays
-            </span>
-          </div>
         </Field>
       </div>
 

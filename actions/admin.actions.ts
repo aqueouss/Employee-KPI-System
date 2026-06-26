@@ -151,7 +151,6 @@ export async function updateKpiRulesAction(
     warnings_for_termination: formData.get("warnings_for_termination"),
     termination_window_days: formData.get("termination_window_days"),
     green_streak_for_reward: formData.get("green_streak_for_reward"),
-    count_weekends: formData.get("count_weekends") === "on",
     company_timezone: formData.get("company_timezone"),
   });
 

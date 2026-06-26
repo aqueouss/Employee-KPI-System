@@ -22,7 +22,7 @@ export default async function EmployeeRewardsPage() {
 
   const { data: rules } = await supabase
     .from("kpi_rules")
-    .select("green_streak_for_reward, count_weekends")
+    .select("green_streak_for_reward")
     .eq("id", 1)
     .single();
 
@@ -41,11 +41,7 @@ export default async function EmployeeRewardsPage() {
   );
   // Evaluate streak ending at the most recent finalized snapshot date.
   const latestDate = snapshots?.[0]?.kpi_date ?? today;
-  const streak = computeGreenStreak(
-    flagByDate,
-    latestDate,
-    rules?.count_weekends ?? true,
-  );
+  const streak = computeGreenStreak(flagByDate, latestDate);
   const progress = Math.min(100, Math.round((streak.length / required) * 100));
 
   const { data: rewardData } = await supabase
@@ -61,7 +57,8 @@ export default async function EmployeeRewardsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Rewards</h1>
         <p className="text-muted-foreground">
-          Earn a reward with {required} consecutive green-flag days.
+          Earn a reward with {required} consecutive green-flag days (Sundays
+          excluded).
         </p>
       </div>
 

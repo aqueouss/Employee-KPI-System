@@ -20,7 +20,7 @@ export async function evaluateAndCreateReward(
   const required = rules.green_streak_for_reward;
 
   // Load a window of snapshots large enough to cover the streak requirement
-  // plus weekend skips. 2x + buffer is plenty.
+  // plus Sunday skips. 2x + buffer is plenty.
   const lookbackDays = required * 2 + 30;
   const windowStart = (() => {
     const d = new Date(`${date}T00:00:00Z`);
@@ -44,7 +44,6 @@ export async function evaluateAndCreateReward(
   const streak = computeGreenStreak(
     flagByDate,
     date,
-    rules.count_weekends,
     lookbackDays + 5,
   );
 

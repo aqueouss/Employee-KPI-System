@@ -130,7 +130,7 @@ export function NotificationsProvider({
         try {
           new Notification(title, {
             body: newMessages.join("\n"),
-            icon: "/favicon.ico",
+            icon: "/icon.png",
           });
         } catch {
           // ignore
