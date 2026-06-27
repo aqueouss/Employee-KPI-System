@@ -12,7 +12,9 @@ import {
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceCalendarGrid } from "@/components/attendance/attendance-calendar-grid";
+import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
 import { LeaveBalanceForm } from "@/components/admin/leave-balance-form";
+import { OvertimeForm } from "@/components/admin/overtime-form";
 import {
   Card,
   CardContent,
@@ -21,7 +23,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 export default async function AdminEmployeeAttendancePage({
   params,
@@ -73,33 +74,7 @@ export default async function AdminEmployeeAttendancePage({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Paid leave left"
-          remaining={summary.paid_leave_remaining}
-          total={summary.paid_leave}
-        />
-        <StatCard
-          label="Half day left"
-          remaining={summary.half_day_remaining}
-          total={summary.half_day}
-        />
-        <StatCard
-          label="Short leave left"
-          remaining={summary.short_leave_remaining}
-          total={summary.short_leave}
-        />
-        <StatCard
-          label="Lates left"
-          remaining={summary.late_remaining}
-          total={summary.late}
-          extra={
-            summary.penalty_half_days > 0
-              ? `+${summary.penalty_half_days} half from extra lates`
-              : undefined
-          }
-        />
-      </div>
+      <LeaveBalanceCards summary={summary} />
 
       <Card>
         <CardHeader>
@@ -120,10 +95,27 @@ export default async function AdminEmployeeAttendancePage({
 
       <Card>
         <CardHeader>
+          <CardTitle>Overtime — {monthStart.slice(0, 7)}</CardTitle>
+          <CardDescription>
+            Add month-end overtime hours (8h = 1 paid leave day). Credits carry
+            forward with unused leave.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OvertimeForm
+            employeeId={employeeId}
+            month={monthStart}
+            balance={balanceRow}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Monthly allowances — {monthStart.slice(0, 7)}</CardTitle>
           <CardDescription>
-            Set starting allowances for this month. Remaining balances above
-            update automatically when you mark attendance.
+            Base paid leave for this month (unused paid leave carries forward
+            automatically).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -135,38 +127,5 @@ export default async function AdminEmployeeAttendancePage({
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function StatCard({
-  label,
-  remaining,
-  total,
-  extra,
-}: {
-  label: string;
-  remaining: number;
-  total: number;
-  extra?: string;
-}) {
-  const variant =
-    remaining < 0 ? "destructive" : remaining === 0 ? "warning" : "success";
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className="flex items-baseline gap-2">
-          <Badge variant={variant} className="text-lg">
-            {remaining}
-          </Badge>
-          <span className="text-sm font-normal text-muted-foreground">
-            of {total}
-          </span>
-        </CardTitle>
-        {extra ? (
-          <p className="text-xs text-amber-600">{extra}</p>
-        ) : null}
-      </CardHeader>
-    </Card>
   );
 }

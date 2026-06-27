@@ -210,6 +210,7 @@ export type Database = {
           id: string
           late_allowance: number
           month: string
+          overtime_hours: number
           paid_leave_allowance: number
           short_leave_allowance: number
           updated_at: string
@@ -221,6 +222,7 @@ export type Database = {
           id?: string
           late_allowance?: number
           month: string
+          overtime_hours?: number
           paid_leave_allowance?: number
           short_leave_allowance?: number
           updated_at?: string
@@ -232,6 +234,7 @@ export type Database = {
           id?: string
           late_allowance?: number
           month?: string
+          overtime_hours?: number
           paid_leave_allowance?: number
           short_leave_allowance?: number
           updated_at?: string

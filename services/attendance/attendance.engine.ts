@@ -15,12 +15,20 @@ export type AttendanceStatus =
 
 export type ShortLeaveType = "late_arrival" | "early_departure";
 
+export const SHIFT_HOURS = 8;
+
 export const DEFAULT_LEAVE_ALLOWANCES = {
   paid_leave: 1,
+  overtime_hours: 0,
   half_day: 1,
   short_leave: 1,
   late: 4,
 } as const;
+
+export function overtimeHoursToPaidLeave(hours: number): number {
+  if (hours <= 0) return 0;
+  return Math.round((hours / SHIFT_HOURS) * 100) / 100;
+}
 
 export type AttendanceRecordInput = {
   attendance_date: string;
@@ -31,12 +39,16 @@ export type AttendanceRecordInput = {
 
 export type LeaveAllowances = {
   paid_leave: number;
+  overtime_hours: number;
   half_day: number;
   short_leave: number;
   late: number;
 };
 
 export type LeaveBalanceSummary = LeaveAllowances & {
+  paid_leave_base: number;
+  overtime_paid_leave_credit: number;
+  paid_leave_carried_forward: number;
   paid_leave_used: number;
   half_day_used: number;
   short_leave_used: number;
@@ -107,10 +119,16 @@ export function computeLeaveBalance(
   records: AttendanceRecordInput[],
   monthStart: string,
   allowances: LeaveAllowances = { ...DEFAULT_LEAVE_ALLOWANCES },
+  carryForward = 0,
 ): LeaveBalanceSummary {
   const monthRecords = records.filter((r) =>
     isInMonth(r.attendance_date, monthStart),
   );
+
+  const basePaidLeave = allowances.paid_leave;
+  const overtimeCredit = overtimeHoursToPaidLeave(allowances.overtime_hours);
+  const monthlyPaidLeave = basePaidLeave + overtimeCredit;
+  const totalPaidLeave = monthlyPaidLeave + carryForward;
 
   const paidLeaveUsed = monthRecords.filter(
     (r) => r.status === "paid_leave" || r.status === "sunday_leave",
@@ -129,18 +147,98 @@ export function computeLeaveBalance(
   const totalHalfDayUsed = halfDayUsed + penaltyHalfDays;
 
   return {
-    ...allowances,
+    paid_leave: totalPaidLeave,
+    overtime_hours: allowances.overtime_hours,
+    half_day: allowances.half_day,
+    short_leave: allowances.short_leave,
+    late: allowances.late,
+    paid_leave_base: basePaidLeave,
+    overtime_paid_leave_credit: overtimeCredit,
+    paid_leave_carried_forward: carryForward,
     paid_leave_used: paidLeaveUsed,
     half_day_used: totalHalfDayUsed,
     short_leave_used: shortLeaveUsed,
     late_used: lateUsed,
     penalty_half_days: penaltyHalfDays,
     sunday_leaves: sundayLeaves,
-    paid_leave_remaining: allowances.paid_leave - paidLeaveUsed,
+    paid_leave_remaining: totalPaidLeave - paidLeaveUsed,
     half_day_remaining: allowances.half_day - totalHalfDayUsed,
     short_leave_remaining: allowances.short_leave - shortLeaveUsed,
     late_remaining: allowances.late - lateUsed,
   };
+}
+
+/** Months from `start` inclusive to `end` exclusive (YYYY-MM-01 strings). */
+export function monthsUntil(start: string, endExclusive: string): string[] {
+  const months: string[] = [];
+  let cursor = startOfMonthDateString(start);
+  const end = startOfMonthDateString(endExclusive);
+  while (cursor < end) {
+    months.push(cursor);
+    const { to } = monthDateRange(cursor);
+    cursor = startOfMonthDateString(addDaysToDateString(to, 1));
+  }
+  return months;
+}
+
+/** Unused paid leave carried into `targetMonthStart` from all prior months. */
+export function computePaidLeaveCarryForward(
+  allRecords: AttendanceRecordInput[],
+  targetMonthStart: string,
+  getBaseAllowances: (monthStart: string) => LeaveAllowances,
+  options?: {
+    hireDate?: string | null;
+    balanceMonths?: string[];
+  },
+): number {
+  const merged = applyWeeklySundayLeaves(allRecords);
+  const target = startOfMonthDateString(targetMonthStart);
+
+  const candidates: string[] = [target];
+  if (merged[0]?.attendance_date) {
+    candidates.push(startOfMonthDateString(merged[0].attendance_date));
+  }
+  if (options?.hireDate) {
+    candidates.push(startOfMonthDateString(options.hireDate));
+  }
+  for (const m of options?.balanceMonths ?? []) {
+    candidates.push(startOfMonthDateString(m));
+  }
+
+  const firstMonth = candidates.reduce((min, c) => (c < min ? c : min));
+
+  let carry = 0;
+  for (const month of monthsUntil(firstMonth, target)) {
+    const base = getBaseAllowances(month);
+    const monthRecords = merged.filter((r) =>
+      isInMonth(r.attendance_date, month),
+    );
+    const summary = computeLeaveBalance(monthRecords, month, base, carry);
+    carry = Math.max(0, summary.paid_leave_remaining);
+  }
+  return carry;
+}
+
+export function computeLeaveBalanceForMonth(
+  allRecords: AttendanceRecordInput[],
+  targetMonthStart: string,
+  getBaseAllowances: (monthStart: string) => LeaveAllowances,
+  options?: {
+    hireDate?: string | null;
+    balanceMonths?: string[];
+  },
+): LeaveBalanceSummary {
+  const month = startOfMonthDateString(targetMonthStart);
+  const carry = computePaidLeaveCarryForward(
+    allRecords,
+    month,
+    getBaseAllowances,
+    options,
+  );
+  const merged = applyWeeklySundayLeaves(allRecords);
+  const base = getBaseAllowances(month);
+  const monthRecords = merged.filter((r) => isInMonth(r.attendance_date, month));
+  return computeLeaveBalance(monthRecords, month, base, carry);
 }
 
 /** Merge auto Sunday leave records based on weekly >2 leave rule. */

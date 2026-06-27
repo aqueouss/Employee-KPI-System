@@ -3,7 +3,9 @@ import { ArrowRight } from "lucide-react";
 
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { getTodayDateString, addDaysToDateString } from "@/lib/utils/dates";
+import { getTodayDateString, addDaysToDateString, startOfMonthDateString } from "@/lib/utils/dates";
+import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
 import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
 import { OpenTasksSection } from "@/components/tasks/open-tasks-section";
 import { SuggestionsCard } from "@/components/tasks/suggestions-card";
@@ -23,9 +25,10 @@ import type { Tables } from "@/types/database.types";
 export default async function EmployeeDashboardPage() {
   const profile = await requireRole(["admin", "employee"]);
   const today = getTodayDateString();
+  const monthStart = startOfMonthDateString(today);
 
   const supabase = await createClient();
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }] =
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, attendanceData] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -52,6 +55,7 @@ export default async function EmployeeDashboardPage() {
         .eq("employee_id", profile.id)
         .in("status", ["pending", "submitted"])
         .order("task_date", { ascending: true }),
+      loadMonthAttendance(profile.id, monthStart),
     ]);
 
   const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
@@ -140,6 +144,21 @@ export default async function EmployeeDashboardPage() {
             Only admin-approved tasks count toward your KPI.
           </CardContent>
         </Card>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Leave balance — {monthStart.slice(0, 7)}
+          </h2>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/employee/attendance">
+              View attendance
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+        <LeaveBalanceCards summary={attendanceData.summary} />
       </div>
 
       <Card>

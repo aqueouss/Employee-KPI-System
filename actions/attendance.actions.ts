@@ -7,10 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 import {
   leaveBalanceSchema,
   markAttendanceSchema,
+  overtimeSchema,
 } from "@/lib/validators/attendance.schema";
+import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import {
   applyWeeklySundayLeaves,
-  computeLeaveBalance,
   currentMonthStart,
   type AttendanceRecordInput,
 } from "@/services/attendance/attendance.engine";
@@ -108,35 +109,6 @@ async function syncAutoSundayLeaves(
       await supabase.from("attendance_records").delete().eq("id", row.id);
     }
   }
-}
-
-async function getAllowances(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  employeeId: string,
-  monthStart: string,
-) {
-  const { data } = await supabase
-    .from("leave_balances")
-    .select("*")
-    .eq("employee_id", employeeId)
-    .eq("month", monthStart)
-    .maybeSingle();
-
-  if (data) {
-    return {
-      paid_leave: Number(data.paid_leave_allowance),
-      half_day: Number(data.half_day_allowance),
-      short_leave: Number(data.short_leave_allowance),
-      late: data.late_allowance,
-    };
-  }
-
-  return {
-    paid_leave: 1,
-    half_day: 1,
-    short_leave: 1,
-    late: 4,
-  };
 }
 
 export async function markAttendanceAction(
@@ -340,6 +312,14 @@ export async function updateLeaveBalanceAction(
   }
 
   const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("leave_balances")
+    .select("*")
+    .eq("employee_id", parsed.data.employee_id)
+    .eq("month", parsed.data.month)
+    .maybeSingle();
+
   const { error } = await supabase.from("leave_balances").upsert(
     {
       employee_id: parsed.data.employee_id,
@@ -348,6 +328,7 @@ export async function updateLeaveBalanceAction(
       half_day_allowance: parsed.data.half_day_allowance,
       short_leave_allowance: parsed.data.short_leave_allowance,
       late_allowance: parsed.data.late_allowance,
+      overtime_hours: Number(existing?.overtime_hours ?? 0),
       updated_by: admin.id,
       updated_at: new Date().toISOString(),
     },
@@ -367,20 +348,77 @@ export async function updateLeaveBalanceAction(
   revalidatePath("/admin/attendance");
   revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
   revalidatePath("/employee/attendance");
+  revalidatePath("/employee");
   return { success: "Leave balance updated." };
+}
+
+export async function updateOvertimeAction(
+  _prev: AttendanceActionState,
+  formData: FormData,
+): Promise<AttendanceActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const monthRaw = String(formData.get("month") ?? "");
+  const month = startOfMonthDateString(monthRaw);
+
+  const parsed = overtimeSchema.safeParse({
+    employee_id: formData.get("employee_id"),
+    month,
+    overtime_hours: formData.get("overtime_hours"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("leave_balances")
+    .select("*")
+    .eq("employee_id", parsed.data.employee_id)
+    .eq("month", parsed.data.month)
+    .maybeSingle();
+
+  const { error } = await supabase.from("leave_balances").upsert(
+    {
+      employee_id: parsed.data.employee_id,
+      month: parsed.data.month,
+      overtime_hours: parsed.data.overtime_hours,
+      paid_leave_allowance: Number(existing?.paid_leave_allowance ?? 1),
+      half_day_allowance: Number(existing?.half_day_allowance ?? 1),
+      short_leave_allowance: Number(existing?.short_leave_allowance ?? 1),
+      late_allowance: existing?.late_allowance ?? 4,
+      updated_by: admin.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "employee_id,month" },
+  );
+
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    actor_id: admin.id,
+    action: "overtime.updated",
+    entity_type: "leave_balances",
+    entity_id: parsed.data.employee_id,
+    metadata: parsed.data,
+  });
+
+  revalidatePath("/admin/attendance");
+  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
+  revalidatePath("/employee/attendance");
+  revalidatePath("/employee");
+  return { success: "Overtime saved." };
 }
 
 export async function getAttendanceSummary(
   employeeId: string,
   monthStart: string,
 ) {
-  const supabase = await createClient();
-  const rows = await loadEmployeeRecords(supabase, employeeId, monthStart);
-  const allowances = await getAllowances(supabase, employeeId, monthStart);
-  const monthRecords = rows
-    .filter((r) => r.attendance_date.slice(0, 7) === monthStart.slice(0, 7))
-    .map(toRecordInput);
-  return computeLeaveBalance(monthRecords, monthStart, allowances);
+  const { summary } = await loadMonthAttendance(employeeId, monthStart);
+  return summary;
 }
 
 export { currentMonthStart };

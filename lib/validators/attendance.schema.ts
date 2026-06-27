@@ -40,6 +40,13 @@ export const leaveBalanceSchema = z.object({
   half_day_allowance: z.coerce.number().min(0).max(31),
   short_leave_allowance: z.coerce.number().min(0).max(31),
   late_allowance: z.coerce.number().int().min(0).max(31),
+  overtime_hours: z.coerce.number().min(0).max(999).optional(),
+});
+
+export const overtimeSchema = z.object({
+  employee_id: z.string().uuid(),
+  month: z.string().refine((v) => parseDateString(v) !== null, "Invalid month."),
+  overtime_hours: z.coerce.number().min(0).max(999),
 });
 
 export type MarkAttendanceInput = z.infer<typeof markAttendanceSchema>;

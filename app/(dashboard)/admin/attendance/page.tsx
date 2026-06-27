@@ -84,6 +84,11 @@ export default async function AdminAttendancePage() {
                     <BalanceCell
                       remaining={summary.paid_leave_remaining}
                       allowance={summary.paid_leave}
+                      note={
+                        summary.paid_leave_carried_forward > 0
+                          ? `+${summary.paid_leave_carried_forward} carried`
+                          : undefined
+                      }
                     />
                   </TableCell>
                   <TableCell>
@@ -130,15 +135,20 @@ export default async function AdminAttendancePage() {
 function BalanceCell({
   remaining,
   allowance,
+  note,
 }: {
   remaining: number;
   allowance: number;
+  note?: string;
 }) {
   const variant =
     remaining < 0 ? "destructive" : remaining === 0 ? "warning" : "success";
   return (
-    <Badge variant={variant}>
-      {remaining} / {allowance}
-    </Badge>
+    <div className="flex flex-col items-start gap-0.5">
+      <Badge variant={variant}>
+        {remaining} / {allowance}
+      </Badge>
+      {note ? <span className="text-xs text-muted-foreground">{note}</span> : null}
+    </div>
   );
 }
