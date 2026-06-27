@@ -83,7 +83,7 @@ export function LeaveBalanceForm({
       <p className="text-xs text-muted-foreground">
         Set initial monthly allowances. Remaining balance is calculated from
         marked attendance. Extra lates beyond allowance count as half days.
-        More than 2 leaves Mon–Sat in a week auto-adds Sunday leave.
+        More than 2 absences Mon–Sat in a week auto-adds Sunday as absent.
       </p>
       {state.error ? (
         <p className="text-sm text-destructive">{state.error}</p>

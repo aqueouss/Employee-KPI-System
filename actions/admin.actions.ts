@@ -211,12 +211,20 @@ export async function updateEmployeeDetailsAction(
 
   const hireDateRaw = String(formData.get("hire_date") ?? "").trim();
   const jobDesignation = String(formData.get("job_designation") ?? "").trim();
+  const monthlySalaryRaw = String(formData.get("monthly_salary") ?? "").trim();
 
   if (hireDateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(hireDateRaw)) {
     return { error: "Invalid hire date." };
   }
   if (jobDesignation.length > 120) {
     return { error: "Job designation is too long." };
+  }
+  let monthlySalary: number | null = null;
+  if (monthlySalaryRaw) {
+    monthlySalary = Number(monthlySalaryRaw);
+    if (!Number.isFinite(monthlySalary) || monthlySalary < 0) {
+      return { error: "Invalid monthly salary." };
+    }
   }
 
   const supabase = await createClient();
@@ -225,6 +233,7 @@ export async function updateEmployeeDetailsAction(
     .update({
       hire_date: hireDateRaw ? hireDateRaw : null,
       job_designation: jobDesignation ? jobDesignation : null,
+      monthly_salary: monthlySalary,
     })
     .eq("id", employeeId);
 
@@ -240,6 +249,7 @@ export async function updateEmployeeDetailsAction(
     metadata: {
       hire_date: hireDateRaw || null,
       job_designation: jobDesignation || null,
+      monthly_salary: monthlySalary,
     },
   });
 

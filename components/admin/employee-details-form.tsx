@@ -16,10 +16,12 @@ export function EmployeeDetailsForm({
   employeeId,
   hireDate,
   jobDesignation,
+  monthlySalary,
 }: {
   employeeId: string;
   hireDate: string | null;
   jobDesignation: string | null;
+  monthlySalary: number | null;
 }) {
   const [state, formAction, isPending] = useActionState(
     updateEmployeeDetailsAction,
@@ -47,6 +49,18 @@ export function EmployeeDetailsForm({
             name="hire_date"
             type="date"
             defaultValue={hireDate ?? ""}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="monthly_salary">Monthly salary</Label>
+          <Input
+            id="monthly_salary"
+            name="monthly_salary"
+            type="number"
+            min={0}
+            step={1}
+            defaultValue={monthlySalary ?? ""}
+            placeholder="e.g. 50000"
           />
         </div>
       </div>

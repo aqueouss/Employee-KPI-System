@@ -5,9 +5,10 @@ import {
   startOfMonthDateString,
 } from "@/lib/utils/dates";
 import {
-  applyWeeklySundayLeaves,
+  applyWeeklySundayRules,
   buildMonthCalendarGrid,
   computeLeaveBalanceForMonth,
+  computeSalarySummary,
   DEFAULT_LEAVE_ALLOWANCES,
   type AttendanceRecordInput,
   type LeaveAllowances,
@@ -41,7 +42,7 @@ export async function loadMonthAttendance(
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("hire_date")
+      .select("hire_date, monthly_salary")
       .eq("id", employeeId)
       .single(),
     supabase
@@ -88,10 +89,19 @@ export async function loadMonthAttendance(
     balanceMonths,
   });
 
-  const merged = applyWeeklySundayLeaves(allInputs).filter(
+  const merged = applyWeeklySundayRules(allInputs).filter(
     (r) => r.attendance_date.slice(0, 7) === monthStart.slice(0, 7),
   );
   const weeks = buildMonthCalendarGrid(monthStart, merged);
+
+  const baseAllowances = getBaseAllowances(monthStart);
+  const salarySummary = computeSalarySummary(
+    allInputs,
+    monthStart,
+    baseAllowances,
+    profile?.monthly_salary != null ? Number(profile.monthly_salary) : null,
+    { hireDate: profile?.hire_date ?? null },
+  );
 
   const balanceRow = balanceByMonth.get(monthStart) ?? null;
   const recordRows = (monthRecordRows ?? []) as Tables<"attendance_records">[];
@@ -102,6 +112,7 @@ export async function loadMonthAttendance(
     recordRows,
     balanceRow,
     summary,
+    salarySummary,
     weeks,
     inputs: merged,
   };

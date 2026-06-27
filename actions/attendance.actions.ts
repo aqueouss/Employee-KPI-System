@@ -11,7 +11,7 @@ import {
 } from "@/lib/validators/attendance.schema";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import {
-  applyWeeklySundayLeaves,
+  applyWeeklySundayRules,
   currentMonthStart,
   type AttendanceRecordInput,
 } from "@/services/attendance/attendance.engine";
@@ -71,7 +71,7 @@ async function syncAutoSundayLeaves(
   rows: Tables<"attendance_records">[],
 ) {
   const inputs = rows.map(toRecordInput);
-  const merged = applyWeeklySundayLeaves(inputs);
+  const merged = applyWeeklySundayRules(inputs);
   const autoRows = merged.filter((r) => r.is_auto_generated);
 
   for (const auto of autoRows) {
@@ -99,16 +99,23 @@ async function syncAutoSundayLeaves(
     });
   }
 
-  const requiredDates = new Set(autoRows.map((r) => r.attendance_date));
+  const requiredDates = new Set(
+    autoRows.map((r) => normalizeDateString(r.attendance_date)),
+  );
   for (const row of rows) {
     if (
       row.is_auto_generated &&
-      row.status === "sunday_leave" &&
-      !requiredDates.has(row.attendance_date)
+      (row.status === "sunday_leave" ||
+        (row.status === "absent" && isSundayDate(row.attendance_date))) &&
+      !requiredDates.has(normalizeDateString(row.attendance_date))
     ) {
       await supabase.from("attendance_records").delete().eq("id", row.id);
     }
   }
+}
+
+function isSundayDate(date: string): boolean {
+  return new Date(`${normalizeDateString(date)}T00:00:00Z`).getUTCDay() === 0;
 }
 
 export async function markAttendanceAction(

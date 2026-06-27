@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  applyWeeklySundayLeaves,
+  applyWeeklySundayRules,
   computeLeaveBalanceForMonth,
-  countWeekLeaves,
+  computeSalarySummary,
+  countWeekAbsences,
   overtimeHoursToPaidLeave,
-  sundaysRequiringAutoLeave,
+  sundaysRequiringAutoAbsent,
 } from "./attendance.engine.ts";
 
 test("computeLeaveBalanceForMonth: carries unused paid leave forward", () => {
@@ -82,34 +83,54 @@ test("computeLeaveBalanceForMonth: overtime adds to paid leave", () => {
   assert.equal(b.paid_leave_remaining, 2);
 });
 
-test("countWeekLeaves: counts Mon–Sat leaves only", () => {
+test("countWeekAbsences: counts Mon–Sat absences only", () => {
   const records = [
-    { attendance_date: "2026-06-01", status: "paid_leave" as const }, // Mon
-    { attendance_date: "2026-06-02", status: "half_day" as const },
+    { attendance_date: "2026-06-01", status: "absent" as const },
+    { attendance_date: "2026-06-02", status: "absent" as const },
     { attendance_date: "2026-06-03", status: "paid_leave" as const },
-    { attendance_date: "2026-06-07", status: "paid_leave" as const }, // Sun — ignored
+    { attendance_date: "2026-06-07", status: "absent" as const }, // Sun — ignored
   ];
-  assert.equal(countWeekLeaves(records, "2026-06-01"), 3);
+  assert.equal(countWeekAbsences(records, "2026-06-01"), 2);
 });
 
-test("sundaysRequiringAutoLeave: >2 leaves triggers Sunday", () => {
+test("sundaysRequiringAutoAbsent: >2 absences triggers Sunday", () => {
   const records = [
-    { attendance_date: "2026-06-01", status: "paid_leave" as const },
-    { attendance_date: "2026-06-02", status: "paid_leave" as const },
-    { attendance_date: "2026-06-03", status: "short_leave" as const, short_leave_type: "early_departure" as const },
+    { attendance_date: "2026-06-01", status: "absent" as const },
+    { attendance_date: "2026-06-02", status: "absent" as const },
+    { attendance_date: "2026-06-03", status: "absent" as const },
   ];
-  assert.deepEqual(sundaysRequiringAutoLeave(records), ["2026-06-07"]);
+  assert.deepEqual(sundaysRequiringAutoAbsent(records), ["2026-06-07"]);
 });
 
-test("applyWeeklySundayLeaves: adds auto sunday_leave", () => {
+test("applyWeeklySundayRules: adds auto absent on Sunday", () => {
   const records = [
-    { attendance_date: "2026-06-01", status: "paid_leave" as const },
-    { attendance_date: "2026-06-02", status: "paid_leave" as const },
-    { attendance_date: "2026-06-03", status: "half_day" as const },
+    { attendance_date: "2026-06-01", status: "absent" as const },
+    { attendance_date: "2026-06-02", status: "absent" as const },
+    { attendance_date: "2026-06-03", status: "absent" as const },
   ];
-  const merged = applyWeeklySundayLeaves(records);
+  const merged = applyWeeklySundayRules(records);
   const sunday = merged.find((r) => r.attendance_date === "2026-06-07");
   assert.ok(sunday);
-  assert.equal(sunday?.status, "sunday_leave");
+  assert.equal(sunday?.status, "absent");
   assert.equal(sunday?.is_auto_generated, true);
+});
+
+test("computeSalarySummary: salaried days deduct absents and extra half days", () => {
+  const records = [
+    { attendance_date: "2026-06-02", status: "absent" as const },
+    { attendance_date: "2026-06-03", status: "half_day" as const },
+    { attendance_date: "2026-06-04", status: "half_day" as const },
+  ];
+  const s = computeSalarySummary(records, "2026-06-01", {
+    paid_leave: 1,
+    overtime_hours: 0,
+    half_day: 1,
+    short_leave: 1,
+    late: 4,
+  }, 30000);
+  assert.ok(s.total_working_days >= 25);
+  assert.equal(s.absent_days, 1);
+  assert.equal(s.extra_half_days, 1);
+  assert.ok(s.salaried_days < s.total_working_days);
+  assert.ok(s.calculated_salary !== null && s.calculated_salary < 30000);
 });

@@ -157,6 +157,9 @@ export default async function EmployeeDetailPage({
             employeeId={profile.id}
             hireDate={profile.hire_date}
             jobDesignation={profile.job_designation}
+            monthlySalary={
+              profile.monthly_salary != null ? Number(profile.monthly_salary) : null
+            }
           />
         </CardContent>
       </Card>

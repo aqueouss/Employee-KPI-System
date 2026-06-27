@@ -10,6 +10,7 @@ import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceCalendarGrid } from "@/components/attendance/attendance-calendar-grid";
 import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
+import { SalarySummaryCards } from "@/components/attendance/salary-summary-cards";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,7 +32,7 @@ export default async function EmployeeAttendancePage({
       ? startOfMonthDateString(sp.month!)
       : startOfMonthDateString(getTodayDateString());
 
-  const { monthStart, summary, weeks } = await loadMonthAttendance(
+  const { monthStart, summary, salarySummary, weeks } = await loadMonthAttendance(
     profile.id,
     month,
   );
@@ -50,6 +51,19 @@ export default async function EmployeeAttendancePage({
       </div>
 
       <LeaveBalanceCards summary={summary} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Salary</CardTitle>
+          <CardDescription>
+            Salaried days = working days − absent days − extra half days (0.5
+            each).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SalarySummaryCards summary={salarySummary} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
