@@ -128,9 +128,10 @@ test("computeSalarySummary: salaried days deduct absents and extra half days", (
     short_leave: 1,
     late: 4,
   }, 30000);
-  assert.ok(s.total_working_days >= 25);
+  assert.equal(s.total_working_days, 26);
+  assert.equal(s.total_calendar_days, 30);
   assert.equal(s.absent_days, 1);
   assert.equal(s.extra_half_days, 1);
-  assert.ok(s.salaried_days < s.total_working_days);
+  assert.equal(s.salaried_days, 28.5);
   assert.ok(s.calculated_salary !== null && s.calculated_salary < 30000);
 });

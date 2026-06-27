@@ -47,6 +47,7 @@ export type LeaveAllowances = {
 
 export type SalarySummary = {
   total_working_days: number;
+  total_calendar_days: number;
   absent_days: number;
   extra_half_days: number;
   salaried_days: number;
@@ -312,6 +313,18 @@ export function monthDateRange(monthStart: string): { from: string; to: string }
   };
 }
 
+/** All calendar days in month (includes Sundays). */
+export function calendarDaysInMonth(monthStart: string): string[] {
+  const { from, to } = monthDateRange(monthStart);
+  const days: string[] = [];
+  let cursor = from;
+  while (cursor <= to) {
+    days.push(cursor);
+    cursor = addDaysToDateString(cursor, 1);
+  }
+  return days;
+}
+
 /** Dates Mon–Sat in month for attendance grid (excludes Sundays). */
 export function workingDaysInMonth(monthStart: string): string[] {
   const { from, to } = monthDateRange(monthStart);
@@ -392,6 +405,17 @@ function eligibleWorkingDays(
   return days.filter((d) => d >= hireDate.slice(0, 10));
 }
 
+function eligibleCalendarDays(
+  monthStart: string,
+  hireDate?: string | null,
+): string[] {
+  const days = calendarDaysInMonth(monthStart);
+  if (!hireDate || !isInMonth(hireDate, monthStart)) {
+    return days;
+  }
+  return days.filter((d) => d >= hireDate.slice(0, 10));
+}
+
 export function computeSalarySummary(
   records: AttendanceRecordInput[],
   monthStart: string,
@@ -404,8 +428,14 @@ export function computeSalarySummary(
     isInMonth(r.attendance_date, monthStart),
   );
 
-  const workingDays = eligibleWorkingDays(monthStart, options?.hireDate);
-  const totalWorkingDays = workingDays.length;
+  const totalWorkingDays = eligibleWorkingDays(
+    monthStart,
+    options?.hireDate,
+  ).length;
+  const totalCalendarDays = eligibleCalendarDays(
+    monthStart,
+    options?.hireDate,
+  ).length;
 
   let absentDays = 0;
   for (const rec of monthRecords) {
@@ -422,13 +452,14 @@ export function computeSalarySummary(
 
   const salariedDays = Math.max(
     0,
-    Math.round((totalWorkingDays - absentDays - extraHalfDays * 0.5) * 100) /
-      100,
+    Math.round(
+      (totalCalendarDays - absentDays - extraHalfDays * 0.5) * 100,
+    ) / 100,
   );
 
   const dailyRate =
-    monthlySalary !== null && totalWorkingDays > 0
-      ? Math.round((monthlySalary / totalWorkingDays) * 100) / 100
+    monthlySalary !== null && totalCalendarDays > 0
+      ? Math.round((monthlySalary / totalCalendarDays) * 100) / 100
       : null;
 
   const calculatedSalary =
@@ -438,6 +469,7 @@ export function computeSalarySummary(
 
   return {
     total_working_days: totalWorkingDays,
+    total_calendar_days: totalCalendarDays,
     absent_days: absentDays,
     extra_half_days: extraHalfDays,
     salaried_days: salariedDays,

@@ -56,8 +56,8 @@ export default async function EmployeeAttendancePage({
         <CardHeader>
           <CardTitle>Salary</CardTitle>
           <CardDescription>
-            Salaried days = working days − absent days − extra half days (0.5
-            each).
+            Salaried days = all days in month (incl. Sundays) − absent days −
+            extra half days (0.5 each).
           </CardDescription>
         </CardHeader>
         <CardContent>
