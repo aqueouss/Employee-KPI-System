@@ -4,6 +4,14 @@ import { Users, AlertTriangle, Award, Gavel, ArrowRight } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString } from "@/lib/utils/dates";
+import {
+  groupEmployeesByDepartment,
+  type DepartmentEmployee,
+} from "@/lib/departments/department-utils";
+import { getAdminDashboardCaption } from "@/lib/captions/funny-captions";
+import { DepartmentOverviewCard } from "@/components/admin/department-overview-card";
+import { FunnyCaption } from "@/components/ui/funny-caption";
+import { DashboardDateBadge } from "@/components/layout/dashboard-date-badge";
 import { FlagBadge } from "@/components/kpi/flag-badge";
 import {
   Card,
@@ -17,14 +25,18 @@ import type { KpiFlag } from "@/types/domain";
 export default async function AdminDashboardPage() {
   await requireRole(["admin"]);
   const supabase = await createClient();
-  const yesterday = addDaysToDateString(getTodayDateString(), -1);
+  const today = getTodayDateString();
+  const yesterday = addDaysToDateString(today, -1);
 
   const [
     { count: employeeCount },
     { count: activeWarnings },
     { count: pendingRewards },
     { count: openReviews },
+    { count: pendingApprovals },
+    { count: openReminders },
     { data: latestSnapshots },
+    { data: profileRows },
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase
@@ -40,9 +52,23 @@ export default async function AdminDashboardPage() {
       .select("id", { count: "exact", head: true })
       .in("status", ["eligible", "under_review"]),
     supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "submitted"),
+    supabase
+      .from("reminders")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open"),
+    supabase
       .from("daily_kpi_snapshots")
       .select("flag")
       .eq("kpi_date", yesterday),
+    supabase
+      .from("profiles")
+      .select(
+        "id, full_name, email, job_designation, department, is_active, role",
+      )
+      .order("full_name"),
   ]);
 
   const flagCounts = (latestSnapshots ?? []).reduce<Record<string, number>>(
@@ -52,6 +78,19 @@ export default async function AdminDashboardPage() {
     },
     {},
   );
+
+  const departments = groupEmployeesByDepartment(
+    (profileRows ?? []) as DepartmentEmployee[],
+  );
+
+  const adminCaption = getAdminDashboardCaption({
+    approvals: pendingApprovals ?? 0,
+    reminders: openReminders ?? 0,
+    warnings: activeWarnings ?? 0,
+    rewards: pendingRewards ?? 0,
+    reviews: openReviews ?? 0,
+    seed: today,
+  });
 
   const stats = [
     {
@@ -82,14 +121,19 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Admin Dashboard
-        </h1>
-        <p className="text-muted-foreground">
-          Company-wide KPI, warnings, and rewards at a glance.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Admin Dashboard
+          </h1>
+          <p className="text-muted-foreground">
+            Company-wide KPI, warnings, and rewards at a glance.
+          </p>
+        </div>
+        <DashboardDateBadge date={today} />
       </div>
+
+      <FunnyCaption>{adminCaption}</FunnyCaption>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => {
@@ -136,6 +180,36 @@ export default async function AdminDashboardPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Departments</h2>
+            <p className="text-sm text-muted-foreground">
+              Employees grouped by department
+            </p>
+          </div>
+          <Link
+            href="/admin/departments"
+            className="inline-flex items-center text-sm text-primary hover:underline"
+          >
+            View all
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </Link>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {departments.slice(0, 6).map((department) => (
+            <DepartmentOverviewCard key={department.slug} department={department} />
+          ))}
+        </div>
+        {departments.length === 0 ? (
+          <Card>
+            <CardContent className="py-6 text-center text-sm text-muted-foreground">
+              No departments yet. Assign departments when editing employees.
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
     </div>
   );
 }

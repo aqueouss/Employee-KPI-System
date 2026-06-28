@@ -12,12 +12,14 @@ import {
 
 export default function LoginPage() {
   return (
-    <Card>
-      <CardHeader className="space-y-3">
-        <AppLogo href={null} showText={false} className="justify-center" />
-        <CardTitle className="text-center text-2xl font-semibold">
-          KPI System
-        </CardTitle>
+    <div className="glass-panel hover-lift overflow-hidden rounded-2xl">
+      <div className="theme-accent-bar" />
+      <Card className="border-0 bg-transparent shadow-none hover:shadow-none">
+        <CardHeader className="space-y-3">
+          <AppLogo href={null} showText={false} className="justify-center" />
+          <CardTitle className="gradient-text text-center text-2xl font-semibold">
+            KPI System
+          </CardTitle>
         <CardDescription>
           Sign in to manage tasks, KPIs, and performance.
         </CardDescription>
@@ -33,6 +35,7 @@ export default function LoginPage() {
           </Link>
         </p>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }

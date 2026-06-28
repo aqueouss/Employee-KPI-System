@@ -56,6 +56,10 @@ export default async function ProfilePage() {
               </Badge>
             </div>
             <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Department</span>
+              <span className="font-medium">{profile.department || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Designation</span>
               <span className="font-medium">
                 {profile.job_designation || "—"}

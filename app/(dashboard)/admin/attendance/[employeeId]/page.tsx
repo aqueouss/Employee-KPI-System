@@ -15,6 +15,10 @@ import { AttendanceCalendarGrid } from "@/components/attendance/attendance-calen
 import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
 import { LeaveBalanceForm } from "@/components/admin/leave-balance-form";
 import { OvertimeForm } from "@/components/admin/overtime-form";
+import { PayrollForm } from "@/components/admin/payroll-form";
+import { PayrollSummaryCards } from "@/components/attendance/payroll-summary-cards";
+import { DownloadPayslipButton } from "@/components/payroll/download-payslip-button";
+import { formatMonthLabel } from "@/lib/payroll/format-month-label";
 import {
   Card,
   CardContent,
@@ -42,13 +46,13 @@ export default async function AdminEmployeeAttendancePage({
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, email")
+    .select("id, full_name, email, job_designation, department")
     .eq("id", employeeId)
     .single();
 
   if (!profile) notFound();
 
-  const { monthStart, summary, weeks, balanceRow } =
+  const { monthStart, summary, payrollSummary, payrollRow, weeks, balanceRow } =
     await loadMonthAttendance(employeeId, month);
 
   return (
@@ -75,6 +79,41 @@ export default async function AdminEmployeeAttendancePage({
       </div>
 
       <LeaveBalanceCards summary={summary} />
+
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle>Payroll — {monthStart.slice(0, 7)}</CardTitle>
+            <CardDescription>
+              Net salary = attendance salary + incentives + conveyance − advance
+              deduction.
+            </CardDescription>
+          </div>
+          <DownloadPayslipButton
+            data={{
+              employeeName: profile.full_name,
+              employeeEmail: profile.email,
+              designation: profile.job_designation,
+              department: profile.department,
+              monthLabel: formatMonthLabel(monthStart),
+              monthStart,
+              payroll: payrollSummary,
+              notes: payrollRow?.notes ?? null,
+            }}
+          />
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <PayrollSummaryCards summary={payrollSummary} />
+          <div className="border-t pt-6">
+            <h3 className="mb-4 text-sm font-medium">Adjustments</h3>
+            <PayrollForm
+              employeeId={employeeId}
+              month={monthStart}
+              payroll={payrollRow}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

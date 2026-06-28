@@ -371,7 +371,7 @@ export async function deleteTaskAction(id: string): Promise<TaskActionState> {
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("task_date, employee_id, status, period, due_date")
+    .select("task_date, employee_id, status, period, due_date, created_by_admin")
     .eq("id", parsed.data.id)
     .single();
 
@@ -383,9 +383,18 @@ export async function deleteTaskAction(id: string): Promise<TaskActionState> {
     return { error: "Past tasks are locked." };
   }
 
+  if (task.created_by_admin) {
+    return {
+      error: "Admin-assigned tasks cannot be deleted. Ask your admin to remove it.",
+    };
+  }
+
   if (task.status !== "pending") {
     return {
-      error: "Only to-do tasks can be deleted. Ask an admin to remove others.",
+      error:
+        task.status === "rejected"
+          ? "Rejected tasks cannot be deleted. Edit and resubmit for approval."
+          : "Only to-do tasks can be deleted. Ask an admin to remove others.",
     };
   }
 

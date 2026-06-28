@@ -8,6 +8,7 @@ import {
   applyWeeklySundayRules,
   buildMonthCalendarGrid,
   computeLeaveBalanceForMonth,
+  computePayrollSummary,
   computeSalarySummary,
   DEFAULT_LEAVE_ALLOWANCES,
   type AttendanceRecordInput,
@@ -39,6 +40,7 @@ export async function loadMonthAttendance(
     { data: allRecordRows },
     { data: balanceRows },
     { data: monthRecordRows },
+    { data: payrollRow },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -62,6 +64,12 @@ export async function loadMonthAttendance(
       .eq("employee_id", employeeId)
       .gte("attendance_date", monthStart)
       .lte("attendance_date", monthEnd),
+    supabase
+      .from("monthly_payroll")
+      .select("*")
+      .eq("employee_id", employeeId)
+      .eq("month", monthStart)
+      .maybeSingle(),
   ]);
 
   const balanceByMonth = new Map<string, Tables<"leave_balances">>();
@@ -100,8 +108,17 @@ export async function loadMonthAttendance(
     monthStart,
     baseAllowances,
     profile?.monthly_salary != null ? Number(profile.monthly_salary) : null,
-    { hireDate: profile?.hire_date ?? null },
+    {
+      hireDate: profile?.hire_date ?? null,
+      carryForward: summary.paid_leave_carried_forward,
+    },
   );
+
+  const payrollSummary = computePayrollSummary(salarySummary, {
+    incentives: Number(payrollRow?.incentives ?? 0),
+    conveyance: Number(payrollRow?.conveyance ?? 0),
+    advance_deduction: Number(payrollRow?.advance_deduction ?? 0),
+  });
 
   const balanceRow = balanceByMonth.get(monthStart) ?? null;
   const recordRows = (monthRecordRows ?? []) as Tables<"attendance_records">[];
@@ -111,8 +128,10 @@ export async function loadMonthAttendance(
     monthEnd,
     recordRows,
     balanceRow,
+    payrollRow: (payrollRow ?? null) as Tables<"monthly_payroll"> | null,
     summary,
     salarySummary,
+    payrollSummary,
     weeks,
     inputs: merged,
   };

@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, startOfMonthDateString } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { getAdminAttendanceCaption } from "@/lib/captions/funny-captions";
+import { FunnyCaption } from "@/components/ui/funny-caption";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +50,8 @@ export default async function AdminAttendancePage() {
     }),
   );
 
+  const adminAttendanceCaption = getAdminAttendanceCaption(month);
+
   return (
     <div className="space-y-6">
       <div>
@@ -56,6 +60,8 @@ export default async function AdminAttendancePage() {
           Click Manage to open the calendar grid and mark attendance.
         </p>
       </div>
+
+      <FunnyCaption>{adminAttendanceCaption}</FunnyCaption>
 
       <Card>
         <CardHeader>

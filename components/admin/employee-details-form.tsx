@@ -16,11 +16,13 @@ export function EmployeeDetailsForm({
   employeeId,
   hireDate,
   jobDesignation,
+  department,
   monthlySalary,
 }: {
   employeeId: string;
   hireDate: string | null;
   jobDesignation: string | null;
+  department: string | null;
   monthlySalary: number | null;
 }) {
   const [state, formAction, isPending] = useActionState(
@@ -40,6 +42,16 @@ export function EmployeeDetailsForm({
             maxLength={120}
             defaultValue={jobDesignation ?? ""}
             placeholder="e.g. Frontend Engineer"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="department">Department</Label>
+          <Input
+            id="department"
+            name="department"
+            maxLength={80}
+            defaultValue={department ?? ""}
+            placeholder="e.g. Engineering"
           />
         </div>
         <div className="space-y-1.5">

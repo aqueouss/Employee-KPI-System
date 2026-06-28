@@ -6,14 +6,10 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateLabel } from "@/lib/utils/dates";
 import { AdminTaskCreateForm } from "@/components/admin/admin-task-create-form";
-import { AdminTaskDeleteButton } from "@/components/admin/admin-task-delete-button";
+import { AdminTaskListItem } from "@/components/admin/admin-task-list-item";
 import { EmployeeDetailsForm } from "@/components/admin/employee-details-form";
-import {
-  TaskDirectApproveControls,
-  TaskReviewControls,
-  TaskRevokeControls,
-} from "@/components/admin/task-review-controls";
 import { FlagBadge } from "@/components/kpi/flag-badge";
+import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
 import { getTodayDateString } from "@/lib/utils/dates";
 import { RewardStatusBadge } from "@/components/rewards/reward-status-badge";
 import {
@@ -93,20 +89,15 @@ export default async function EmployeeDetailPage({
   const tasks = (taskData ?? []) as Tables<"tasks">[];
   const today = getTodayDateString();
 
-  const TASK_STATUS_META: Record<
-    Tables<"tasks">["status"],
-    { label: string; variant: "secondary" | "warning" | "success" | "destructive" }
-  > = {
-    pending: { label: "To do", variant: "secondary" },
-    submitted: { label: "Pending approval", variant: "warning" },
-    completed: { label: "Approved", variant: "success" },
-    rejected: { label: "Rejected", variant: "destructive" },
-  };
-
   const flagCounts = snapshots.reduce<Record<string, number>>((acc, s) => {
     acc[s.flag] = (acc[s.flag] ?? 0) + 1;
     return acc;
   }, {});
+
+  const flagSnapshots = snapshots.map((s) => ({
+    kpi_date: s.kpi_date,
+    flag: s.flag,
+  }));
 
   return (
     <div className="space-y-6">
@@ -131,6 +122,12 @@ export default async function EmployeeDetailPage({
         <p className="text-muted-foreground">{profile.email}</p>
         <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
           <span>
+            Department:{" "}
+            <span className="text-foreground">
+              {profile.department || "—"}
+            </span>
+          </span>
+          <span>
             Designation:{" "}
             <span className="text-foreground">
               {profile.job_designation || "—"}
@@ -149,7 +146,7 @@ export default async function EmployeeDetailPage({
         <CardHeader>
           <CardTitle>Employee details</CardTitle>
           <CardDescription>
-            Job designation and hire date (admin only).
+            Job designation, department, and hire date (admin only).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -157,6 +154,7 @@ export default async function EmployeeDetailPage({
             employeeId={profile.id}
             hireDate={profile.hire_date}
             jobDesignation={profile.job_designation}
+            department={profile.department}
             monthlySalary={
               profile.monthly_salary != null ? Number(profile.monthly_salary) : null
             }
@@ -209,7 +207,14 @@ export default async function EmployeeDetailPage({
           <CardTitle>KPI history</CardTitle>
           <CardDescription>Last 30 finalized days</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
+          <div className="border-b border-border/60 px-6 py-5">
+            <KpiFlagGrid
+              snapshots={flagSnapshots}
+              endDate={today}
+              days={30}
+            />
+          </div>
           {snapshots.length === 0 ? (
             <div className="px-6 py-8 text-center text-sm text-muted-foreground">
               No snapshots yet.
@@ -261,54 +266,11 @@ export default async function EmployeeDetailPage({
               No tasks yet.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tasks.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell className="whitespace-nowrap text-muted-foreground">
-                      {formatDateLabel(task.task_date)}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <span className="flex items-center gap-2">
-                        {task.title}
-                        {task.period !== "daily" ? (
-                          <Badge variant="outline" className="capitalize">
-                            {task.period}
-                          </Badge>
-                        ) : null}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={TASK_STATUS_META[task.status].variant}>
-                        {TASK_STATUS_META[task.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-col items-end gap-2">
-                        {task.status === "pending" ? (
-                          <TaskDirectApproveControls taskId={task.id} />
-                        ) : null}
-                        {task.status === "submitted" ? (
-                          <TaskReviewControls taskId={task.id} />
-                        ) : null}
-                        {task.status === "completed" ? (
-                          <TaskRevokeControls taskId={task.id} />
-                        ) : null}
-                        <AdminTaskDeleteButton taskId={task.id} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70">
+              {tasks.map((task) => (
+                <AdminTaskListItem key={task.id} task={task} />
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

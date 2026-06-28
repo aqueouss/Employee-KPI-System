@@ -4,10 +4,44 @@ import { useState, useTransition } from "react";
 import { Check, X } from "lucide-react";
 
 import { reviewTaskAction } from "@/actions/task.actions";
+import { AdminTaskDeleteButton } from "@/components/admin/admin-task-delete-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { Tables } from "@/types/database.types";
 
-export function TaskReviewControls({ taskId }: { taskId: string }) {
+function RejectButton({
+  onClick,
+  disabled,
+  label = "Reject",
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  label?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      className="btn-destructive-hover border dark:bg-destructive/15 dark:border-destructive/50"
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <X className="mr-1 h-4 w-4" />
+      {label}
+    </Button>
+  );
+}
+
+function ReviewForm({
+  taskId,
+  mode,
+  showDelete = false,
+}: {
+  taskId: string;
+  mode: "pending" | "submitted" | "completed";
+  showDelete?: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,116 +54,95 @@ export function TaskReviewControls({ taskId }: { taskId: string }) {
     });
   }
 
+  const placeholder =
+    mode === "pending"
+      ? "Optional note"
+      : mode === "completed"
+        ? "Reason for revoking approval"
+        : "Optional note (shown on reject)";
+
   return (
-    <div className="flex w-full flex-col gap-2">
-      <Input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Optional note (shown on reject)"
-        maxLength={500}
-        className="h-9 w-full"
-        disabled={isPending}
-      />
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => review("approve")}
+    <div className="space-y-2">
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
+        <Input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={placeholder}
+          maxLength={500}
+          className="h-9 min-w-0 flex-1"
           disabled={isPending}
-        >
-          <Check className="mr-1 h-4 w-4" />
-          Approve
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="text-destructive hover:text-destructive"
-          onClick={() => review("reject")}
-          disabled={isPending}
-        >
-          <X className="mr-1 h-4 w-4" />
-          Reject
-        </Button>
-        {error ? (
-          <span className="text-xs text-destructive">{error}</span>
-        ) : null}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          {mode === "pending" ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => review("approve")}
+              disabled={isPending}
+            >
+              <Check className="mr-1 h-4 w-4" />
+              Approve directly
+            </Button>
+          ) : null}
+          {mode === "submitted" ? (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => review("approve")}
+                disabled={isPending}
+              >
+                <Check className="mr-1 h-4 w-4" />
+                Approve
+              </Button>
+              <RejectButton
+                onClick={() => review("reject")}
+                disabled={isPending}
+              />
+            </>
+          ) : null}
+          {mode === "completed" ? (
+            <RejectButton
+              onClick={() => review("reject")}
+              disabled={isPending}
+              label="Revoke approval"
+            />
+          ) : null}
+          {showDelete ? <AdminTaskDeleteButton taskId={taskId} compact /> : null}
+        </div>
       </div>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
+}
+
+export function AdminTaskActions({
+  task,
+}: {
+  task: Tables<"tasks">;
+}) {
+  if (task.status === "rejected") {
+    return <AdminTaskDeleteButton taskId={task.id} compact />;
+  }
+
+  const mode =
+    task.status === "pending"
+      ? "pending"
+      : task.status === "submitted"
+        ? "submitted"
+        : "completed";
+
+  return <ReviewForm taskId={task.id} mode={mode} showDelete />;
+}
+
+export function TaskReviewControls({ taskId }: { taskId: string }) {
+  return <ReviewForm taskId={taskId} mode="submitted" />;
 }
 
 export function TaskDirectApproveControls({ taskId }: { taskId: string }) {
-  const [isPending, startTransition] = useTransition();
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  function approve() {
-    setError(null);
-    startTransition(async () => {
-      const res = await reviewTaskAction(taskId, "approve", note.trim());
-      if (res.error) setError(res.error);
-    });
-  }
-
-  return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Optional note"
-        maxLength={500}
-        className="h-9 sm:w-48"
-        disabled={isPending}
-      />
-      <Button type="button" size="sm" onClick={approve} disabled={isPending}>
-        <Check className="mr-1 h-4 w-4" />
-        Approve directly
-      </Button>
-      {error ? (
-        <span className="text-xs text-destructive">{error}</span>
-      ) : null}
-    </div>
-  );
+  return <ReviewForm taskId={taskId} mode="pending" />;
 }
 
 export function TaskRevokeControls({ taskId }: { taskId: string }) {
-  const [isPending, startTransition] = useTransition();
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  function revoke() {
-    setError(null);
-    startTransition(async () => {
-      const res = await reviewTaskAction(taskId, "reject", note.trim());
-      if (res.error) setError(res.error);
-    });
-  }
-
-  return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Reason for revoking approval"
-        maxLength={500}
-        className="h-9 sm:w-48"
-        disabled={isPending}
-      />
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="text-destructive hover:text-destructive"
-        onClick={revoke}
-        disabled={isPending}
-      >
-        <X className="mr-1 h-4 w-4" />
-        Revoke approval
-      </Button>
-      {error ? (
-        <span className="text-xs text-destructive">{error}</span>
-      ) : null}
-    </div>
-  );
+  return <ReviewForm taskId={taskId} mode="completed" />;
 }

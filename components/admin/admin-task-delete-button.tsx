@@ -6,7 +6,13 @@ import { Trash2 } from "lucide-react";
 import { adminDeleteTaskAction } from "@/actions/task.actions";
 import { Button } from "@/components/ui/button";
 
-export function AdminTaskDeleteButton({ taskId }: { taskId: string }) {
+export function AdminTaskDeleteButton({
+  taskId,
+  compact = false,
+}: {
+  taskId: string;
+  compact?: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +30,12 @@ export function AdminTaskDeleteButton({ taskId }: { taskId: string }) {
 
   if (confirming) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
-          variant="outline"
-          className="text-destructive hover:text-destructive"
+          variant="ghost"
+          className="btn-destructive-hover border dark:bg-destructive/15 dark:border-destructive/50"
           onClick={handleDelete}
           disabled={isPending}
         >
@@ -44,7 +50,25 @@ export function AdminTaskDeleteButton({ taskId }: { taskId: string }) {
         >
           Cancel
         </Button>
+        {error ? <span className="text-xs text-destructive">{error}</span> : null}
       </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="btn-destructive-hover border dark:bg-destructive/15 dark:border-destructive/50"
+        onClick={() => setConfirming(true)}
+        disabled={isPending}
+        aria-label="Delete task"
+      >
+        <Trash2 className="mr-1 h-4 w-4" />
+        Delete
+      </Button>
     );
   }
 
@@ -54,7 +78,7 @@ export function AdminTaskDeleteButton({ taskId }: { taskId: string }) {
         type="button"
         size="icon"
         variant="ghost"
-        className="h-8 w-8 text-destructive hover:text-destructive"
+        className="btn-destructive-hover h-9 w-9 border dark:bg-destructive/15 dark:border-destructive/50"
         onClick={() => setConfirming(true)}
         aria-label="Delete task"
       >

@@ -25,7 +25,7 @@ export function AppLogo({
         priority
       />
       {showText ? (
-        <span className="font-semibold tracking-tight">
+        <span className="gradient-text font-semibold tracking-tight">
           AQUEOUSS - KPI System
         </span>
       ) : null}

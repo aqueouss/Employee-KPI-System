@@ -11,6 +11,7 @@ import {
   ClipboardList,
   ClipboardCheck,
   CalendarCheck,
+  Building2,
   Gauge,
   Gavel,
   MessageSquareWarning,
@@ -35,6 +36,7 @@ type NavItem = {
 const adminNav: NavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/employees", label: "Employees", icon: Users },
+  { href: "/admin/departments", label: "Departments", icon: Building2 },
   {
     href: "/admin/approvals",
     label: "Approvals",
@@ -114,16 +116,23 @@ export function DashboardNav({ role }: { role: UserRole }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
               isActive
-                ? "bg-secondary text-secondary-foreground"
-                : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                ? "nav-glow bg-primary/10 text-primary shadow-sm shadow-primary/10"
+                : "text-muted-foreground hover:translate-x-0.5 hover:bg-accent/70 hover:text-foreground",
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon
+              className={cn(
+                "h-4 w-4 transition-transform duration-200",
+                isActive
+                  ? "text-primary"
+                  : "group-hover:scale-110 group-hover:text-primary",
+              )}
+            />
             <span className="flex-1">{item.label}</span>
             {badge > 0 ? (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
+              <span className="inline-flex h-5 min-w-5 animate-pulse items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground shadow-sm">
                 {badge > 99 ? "99+" : badge}
               </span>
             ) : null}

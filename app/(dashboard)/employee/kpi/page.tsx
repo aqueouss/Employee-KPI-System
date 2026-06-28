@@ -2,6 +2,8 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, formatDateLabel } from "@/lib/utils/dates";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
+import { getKpiCaption } from "@/lib/captions/funny-captions";
+import { FunnyCaption } from "@/components/ui/funny-caption";
 import { FlagBadge } from "@/components/kpi/flag-badge";
 import {
   Card,
@@ -63,14 +65,23 @@ export default async function EmployeeKpiPage() {
     return acc;
   }, {});
 
+  const kpiCaption = getKpiCaption({
+    livePct: live.completionPct,
+    greenDaysLast7: flagCounts.green ?? 0,
+    seed: `${profile.id}-${today}`,
+  });
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">KPI</h1>
         <p className="text-muted-foreground">
           Your daily completion performance and flag history.
+          {profile.department ? ` · ${profile.department}` : ""}
         </p>
       </div>
+
+      <FunnyCaption>{kpiCaption}</FunnyCaption>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>

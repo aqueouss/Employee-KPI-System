@@ -46,11 +46,10 @@ export function TaskItem({
   const isApproved = status === "completed";
   const meta = STATUS_META[status];
 
-  // Employee can tick (submit) when not approved; ticking a submitted task
-  // withdraws it. Approved tasks are locked.
   const canToggle = editable && !isApproved;
   const canEdit = editable && (status === "pending" || status === "rejected");
-  const canDelete = editable && status === "pending";
+  const canDelete =
+    editable && status === "pending" && !task.created_by_admin;
 
   function handleToggle() {
     if (!canToggle) return;
@@ -82,8 +81,8 @@ export function TaskItem({
   }
 
   return (
-    <div className="rounded-md border bg-card px-3 py-2">
-      <div className="flex items-center gap-3">
+    <div className="rounded-xl border border-border/70 bg-card/80 px-4 py-3 shadow-sm transition-colors hover:border-primary/25">
+      <div className="flex items-start gap-3">
         <button
           type="button"
           onClick={handleToggle}
@@ -96,123 +95,140 @@ export function TaskItem({
                 : "Submit for approval"
           }
           className={cn(
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors",
-            isApproved && "border-emerald-600 bg-emerald-600 text-white",
-            isSubmitted && "border-amber-500 bg-amber-500 text-white",
+            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition-all",
+            isApproved &&
+              "border-emerald-600 bg-emerald-600 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950",
+            isSubmitted &&
+              "border-amber-500 bg-amber-500 text-white dark:border-amber-300 dark:bg-amber-300 dark:text-amber-950",
             (status === "pending" || status === "rejected") &&
-              "border-input hover:border-emerald-600",
-            !canToggle && "cursor-not-allowed opacity-70",
+              "border-border bg-background hover:border-emerald-600 hover:bg-emerald-600/10",
+            status === "rejected" && "border-destructive/60",
+            !canToggle && "cursor-not-allowed opacity-60",
           )}
         >
           {isApproved ? <Check className="h-3.5 w-3.5" /> : null}
           {isSubmitted ? <Clock className="h-3 w-3" /> : null}
         </button>
 
-        {isEditing ? (
-          <div className="flex flex-1 items-center gap-2">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={200}
-              autoFocus
-              className="h-8"
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={handleSave}
-              disabled={isPending}
-              aria-label="Save"
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={() => {
-                setTitle(task.title);
-                setIsEditing(false);
-                setError(null);
-              }}
-              disabled={isPending}
-              aria-label="Cancel"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <>
-            <span
-              className={cn(
-                "flex-1 text-sm",
-                isApproved && "text-muted-foreground line-through",
-              )}
-            >
-              {task.title}
-            </span>
-            {task.period !== "daily" ? (
-              <Badge variant="outline" className="capitalize">
-                {task.period}
-              </Badge>
-            ) : null}
-            <Badge variant={meta.variant}>{meta.label}</Badge>
-            {canEdit || canDelete ? (
-              <div className="flex items-center gap-1">
-                {canEdit ? (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    onClick={() => setIsEditing(true)}
-                    disabled={isPending}
-                    aria-label="Edit task"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+        <div className="min-w-0 flex-1 space-y-2">
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={200}
+                autoFocus
+                className="h-9"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 shrink-0"
+                onClick={handleSave}
+                disabled={isPending}
+                aria-label="Save"
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 shrink-0"
+                onClick={() => {
+                  setTitle(task.title);
+                  setIsEditing(false);
+                  setError(null);
+                }}
+                disabled={isPending}
+                aria-label="Cancel"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    "text-sm font-medium leading-snug",
+                    isApproved && "text-muted-foreground line-through",
+                  )}
+                >
+                  {task.title}
+                </span>
+                {task.period !== "daily" ? (
+                  <Badge variant="outline" className="capitalize">
+                    {task.period}
+                  </Badge>
                 ) : null}
-                {canDelete ? (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={handleDelete}
-                    disabled={isPending}
-                    aria-label="Delete task"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                {task.created_by_admin ? (
+                  <Badge variant="outline" className="text-xs">
+                    Admin
+                  </Badge>
                 ) : null}
+                <Badge variant={meta.variant}>{meta.label}</Badge>
               </div>
-            ) : null}
-          </>
-        )}
-      </div>
 
-      {status === "rejected" && task.review_note ? (
-        <p className="mt-1.5 pl-8 text-xs text-destructive">
-          Admin note: {task.review_note}
-        </p>
-      ) : null}
+              {task.period !== "daily" ? (
+                <p className="text-xs text-muted-foreground">
+                  {periodLabel(task.period, task.task_date, task.due_date)}
+                  {" · Due "}
+                  {formatDateLabel(
+                    taskDeadline(task.period, task.task_date, task.due_date),
+                  )}
+                </p>
+              ) : null}
 
-      {task.period !== "daily" ? (
-        <p className="mt-1.5 pl-8 text-xs text-muted-foreground">
-          {periodLabel(task.period, task.task_date, task.due_date)}
-          {" · Due "}
-          {formatDateLabel(
-            taskDeadline(task.period, task.task_date, task.due_date),
+              {status === "rejected" && task.review_note ? (
+                <p className="text-xs text-destructive">
+                  Admin note: {task.review_note}
+                </p>
+              ) : null}
+
+              {status === "rejected" && editable ? (
+                <p className="text-xs text-muted-foreground">
+                  Edit if needed, then submit again before the due date.
+                </p>
+              ) : null}
+            </>
           )}
-        </p>
-      ) : null}
 
-      {error ? (
-        <p className="mt-1.5 pl-8 text-xs text-destructive">{error}</p>
-      ) : null}
+          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        </div>
+
+        {!isEditing && (canEdit || canDelete) ? (
+          <div className="flex shrink-0 items-center gap-1">
+            {canEdit ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={() => setIsEditing(true)}
+                disabled={isPending}
+                aria-label="Edit task"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={handleDelete}
+                disabled={isPending}
+                aria-label="Delete task"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

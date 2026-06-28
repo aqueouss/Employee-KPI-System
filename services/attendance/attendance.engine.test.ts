@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   applyWeeklySundayRules,
   computeLeaveBalanceForMonth,
+  computePayrollSummary,
   computeSalarySummary,
   countWeekAbsences,
   overtimeHoursToPaidLeave,
@@ -131,7 +132,104 @@ test("computeSalarySummary: salaried days deduct absents and extra half days", (
   assert.equal(s.total_working_days, 26);
   assert.equal(s.total_calendar_days, 30);
   assert.equal(s.absent_days, 1);
-  assert.equal(s.extra_half_days, 1);
-  assert.equal(s.salaried_days, 28.5);
+  assert.equal(s.extra_half_days, 0);
+  assert.equal(s.salaried_days, 29);
   assert.ok(s.calculated_salary !== null && s.calculated_salary < 30000);
+});
+
+test("computeSalarySummary: extra half days consume paid leave before salary deduction", () => {
+  const records = [
+    { attendance_date: "2026-06-02", status: "half_day" as const },
+    { attendance_date: "2026-06-03", status: "half_day" as const },
+    { attendance_date: "2026-06-04", status: "half_day" as const },
+  ];
+  const s = computeSalarySummary(
+    records,
+    "2026-06-01",
+    {
+      paid_leave: 1,
+      overtime_hours: 0,
+      half_day: 1,
+      short_leave: 1,
+      late: 4,
+    },
+    30000,
+    { carryForward: 1 },
+  );
+  assert.equal(s.extra_half_days, 0);
+  assert.equal(s.salaried_days, 30);
+});
+
+test("computeSalarySummary: salary deducts only uncovered extra half days", () => {
+  const records = [
+    { attendance_date: "2026-06-02", status: "half_day" as const },
+    { attendance_date: "2026-06-03", status: "half_day" as const },
+    { attendance_date: "2026-06-04", status: "half_day" as const },
+    { attendance_date: "2026-06-05", status: "half_day" as const },
+  ];
+  const s = computeSalarySummary(records, "2026-06-01", {
+    paid_leave: 1,
+    overtime_hours: 0,
+    half_day: 1,
+    short_leave: 1,
+    late: 4,
+  }, 30000);
+  assert.equal(s.extra_half_days, 1);
+  assert.equal(s.salaried_days, 29.5);
+});
+
+test("computeLeaveBalanceForMonth: extra half days reduce paid leave remaining", () => {
+  const records = [
+    { attendance_date: "2026-06-02", status: "half_day" as const },
+    { attendance_date: "2026-06-03", status: "half_day" as const },
+    { attendance_date: "2026-06-04", status: "half_day" as const },
+  ];
+  const b = computeLeaveBalanceForMonth(records, "2026-06-01", () => ({
+    paid_leave: 1,
+    overtime_hours: 0,
+    half_day: 1,
+    short_leave: 1,
+    late: 4,
+  }));
+  assert.equal(b.paid_leave_remaining, 0);
+});
+
+test("computePayrollSummary: net salary includes adjustments", () => {
+  const salary = {
+    total_working_days: 26,
+    total_calendar_days: 30,
+    absent_days: 0,
+    extra_half_days: 0,
+    salaried_days: 30,
+    monthly_salary: 30000,
+    daily_rate: 1000,
+    calculated_salary: 30000,
+  };
+  const payroll = computePayrollSummary(salary, {
+    incentives: 5000,
+    conveyance: 2000,
+    advance_deduction: 3000,
+  });
+  assert.equal(payroll.gross_salary, 37000);
+  assert.equal(payroll.net_salary, 34000);
+});
+
+test("computePayrollSummary: returns null when no salary and no adjustments", () => {
+  const salary = {
+    total_working_days: 26,
+    total_calendar_days: 30,
+    absent_days: 0,
+    extra_half_days: 0,
+    salaried_days: 30,
+    monthly_salary: null,
+    daily_rate: null,
+    calculated_salary: null,
+  };
+  const payroll = computePayrollSummary(salary, {
+    incentives: 0,
+    conveyance: 0,
+    advance_deduction: 0,
+  });
+  assert.equal(payroll.gross_salary, null);
+  assert.equal(payroll.net_salary, null);
 });

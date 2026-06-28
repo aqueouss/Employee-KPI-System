@@ -78,6 +78,7 @@ export default async function AdminEmployeesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Department</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
@@ -100,6 +101,9 @@ export default async function AdminEmployeesPage() {
                           (you)
                         </span>
                       ) : null}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {employee.department || "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {employee.email}

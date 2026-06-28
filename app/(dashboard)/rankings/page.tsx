@@ -7,6 +7,8 @@ import {
   startOfWeekDateString,
   startOfMonthDateString,
 } from "@/lib/utils/dates";
+import { getRankingCaption } from "@/lib/captions/funny-captions";
+import { FunnyCaption } from "@/components/ui/funny-caption";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -64,6 +66,8 @@ export default async function RankingsPage() {
 
   const weekById = new Map(week.map((r) => [r.employee_id, r]));
 
+  const rankingCaption = getRankingCaption(month, profile.id, profile.full_name);
+
   const rankIcon = (i: number) => {
     if (i === 0) return <Crown className="h-4 w-4 text-amber-500" />;
     if (i === 1) return <Medal className="h-4 w-4 text-slate-400" />;
@@ -79,6 +83,8 @@ export default async function RankingsPage() {
           Employee performance leaderboard based on average daily KPI completion.
         </p>
       </div>
+
+      <FunnyCaption>{rankingCaption}</FunnyCaption>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>

@@ -22,8 +22,8 @@ export default async function DashboardLayout({
 
   return (
     <NotificationsProvider initialCounts={initialCounts}>
-      <div className="min-h-screen bg-muted/30">
-        <header className="sticky top-0 z-10 border-b bg-card">
+      <div className="relative min-h-screen">
+        <header className="sticky top-0 z-10 border-b border-border/60 bg-surface/80 shadow-sm backdrop-blur-xl dark:bg-card/80">
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <MobileNav role={profile.role} />
@@ -33,9 +33,15 @@ export default async function DashboardLayout({
               <div className="hidden items-center gap-2 text-sm sm:flex">
                 <span className="text-muted-foreground">
                   {profile.full_name}
+                  {profile.department ? (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      · {profile.department}
+                    </span>
+                  ) : null}
                 </span>
                 <Badge
                   variant={profile.role === "admin" ? "default" : "secondary"}
+                  className="capitalize shadow-sm"
                 >
                   {profile.role}
                 </Badge>
@@ -55,10 +61,12 @@ export default async function DashboardLayout({
         <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
           <aside className="hidden w-56 shrink-0 md:block">
             <div className="sticky top-20">
-              <DashboardNav role={profile.role} />
+              <div className="glass-panel rounded-xl p-2">
+                <DashboardNav role={profile.role} />
+              </div>
             </div>
           </aside>
-          <main className="min-w-0 flex-1">{children}</main>
+          <main className="page-enter min-w-0 flex-1">{children}</main>
         </div>
       </div>
     </NotificationsProvider>

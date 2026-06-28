@@ -5,6 +5,12 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString, startOfMonthDateString } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import {
+  getEmployeeDashboardCaption,
+  getRankingCaption,
+} from "@/lib/captions/funny-captions";
+import { FunnyCaption } from "@/components/ui/funny-caption";
+import { DashboardDateBadge } from "@/components/layout/dashboard-date-badge";
 import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
 import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
 import { OpenTasksSection } from "@/components/tasks/open-tasks-section";
@@ -28,7 +34,7 @@ export default async function EmployeeDashboardPage() {
   const monthStart = startOfMonthDateString(today);
 
   const supabase = await createClient();
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, attendanceData] =
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, attendanceData, { data: rankingData }] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -56,6 +62,10 @@ export default async function EmployeeDashboardPage() {
         .in("status", ["pending", "submitted"])
         .order("task_date", { ascending: true }),
       loadMonthAttendance(profile.id, monthStart),
+      supabase.rpc("get_employee_rankings", {
+        p_start: monthStart,
+        p_end: today,
+      }),
     ]);
 
   const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
@@ -93,16 +103,42 @@ export default async function EmployeeDashboardPage() {
           ? "Yellow"
           : "Red";
 
+  const rankings = (rankingData ?? []) as Array<{
+    employee_id: string;
+    full_name: string;
+    avg_completion: number;
+    days_tracked: number;
+  }>;
+  const dashboardCaption = getEmployeeDashboardCaption({
+    todayCompletionPct: pct,
+    rankingCaption: getRankingCaption(rankings, profile.id, profile.full_name),
+    seed: `${profile.id}-${today}`,
+  });
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome back, {profile.full_name.split(" ")[0]}
-        </h1>
-        <p className="text-muted-foreground">
-          Here&apos;s your day at a glance.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Welcome back, {profile.full_name.split(" ")[0]}
+          </h1>
+          <p className="text-muted-foreground">
+            Here&apos;s your day at a glance.
+            {profile.department || profile.job_designation ? (
+              <>
+                {" "}
+                ·{" "}
+                {[profile.department, profile.job_designation]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </>
+            ) : null}
+          </p>
+        </div>
+        <DashboardDateBadge date={today} />
       </div>
+
+      <FunnyCaption>{dashboardCaption}</FunnyCaption>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>

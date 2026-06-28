@@ -37,6 +37,7 @@ export async function createEmployeeAction(
   const role = String(formData.get("role") ?? "employee");
   const hireDateRaw = String(formData.get("hire_date") ?? "").trim();
   const jobDesignation = String(formData.get("job_designation") ?? "").trim();
+  const department = String(formData.get("department") ?? "").trim();
 
   if (!email || !email.includes("@")) {
     return { error: "A valid email is required." };
@@ -53,8 +54,9 @@ export async function createEmployeeAction(
   if (hireDateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(hireDateRaw)) {
     return { error: "Invalid hire date." };
   }
-
-  let supabaseAdmin: ReturnType<typeof createAdminClient>;
+  if (department.length > 80) {
+    return { error: "Department name is too long." };
+  }
   try {
     supabaseAdmin = createAdminClient();
   } catch (e) {
@@ -81,6 +83,7 @@ export async function createEmployeeAction(
       role: role as "employee" | "admin",
       hire_date: hireDateRaw ? hireDateRaw : null,
       job_designation: jobDesignation ? jobDesignation : null,
+      department: department ? department : null,
     })
     .eq("id", created.user.id);
 
@@ -97,6 +100,8 @@ export async function createEmployeeAction(
   });
 
   revalidatePath("/admin/employees");
+  revalidatePath("/admin");
+  revalidatePath("/admin/departments");
   return { success: `${fullName} was added as ${role}.` };
 }
 
@@ -211,6 +216,7 @@ export async function updateEmployeeDetailsAction(
 
   const hireDateRaw = String(formData.get("hire_date") ?? "").trim();
   const jobDesignation = String(formData.get("job_designation") ?? "").trim();
+  const department = String(formData.get("department") ?? "").trim();
   const monthlySalaryRaw = String(formData.get("monthly_salary") ?? "").trim();
 
   if (hireDateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(hireDateRaw)) {
@@ -218,6 +224,9 @@ export async function updateEmployeeDetailsAction(
   }
   if (jobDesignation.length > 120) {
     return { error: "Job designation is too long." };
+  }
+  if (department.length > 80) {
+    return { error: "Department name is too long." };
   }
   let monthlySalary: number | null = null;
   if (monthlySalaryRaw) {
@@ -233,6 +242,7 @@ export async function updateEmployeeDetailsAction(
     .update({
       hire_date: hireDateRaw ? hireDateRaw : null,
       job_designation: jobDesignation ? jobDesignation : null,
+      department: department ? department : null,
       monthly_salary: monthlySalary,
     })
     .eq("id", employeeId);
@@ -249,11 +259,14 @@ export async function updateEmployeeDetailsAction(
     metadata: {
       hire_date: hireDateRaw || null,
       job_designation: jobDesignation || null,
+      department: department || null,
       monthly_salary: monthlySalary,
     },
   });
 
   revalidatePath(`/admin/employees/${employeeId}`);
   revalidatePath("/admin/employees");
+  revalidatePath("/admin");
+  revalidatePath("/admin/departments");
   return { success: "Employee details updated." };
 }

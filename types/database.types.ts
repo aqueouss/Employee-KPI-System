@@ -257,9 +257,61 @@ export type Database = {
           },
         ]
       }
+      monthly_payroll: {
+        Row: {
+          advance_deduction: number
+          conveyance: number
+          employee_id: string
+          id: string
+          incentives: number
+          month: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          advance_deduction?: number
+          conveyance?: number
+          employee_id: string
+          id?: string
+          incentives?: number
+          month: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          advance_deduction?: number
+          conveyance?: number
+          employee_id?: string
+          id?: string
+          incentives?: number
+          month?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_payroll_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_payroll_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
+          department: string | null
           email: string
           full_name: string
           hire_date: string | null
@@ -273,6 +325,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          department?: string | null
           email: string
           full_name: string
           hire_date?: string | null
@@ -286,6 +339,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          department?: string | null
           email?: string
           full_name?: string
           hire_date?: string | null

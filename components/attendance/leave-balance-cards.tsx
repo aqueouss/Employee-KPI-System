@@ -35,16 +35,19 @@ export function LeaveBalanceCards({ summary }: { summary: LeaveBalanceSummary })
         remaining={summary.paid_leave_remaining}
         total={summary.paid_leave}
         detail={paidLeaveDetail(summary)}
+        accent="from-primary/80 to-brand/60"
       />
       <BalanceCard
         label="Half day"
         remaining={summary.half_day_remaining}
         total={summary.half_day}
+        accent="from-brand/70 to-primary/50"
       />
       <BalanceCard
         label="Short leave"
         remaining={summary.short_leave_remaining}
         total={summary.short_leave}
+        accent="from-emerald-700/70 to-brand/50 dark:from-brand/80 dark:to-primary/60"
       />
       <BalanceCard
         label="Lates left"
@@ -55,6 +58,7 @@ export function LeaveBalanceCards({ summary }: { summary: LeaveBalanceSummary })
             ? `+${summary.penalty_half_days} half from extra lates`
             : undefined
         }
+        accent="from-amber-700/75 to-primary/55 dark:from-primary/70 dark:to-brand/50"
       />
     </div>
   );
@@ -65,15 +69,20 @@ function BalanceCard({
   remaining,
   total,
   detail,
+  accent,
 }: {
   label: string;
   remaining: number;
   total: number;
   detail?: string;
+  accent: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="group relative overflow-hidden hover-lift">
+      <div
+        className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent} opacity-80 transition-opacity duration-300 group-hover:opacity-100`}
+      />
+      <CardHeader className="pb-2 pt-5">
         <CardDescription>{label}</CardDescription>
         <CardTitle className="flex items-baseline gap-2">
           <Badge variant={balanceVariant(remaining)} className="text-base">

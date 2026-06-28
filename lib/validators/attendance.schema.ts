@@ -49,5 +49,15 @@ export const overtimeSchema = z.object({
   overtime_hours: z.coerce.number().min(0).max(999),
 });
 
+export const payrollSchema = z.object({
+  employee_id: z.string().uuid(),
+  month: z.string().refine((v) => parseDateString(v) !== null, "Invalid month."),
+  incentives: z.coerce.number().min(0).max(9999999),
+  conveyance: z.coerce.number().min(0).max(9999999),
+  advance_deduction: z.coerce.number().min(0).max(9999999),
+  notes: z.string().max(500).optional().nullable(),
+});
+
 export type MarkAttendanceInput = z.infer<typeof markAttendanceSchema>;
 export type LeaveBalanceInput = z.infer<typeof leaveBalanceSchema>;
+export type PayrollInput = z.infer<typeof payrollSchema>;

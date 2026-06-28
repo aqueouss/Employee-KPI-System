@@ -3,17 +3,10 @@ import {
   addDaysToDateString,
   formatDateLabel,
 } from "@/lib/utils/dates";
+import { KPI_FLAG_CELL_STYLES } from "@/components/kpi/flag-badge";
 import type { Tables } from "@/types/database.types";
 
 type Flag = Tables<"daily_kpi_snapshots">["flag"];
-
-const CELL_STYLES: Record<Flag | "none", string> = {
-  green: "bg-emerald-500",
-  yellow: "bg-amber-400",
-  red: "bg-red-500",
-  no_tasks: "bg-muted",
-  none: "bg-muted/40",
-};
 
 const CELL_LABEL: Record<Flag | "none", string> = {
   green: "Green",
@@ -48,28 +41,23 @@ export function KpiFlagGrid({
             key={cell.date}
             title={`${formatDateLabel(cell.date)} — ${CELL_LABEL[cell.flag]}`}
             className={cn(
-              "h-5 w-5 rounded-sm",
-              CELL_STYLES[cell.flag],
+              "h-6 w-6 rounded-md transition-transform hover:scale-110",
+              KPI_FLAG_CELL_STYLES[cell.flag],
             )}
           />
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-sm bg-emerald-500" /> Green
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-sm bg-amber-400" /> Yellow
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-sm bg-red-500" /> Red
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-sm bg-muted" /> No tasks
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-sm bg-muted/40" /> No data
-        </span>
+        {(["green", "yellow", "red", "no_tasks", "none"] as const).map(
+          (flag) => (
+            <span key={flag} className="flex items-center gap-1.5">
+              <span
+                className={cn("h-3.5 w-3.5 rounded-sm", KPI_FLAG_CELL_STYLES[flag])}
+              />
+              {CELL_LABEL[flag]}
+            </span>
+          ),
+        )}
       </div>
     </div>
   );

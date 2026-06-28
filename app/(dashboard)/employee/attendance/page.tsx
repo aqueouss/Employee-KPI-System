@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { requireRole } from "@/lib/auth/require-role";
 import {
   getTodayDateString,
@@ -7,11 +5,14 @@ import {
   startOfMonthDateString,
 } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { getAttendanceCaption } from "@/lib/captions/funny-captions";
+import { FunnyCaption } from "@/components/ui/funny-caption";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceCalendarGrid } from "@/components/attendance/attendance-calendar-grid";
 import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
-import { SalarySummaryCards } from "@/components/attendance/salary-summary-cards";
-import { Button } from "@/components/ui/button";
+import { PayrollSummaryCards } from "@/components/attendance/payroll-summary-cards";
+import { DownloadPayslipButton } from "@/components/payroll/download-payslip-button";
+import { formatMonthLabel } from "@/lib/payroll/format-month-label";
 import {
   Card,
   CardContent,
@@ -32,10 +33,16 @@ export default async function EmployeeAttendancePage({
       ? startOfMonthDateString(sp.month!)
       : startOfMonthDateString(getTodayDateString());
 
-  const { monthStart, summary, salarySummary, weeks } = await loadMonthAttendance(
-    profile.id,
-    month,
-  );
+  const { monthStart, summary, payrollSummary, payrollRow, weeks } =
+    await loadMonthAttendance(profile.id, month);
+
+  const attendanceCaption = getAttendanceCaption({
+    date: getTodayDateString(),
+    paidLeaveRemaining: summary.paid_leave_remaining,
+    paidLeaveUsed: summary.paid_leave_used,
+    lateUsed: summary.late_used,
+    seed: `${profile.id}-${monthStart}`,
+  });
 
   return (
     <div className="space-y-6">
@@ -50,18 +57,35 @@ export default async function EmployeeAttendancePage({
         <MonthNav basePath="/employee/attendance" monthStart={monthStart} />
       </div>
 
+      <FunnyCaption>{attendanceCaption}</FunnyCaption>
+
       <LeaveBalanceCards summary={summary} />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Salary</CardTitle>
-          <CardDescription>
-            Salaried days = all days in month (incl. Sundays) − absent days −
-            extra half days (0.5 each).
-          </CardDescription>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle>Payroll</CardTitle>
+            <CardDescription>
+              Net salary = attendance salary + incentives + conveyance − advance
+              deduction.
+            </CardDescription>
+          </div>
+          <DownloadPayslipButton
+            allowDownload={false}
+            data={{
+              employeeName: profile.full_name,
+              employeeEmail: profile.email,
+              designation: profile.job_designation,
+              department: profile.department,
+              monthLabel: formatMonthLabel(monthStart),
+              monthStart,
+              payroll: payrollSummary,
+              notes: payrollRow?.notes ?? null,
+            }}
+          />
         </CardHeader>
         <CardContent>
-          <SalarySummaryCards summary={salarySummary} />
+          <PayrollSummaryCards summary={payrollSummary} />
         </CardContent>
       </Card>
 

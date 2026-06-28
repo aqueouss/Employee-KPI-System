@@ -53,9 +53,9 @@ export function AttendanceCalendarGrid({
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-xl border border-border/70 shadow-sm">
         <div className="min-w-[560px]">
-          <div className="grid grid-cols-7 border-b bg-muted/40 text-center text-xs font-medium text-muted-foreground">
+          <div className="grid grid-cols-7 border-b bg-gradient-to-r from-primary/12 via-accent/30 to-brand/10 text-center text-xs font-medium text-muted-foreground dark:from-primary/15 dark:via-accent/20 dark:to-brand/15">
             {WEEKDAY_LABELS.map((d) => (
               <div key={d} className="px-1 py-2">
                 {d}
@@ -115,11 +115,11 @@ function GridCell({
   } else if (day.isSunday) {
     cellClass += " bg-muted/60 text-muted-foreground";
   } else {
-    cellClass += " bg-background text-muted-foreground hover:bg-muted/30";
+    cellClass += " bg-background text-muted-foreground hover:bg-primary/10 hover:text-foreground";
   }
 
   if (clickable) {
-    cellClass += " cursor-pointer transition-colors";
+    cellClass += " cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:z-10 hover:shadow-md";
   }
 
   const label = status
@@ -204,8 +204,8 @@ function DayEditorDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg border bg-card p-5 shadow-lg">
+    <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="glass-panel w-full max-w-md animate-fade-in-up rounded-2xl p-5">
         <h3 className="text-lg font-semibold">{formatDateLabel(day.date)}</h3>
         <p className="text-sm text-muted-foreground">{monthLabel}</p>
 
@@ -218,10 +218,10 @@ function DayEditorDialog({
                 type="button"
                 onClick={() => setStatus(s)}
                 className={cn(
-                  "rounded-md border px-2 py-2 text-xs font-medium transition-colors",
+                  "rounded-md border px-2 py-2 text-xs font-medium transition-all duration-200 hover:scale-[1.02]",
                   status === s
-                    ? ATTENDANCE_STATUS_COLORS[s]
-                    : "bg-background hover:bg-muted",
+                    ? `${ATTENDANCE_STATUS_COLORS[s]} shadow-sm ring-2 ring-primary/30`
+                    : "bg-background hover:border-primary/30 hover:bg-accent/70",
                 )}
               >
                 {ATTENDANCE_STATUS_LABELS[s]}

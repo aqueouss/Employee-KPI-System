@@ -177,8 +177,8 @@ export function periodLabel(
     }
     case "custom":
       return dueDate
-        ? `${formatDateLabel(startValue)} – ${formatDateLabel(dueDate)}`
-        : formatDateLabel(startValue);
+        ? `Start ${formatDateLabel(startValue)} · End ${formatDateLabel(dueDate)}`
+        : `Start ${formatDateLabel(startValue)}`;
     default:
       return formatDateLabel(startValue);
   }
@@ -191,6 +191,24 @@ export function formatDateLabel(value: string): string {
     weekday: "short",
     year: "numeric",
     month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Full weekday name, e.g. "Monday". */
+export function formatWeekdayLabel(value: string): string {
+  return new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+}
+
+/** Calendar date without weekday, e.g. "June 29, 2026". */
+export function formatCalendarDateLabel(value: string): string {
+  return new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
     day: "numeric",
     timeZone: "UTC",
   });

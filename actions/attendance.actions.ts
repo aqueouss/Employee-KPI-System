@@ -8,6 +8,7 @@ import {
   leaveBalanceSchema,
   markAttendanceSchema,
   overtimeSchema,
+  payrollSchema,
 } from "@/lib/validators/attendance.schema";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import {
@@ -418,6 +419,67 @@ export async function updateOvertimeAction(
   revalidatePath("/employee/attendance");
   revalidatePath("/employee");
   return { success: "Overtime saved." };
+}
+
+export async function updatePayrollAction(
+  _prev: AttendanceActionState,
+  formData: FormData,
+): Promise<AttendanceActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const monthRaw = String(formData.get("month") ?? "");
+  const month = startOfMonthDateString(monthRaw);
+  const notesRaw = formData.get("notes");
+  const notes =
+    notesRaw === null || String(notesRaw).trim() === ""
+      ? null
+      : String(notesRaw).trim();
+
+  const parsed = payrollSchema.safeParse({
+    employee_id: formData.get("employee_id"),
+    month,
+    incentives: formData.get("incentives"),
+    conveyance: formData.get("conveyance"),
+    advance_deduction: formData.get("advance_deduction"),
+    notes,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("monthly_payroll").upsert(
+    {
+      employee_id: parsed.data.employee_id,
+      month: parsed.data.month,
+      incentives: parsed.data.incentives,
+      conveyance: parsed.data.conveyance,
+      advance_deduction: parsed.data.advance_deduction,
+      notes: parsed.data.notes ?? null,
+      updated_by: admin.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "employee_id,month" },
+  );
+
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    actor_id: admin.id,
+    action: "payroll.updated",
+    entity_type: "monthly_payroll",
+    entity_id: parsed.data.employee_id,
+    metadata: parsed.data,
+  });
+
+  revalidatePath("/admin/attendance");
+  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
+  revalidatePath("/employee/attendance");
+  revalidatePath("/employee");
+  return { success: "Payroll saved." };
 }
 
 export async function getAttendanceSummary(

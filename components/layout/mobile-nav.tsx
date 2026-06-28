@@ -32,7 +32,7 @@ export function MobileNav({ role }: { role: UserRole }) {
             className="fixed inset-0 top-14 z-20 bg-black/40"
             onClick={() => setOpen(false)}
           />
-          <div className="fixed inset-x-0 top-14 z-30 border-b bg-card p-4 shadow-lg">
+          <div className="fixed inset-x-0 top-14 z-30 border-b border-border/60 bg-card/90 p-4 shadow-xl shadow-primary/10 backdrop-blur-xl">
             <div key={pathname} onClick={() => setOpen(false)}>
               <DashboardNav role={role} />
             </div>

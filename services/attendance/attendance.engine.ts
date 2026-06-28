@@ -165,6 +165,13 @@ export function computeLeaveBalance(
   const lateUsed = Math.min(lateCount, allowances.late);
   const penaltyHalfDays = Math.max(0, lateCount - allowances.late);
   const totalHalfDayUsed = halfDayUsed + penaltyHalfDays;
+  const paidLeaveAvailable = totalPaidLeave - paidLeaveUsed;
+  const halfDaySettlement = settleExtraHalfDays(
+    halfDayUsed,
+    penaltyHalfDays,
+    allowances.half_day,
+    paidLeaveAvailable,
+  );
 
   return {
     paid_leave: totalPaidLeave,
@@ -181,7 +188,10 @@ export function computeLeaveBalance(
     late_used: lateUsed,
     penalty_half_days: penaltyHalfDays,
     auto_sunday_absents: autoSundayAbsents,
-    paid_leave_remaining: totalPaidLeave - paidLeaveUsed,
+    paid_leave_remaining:
+      totalPaidLeave -
+      paidLeaveUsed -
+      halfDaySettlement.paidLeaveUsedByHalfDays,
     half_day_remaining: allowances.half_day - totalHalfDayUsed,
     short_leave_remaining: allowances.short_leave - shortLeaveUsed,
     late_remaining: allowances.late - lateUsed,
@@ -416,12 +426,48 @@ function eligibleCalendarDays(
   return days.filter((d) => d >= hireDate.slice(0, 10));
 }
 
+type HalfDaySettlement = {
+  halfDayUsed: number;
+  penaltyHalfDays: number;
+  totalHalfDays: number;
+  extraHalfDays: number;
+  halfDaysCoveredByPaidLeave: number;
+  salaryDeductibleHalfDays: number;
+  paidLeaveUsedByHalfDays: number;
+};
+
+function settleExtraHalfDays(
+  halfDayUsed: number,
+  penaltyHalfDays: number,
+  halfDayAllowance: number,
+  paidLeaveAvailable: number,
+): HalfDaySettlement {
+  const totalHalfDays = halfDayUsed + penaltyHalfDays;
+  const extraHalfDays = Math.max(0, totalHalfDays - halfDayAllowance);
+  const halfDaysCoverable = Math.min(
+    extraHalfDays,
+    Math.max(0, paidLeaveAvailable) * 2,
+  );
+  const salaryDeductibleHalfDays = extraHalfDays - halfDaysCoverable;
+  const paidLeaveUsedByHalfDays = halfDaysCoverable * 0.5;
+
+  return {
+    halfDayUsed,
+    penaltyHalfDays,
+    totalHalfDays,
+    extraHalfDays,
+    halfDaysCoveredByPaidLeave: halfDaysCoverable,
+    salaryDeductibleHalfDays,
+    paidLeaveUsedByHalfDays,
+  };
+}
+
 export function computeSalarySummary(
   records: AttendanceRecordInput[],
   monthStart: string,
   allowances: LeaveAllowances,
   monthlySalary: number | null,
-  options?: { hireDate?: string | null },
+  options?: { hireDate?: string | null; carryForward?: number },
 ): SalarySummary {
   const merged = applyWeeklySundayRules(records);
   const monthRecords = merged.filter((r) =>
@@ -447,13 +493,27 @@ export function computeSalarySummary(
   const halfDayUsed = monthRecords.filter((r) => r.status === "half_day").length;
   const lateCount = monthRecords.filter((r) => r.status === "late").length;
   const penaltyHalfDays = Math.max(0, lateCount - allowances.late);
-  const totalHalfDays = halfDayUsed + penaltyHalfDays;
-  const extraHalfDays = Math.max(0, totalHalfDays - allowances.half_day);
+  const paidLeaveUsed = monthRecords.filter(
+    (r) => r.status === "paid_leave",
+  ).length;
+  const totalPaidLeave =
+    allowances.paid_leave +
+    overtimeHoursToPaidLeave(allowances.overtime_hours) +
+    (options?.carryForward ?? 0);
+  const halfDaySettlement = settleExtraHalfDays(
+    halfDayUsed,
+    penaltyHalfDays,
+    allowances.half_day,
+    totalPaidLeave - paidLeaveUsed,
+  );
 
   const salariedDays = Math.max(
     0,
     Math.round(
-      (totalCalendarDays - absentDays - extraHalfDays * 0.5) * 100,
+      (totalCalendarDays -
+        absentDays -
+        halfDaySettlement.salaryDeductibleHalfDays * 0.5) *
+        100,
     ) / 100,
   );
 
@@ -471,10 +531,60 @@ export function computeSalarySummary(
     total_working_days: totalWorkingDays,
     total_calendar_days: totalCalendarDays,
     absent_days: absentDays,
-    extra_half_days: extraHalfDays,
+    extra_half_days: halfDaySettlement.salaryDeductibleHalfDays,
     salaried_days: salariedDays,
     monthly_salary: monthlySalary,
     daily_rate: dailyRate,
     calculated_salary: calculatedSalary,
+  };
+}
+
+export type PayrollAdjustments = {
+  incentives: number;
+  conveyance: number;
+  advance_deduction: number;
+};
+
+export type PayrollSummary = SalarySummary &
+  PayrollAdjustments & {
+    gross_salary: number | null;
+    net_salary: number | null;
+  };
+
+export function computePayrollSummary(
+  salary: SalarySummary,
+  adjustments: PayrollAdjustments,
+): PayrollSummary {
+  const { incentives, conveyance, advance_deduction } = adjustments;
+  const base = salary.calculated_salary;
+
+  if (
+    base === null &&
+    incentives === 0 &&
+    conveyance === 0 &&
+    advance_deduction === 0
+  ) {
+    return {
+      ...salary,
+      incentives,
+      conveyance,
+      advance_deduction,
+      gross_salary: null,
+      net_salary: null,
+    };
+  }
+
+  const baseAmount = base ?? 0;
+  const gross =
+    Math.round((baseAmount + incentives + conveyance) * 100) / 100;
+  const net = Math.round((gross - advance_deduction) * 100) / 100;
+
+  return {
+    ...salary,
+    incentives,
+    conveyance,
+    advance_deduction,
+    gross_salary: gross,
+    net_salary: net,
   };
 }

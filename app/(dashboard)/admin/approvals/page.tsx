@@ -2,9 +2,7 @@ import Link from "next/link";
 
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateLabel, periodLabel } from "@/lib/utils/dates";
-import { TaskReviewControls } from "@/components/admin/task-review-controls";
-import { Badge } from "@/components/ui/badge";
+import { AdminTaskListItem } from "@/components/admin/admin-task-list-item";
 import {
   Card,
   CardContent,
@@ -31,7 +29,6 @@ export default async function AdminApprovalsPage() {
     .select("id, full_name");
   const nameById = new Map((profileData ?? []).map((p) => [p.id, p.full_name]));
 
-  // Group submitted tasks by employee for a tidier review queue.
   const byEmployee = new Map<string, Tables<"tasks">[]>();
   for (const task of tasks) {
     const list = byEmployee.get(task.employee_id) ?? [];
@@ -76,42 +73,12 @@ export default async function AdminApprovalsPage() {
                 {employeeTasks.length === 1 ? "" : "s"} awaiting approval
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {employeeTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="space-y-3 rounded-md border px-4 py-4"
-                >
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-start gap-2">
-                      <p className="min-w-0 flex-1 break-words text-sm font-medium leading-snug">
-                        {task.title}
-                      </p>
-                      {task.period !== "daily" ? (
-                        <Badge
-                          variant="outline"
-                          className="shrink-0 capitalize"
-                        >
-                          {task.period}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <p className="break-words text-xs text-muted-foreground">
-                      {task.period === "daily"
-                        ? formatDateLabel(task.task_date)
-                        : periodLabel(
-                            task.period,
-                            task.task_date,
-                            task.due_date,
-                          )}
-                      {task.submitted_at
-                        ? ` · submitted ${new Date(task.submitted_at).toLocaleString()}`
-                        : ""}
-                    </p>
-                  </div>
-                  <TaskReviewControls taskId={task.id} />
-                </div>
-              ))}
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/60">
+                {employeeTasks.map((task) => (
+                  <AdminTaskListItem key={task.id} task={task} />
+                ))}
+              </div>
             </CardContent>
           </Card>
         ))
