@@ -57,6 +57,8 @@ export async function createEmployeeAction(
   if (department.length > 80) {
     return { error: "Department name is too long." };
   }
+
+  let supabaseAdmin: ReturnType<typeof createAdminClient>;
   try {
     supabaseAdmin = createAdminClient();
   } catch (e) {

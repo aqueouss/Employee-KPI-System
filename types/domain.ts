@@ -36,6 +36,8 @@ export type Profile = {
   termination_review_status: TerminationStatus;
   hire_date: string | null;
   job_designation: string | null;
+  department: string | null;
+  monthly_salary: number | null;
   created_at: string;
   updated_at: string;
 };
