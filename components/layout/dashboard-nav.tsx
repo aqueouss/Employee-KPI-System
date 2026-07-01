@@ -328,7 +328,9 @@ export function DashboardNav({
   const employeeItems = kpiTracked ? employeeNav : payrollEmployeeNav;
   const sharedItems = kpiTracked
     ? sharedNav
-    : sharedNav.filter((item) => item.href !== "/rankings");
+    : sharedNav.filter(
+        (item) => item.type !== "link" || item.href !== "/rankings",
+      );
   const items = [...(role === "admin" ? adminNav : employeeItems), ...sharedItems];
 
   return (
