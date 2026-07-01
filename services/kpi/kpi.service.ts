@@ -100,7 +100,8 @@ export async function runDailyKpiPipeline(
   const { data: employees, error } = await client
     .from("profiles")
     .select("id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("kpi_tracked", true);
 
   if (error) {
     throw new Error(`Failed to load employees: ${error.message}`);

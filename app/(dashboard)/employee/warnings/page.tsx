@@ -1,6 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 
-import { requireRole } from "@/lib/auth/require-role";
+import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateLabel } from "@/lib/utils/dates";
 import { WarningStatusBadge } from "@/components/warnings/warning-status-badge";
@@ -23,7 +23,7 @@ function formatMonth(value: string) {
 }
 
 export default async function EmployeeWarningsPage() {
-  const profile = await requireRole(["admin", "employee"]);
+  const profile = await requireKpiEmployee();
   const supabase = await createClient();
 
   const { data } = await supabase

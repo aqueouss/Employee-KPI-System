@@ -26,7 +26,7 @@ export default async function DashboardLayout({
         <header className="sticky top-0 z-10 border-b border-border/60 bg-surface/80 shadow-sm backdrop-blur-xl dark:bg-card/80">
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
             <div className="flex items-center gap-3">
-              <MobileNav role={profile.role} />
+              <MobileNav role={profile.role} kpiTracked={profile.kpi_tracked} />
               <AppLogo />
             </div>
             <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ export default async function DashboardLayout({
           <aside className="hidden w-56 shrink-0 md:block">
             <div className="sticky top-20">
               <div className="glass-panel rounded-xl p-2">
-                <DashboardNav role={profile.role} />
+                <DashboardNav role={profile.role} kpiTracked={profile.kpi_tracked} />
               </div>
             </div>
           </aside>

@@ -8,6 +8,7 @@ import { formatDateLabel } from "@/lib/utils/dates";
 import { AdminTaskCreateForm } from "@/components/admin/admin-task-create-form";
 import { AdminTaskListItem } from "@/components/admin/admin-task-list-item";
 import { EmployeeDetailsForm } from "@/components/admin/employee-details-form";
+import { EmployeePayrollOnlyButton } from "@/components/admin/employee-payroll-only-button";
 import { FlagBadge } from "@/components/kpi/flag-badge";
 import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
 import { getTodayDateString } from "@/lib/utils/dates";
@@ -51,6 +52,8 @@ export default async function EmployeeDetailPage({
     .single();
 
   if (!profile) notFound();
+
+  const kpiTracked = profile.kpi_tracked !== false;
 
   const [
     { data: snapshotData },
@@ -118,6 +121,9 @@ export default async function EmployeeDetailPage({
           <Badge variant={profile.is_active ? "success" : "destructive"}>
             {profile.is_active ? "active" : "inactive"}
           </Badge>
+          {!kpiTracked ? (
+            <Badge variant="outline">Payroll only</Badge>
+          ) : null}
         </div>
         <p className="text-muted-foreground">{profile.email}</p>
         <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
@@ -149,7 +155,18 @@ export default async function EmployeeDetailPage({
             Job designation, department, and hire date (admin only).
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {kpiTracked && profile.role !== "admin" ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                This employee is in the KPI system.
+              </p>
+              <EmployeePayrollOnlyButton
+                employeeId={profile.id}
+                fullName={profile.full_name}
+              />
+            </div>
+          ) : null}
           <EmployeeDetailsForm
             employeeId={profile.id}
             hireDate={profile.hire_date}
@@ -158,10 +175,31 @@ export default async function EmployeeDetailPage({
             monthlySalary={
               profile.monthly_salary != null ? Number(profile.monthly_salary) : null
             }
+            kpiTracked={profile.kpi_tracked === false ? false : true}
+            isAdmin={profile.role === "admin"}
           />
         </CardContent>
       </Card>
 
+      {!kpiTracked ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Payroll & attendance</CardTitle>
+            <CardDescription>
+              This employee is payroll-only and is not tracked in KPI, tasks, or
+              rankings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href={`/admin/attendance/${profile.id}`}>
+                Open attendance & payroll
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -324,6 +362,8 @@ export default async function EmployeeDetailPage({
           </CardContent>
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }

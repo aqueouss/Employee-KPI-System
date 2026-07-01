@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
   updateEmployeeDetailsAction,
@@ -18,21 +18,33 @@ export function EmployeeDetailsForm({
   jobDesignation,
   department,
   monthlySalary,
+  kpiTracked,
+  isAdmin,
 }: {
   employeeId: string;
   hireDate: string | null;
   jobDesignation: string | null;
   department: string | null;
   monthlySalary: number | null;
+  kpiTracked: boolean;
+  isAdmin?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(
     updateEmployeeDetailsAction,
     initialState,
   );
+  const [employeeType, setEmployeeType] = useState(
+    kpiTracked ? "true" : "false",
+  );
+
+  useEffect(() => {
+    setEmployeeType(kpiTracked ? "true" : "false");
+  }, [kpiTracked]);
 
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="employee_id" value={employeeId} />
+      <input type="hidden" name="kpi_tracked" value={employeeType} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="job_designation">Job designation</Label>
@@ -75,6 +87,20 @@ export function EmployeeDetailsForm({
             placeholder="e.g. 50000"
           />
         </div>
+        {!isAdmin ? (
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="kpi_tracked">Employee type</Label>
+            <select
+              id="kpi_tracked"
+              value={employeeType}
+              onChange={(e) => setEmployeeType(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="true">KPI employee</option>
+              <option value="false">Payroll only</option>
+            </select>
+          </div>
+        ) : null}
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={isPending}>

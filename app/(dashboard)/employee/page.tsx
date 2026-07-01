@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { requireRole } from "@/lib/auth/require-role";
+import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString, startOfMonthDateString } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
@@ -29,7 +29,7 @@ import {
 import type { Tables } from "@/types/database.types";
 
 export default async function EmployeeDashboardPage() {
-  const profile = await requireRole(["admin", "employee"]);
+  const profile = await requireKpiEmployee();
   const today = getTodayDateString();
   const monthStart = startOfMonthDateString(today);
 

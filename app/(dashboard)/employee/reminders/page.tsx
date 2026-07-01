@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth/require-role";
+import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { ReminderEditControls } from "@/components/reminders/reminder-actions";
 import { ReminderForm } from "@/components/reminders/reminder-form";
@@ -13,7 +13,7 @@ import {
 import type { Tables } from "@/types/database.types";
 
 export default async function EmployeeRemindersPage() {
-  const profile = await requireRole(["admin", "employee"]);
+  const profile = await requireKpiEmployee();
   const supabase = await createClient();
 
   const { data } = await supabase

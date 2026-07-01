@@ -165,6 +165,15 @@ const employeeNav: NavEntry[] = [
   },
 ];
 
+const payrollEmployeeNav: NavEntry[] = [
+  {
+    type: "link",
+    href: "/employee/attendance",
+    label: "Attendance",
+    icon: CalendarCheck,
+  },
+];
+
 const sharedNav: NavEntry[] = [
   { type: "link", href: "/rankings", label: "Rankings", icon: Trophy },
   { type: "link", href: "/profile", label: "Profile", icon: UserCircle },
@@ -307,10 +316,20 @@ function NavGroupSection({
   );
 }
 
-export function DashboardNav({ role }: { role: UserRole }) {
+export function DashboardNav({
+  role,
+  kpiTracked = true,
+}: {
+  role: UserRole;
+  kpiTracked?: boolean;
+}) {
   const pathname = usePathname();
   const { counts } = useNotifications();
-  const items = [...(role === "admin" ? adminNav : employeeNav), ...sharedNav];
+  const employeeItems = kpiTracked ? employeeNav : payrollEmployeeNav;
+  const sharedItems = kpiTracked
+    ? sharedNav
+    : sharedNav.filter((item) => item.href !== "/rankings");
+  const items = [...(role === "admin" ? adminNav : employeeItems), ...sharedItems];
 
   return (
     <nav className="flex flex-col gap-1">

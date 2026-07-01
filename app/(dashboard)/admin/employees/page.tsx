@@ -3,7 +3,7 @@ import { UserPlus } from "lucide-react";
 
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { EmployeeActiveToggle } from "@/components/admin/employee-active-toggle";
+import { EmployeeRowActions } from "@/components/admin/employee-row-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,12 +78,14 @@ export default async function AdminEmployeesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead className="hidden md:table-cell">Department</TableHead>
+                  <TableHead className="hidden lg:table-cell">Email</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="hidden sm:table-cell">Joined</TableHead>
+                  <TableHead className="w-12 text-right">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,41 +103,45 @@ export default async function AdminEmployeesPage() {
                           (you)
                         </span>
                       ) : null}
+                      <p className="mt-0.5 text-xs text-muted-foreground lg:hidden">
+                        {employee.email}
+                      </p>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
                       {employee.department || "—"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">
                       {employee.email}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          employee.role === "admin" ? "default" : "secondary"
-                        }
-                      >
-                        {employee.role}
-                      </Badge>
+                      {employee.role === "admin" ? (
+                        <Badge variant="default">Admin</Badge>
+                      ) : employee.kpi_tracked === false ? (
+                        <Badge variant="outline">Payroll</Badge>
+                      ) : (
+                        <Badge variant="secondary">KPI</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={employee.is_active ? "success" : "destructive"}
+                        className="text-[11px]"
                       >
-                        {employee.is_active ? "active" : "inactive"}
+                        {employee.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">
                       {formatDate(employee.created_at)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {employee.id === admin.id ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : (
-                        <EmployeeActiveToggle
-                          employeeId={employee.id}
-                          isActive={employee.is_active}
-                        />
-                      )}
+                      <EmployeeRowActions
+                        employeeId={employee.id}
+                        fullName={employee.full_name}
+                        isActive={employee.is_active}
+                        kpiTracked={employee.kpi_tracked !== false}
+                        isAdmin={employee.role === "admin"}
+                        isSelf={employee.id === admin.id}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

@@ -38,6 +38,7 @@ export type Profile = {
   job_designation: string | null;
   department: string | null;
   monthly_salary: number | null;
+  kpi_tracked: boolean;
   created_at: string;
   updated_at: string;
 };

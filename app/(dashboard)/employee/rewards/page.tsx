@@ -1,6 +1,6 @@
 import { Award } from "lucide-react";
 
-import { requireRole } from "@/lib/auth/require-role";
+import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, formatDateLabel } from "@/lib/utils/dates";
 import { computeGreenStreak } from "@/services/rewards/reward.engine";
@@ -16,7 +16,7 @@ import type { Tables } from "@/types/database.types";
 import type { KpiFlag } from "@/types/domain";
 
 export default async function EmployeeRewardsPage() {
-  const profile = await requireRole(["admin", "employee"]);
+  const profile = await requireKpiEmployee();
   const today = getTodayDateString();
   const supabase = await createClient();
 

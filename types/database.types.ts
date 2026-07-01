@@ -318,6 +318,7 @@ export type Database = {
           id: string
           is_active: boolean
           job_designation: string | null
+          kpi_tracked: boolean
           monthly_salary: number | null
           role: Database["public"]["Enums"]["user_role"]
           termination_review_status: Database["public"]["Enums"]["termination_status"]
@@ -332,6 +333,7 @@ export type Database = {
           id: string
           is_active?: boolean
           job_designation?: string | null
+          kpi_tracked?: boolean
           monthly_salary?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           termination_review_status?: Database["public"]["Enums"]["termination_status"]
@@ -346,6 +348,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           job_designation?: string | null
+          kpi_tracked?: boolean
           monthly_salary?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           termination_review_status?: Database["public"]["Enums"]["termination_status"]

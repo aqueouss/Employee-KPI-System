@@ -1,6 +1,9 @@
 import { Trophy, Medal, Crown } from "lucide-react";
 
+import { redirect } from "next/navigation";
+
 import { requireRole } from "@/lib/auth/require-role";
+import { isKpiTracked } from "@/lib/auth/kpi-tracked";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTodayDateString,
@@ -41,6 +44,9 @@ function topPerformer(rows: RankingRow[]): RankingRow | null {
 
 export default async function RankingsPage() {
   const profile = await requireRole(["admin", "employee"]);
+  if (profile.role === "employee" && !isKpiTracked(profile)) {
+    redirect("/employee/attendance");
+  }
   const supabase = await createClient();
 
   const today = getTodayDateString();

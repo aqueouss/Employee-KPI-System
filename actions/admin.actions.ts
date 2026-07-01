@@ -38,6 +38,8 @@ export async function createEmployeeAction(
   const hireDateRaw = String(formData.get("hire_date") ?? "").trim();
   const jobDesignation = String(formData.get("job_designation") ?? "").trim();
   const department = String(formData.get("department") ?? "").trim();
+  const employeeType = String(formData.get("employee_type") ?? "kpi");
+  const kpiTracked = employeeType !== "payroll_only";
 
   if (!email || !email.includes("@")) {
     return { error: "A valid email is required." };
@@ -50,6 +52,9 @@ export async function createEmployeeAction(
   }
   if (role !== "employee" && role !== "admin") {
     return { error: "Invalid role." };
+  }
+  if (role === "admin" && !kpiTracked) {
+    return { error: "Admins must use KPI tracking." };
   }
   if (hireDateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(hireDateRaw)) {
     return { error: "Invalid hire date." };
@@ -86,6 +91,7 @@ export async function createEmployeeAction(
       hire_date: hireDateRaw ? hireDateRaw : null,
       job_designation: jobDesignation ? jobDesignation : null,
       department: department ? department : null,
+      kpi_tracked: kpiTracked,
     })
     .eq("id", created.user.id);
 
@@ -98,13 +104,15 @@ export async function createEmployeeAction(
     action: "employee.created",
     entity_type: "profile",
     entity_id: created.user.id,
-    metadata: { email, role },
+    metadata: { email, role, kpi_tracked: kpiTracked },
   });
 
   revalidatePath("/admin/employees");
   revalidatePath("/admin");
   revalidatePath("/admin/departments");
-  return { success: `${fullName} was added as ${role}.` };
+  return {
+    success: `${fullName} was added as ${kpiTracked ? role : "payroll-only employee"}.`,
+  };
 }
 
 export async function setEmployeeActiveAction(
@@ -140,6 +148,123 @@ export async function setEmployeeActiveAction(
 
   revalidatePath("/admin/employees");
   return { success: isActive ? "Employee activated." : "Employee deactivated." };
+}
+
+export async function setEmployeePayrollOnlyAction(
+  employeeId: string,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  if (!admin) {
+    return { error: "Forbidden. Admin access required." };
+  }
+
+  if (!/^[0-9a-f-]{36}$/i.test(employeeId)) {
+    return { error: "Invalid employee." };
+  }
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("role, full_name, kpi_tracked")
+    .eq("id", employeeId)
+    .single();
+
+  if (!existing) {
+    return { error: "Employee not found." };
+  }
+  if (existing.role === "admin") {
+    return { error: "Admins must use KPI tracking." };
+  }
+  if (existing.kpi_tracked === false) {
+    return { success: `${existing.full_name} is already payroll-only.` };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ kpi_tracked: false })
+    .eq("id", employeeId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_id: admin.id,
+    action: "employee.set_payroll_only",
+    entity_type: "profile",
+    entity_id: employeeId,
+    metadata: { full_name: existing.full_name },
+  });
+
+  revalidatePath(`/admin/employees/${employeeId}`);
+  revalidatePath("/admin/employees");
+  revalidatePath("/admin");
+  revalidatePath("/admin/departments");
+  revalidatePath("/admin/payroll");
+  revalidatePath("/admin/attendance");
+  return { success: `${existing.full_name} is now payroll-only.` };
+}
+
+export async function deleteEmployeeAction(
+  employeeId: string,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  if (!admin) {
+    return { error: "Forbidden. Admin access required." };
+  }
+
+  if (!/^[0-9a-f-]{36}$/i.test(employeeId)) {
+    return { error: "Invalid employee." };
+  }
+  if (employeeId === admin.id) {
+    return { error: "You cannot delete your own account." };
+  }
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("role, full_name, email")
+    .eq("id", employeeId)
+    .single();
+
+  if (!existing) {
+    return { error: "Employee not found." };
+  }
+  if (existing.role === "admin") {
+    return { error: "Admin accounts cannot be deleted here." };
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_id: admin.id,
+    action: "employee.deleted",
+    entity_type: "profile",
+    entity_id: employeeId,
+    metadata: {
+      full_name: existing.full_name,
+      email: existing.email,
+    },
+  });
+
+  let supabaseAdmin: ReturnType<typeof createAdminClient>;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Admin client error." };
+  }
+
+  const { error: deleteError } =
+    await supabaseAdmin.auth.admin.deleteUser(employeeId);
+
+  if (deleteError) {
+    return { error: deleteError.message };
+  }
+
+  revalidatePath("/admin/employees");
+  revalidatePath("/admin");
+  revalidatePath("/admin/departments");
+  revalidatePath("/admin/payroll");
+  revalidatePath("/admin/attendance");
+  return { success: `${existing.full_name} was deleted.` };
 }
 
 export async function updateKpiRulesAction(
@@ -239,6 +364,29 @@ export async function updateEmployeeDetailsAction(
   }
 
   const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("role, kpi_tracked")
+    .eq("id", employeeId)
+    .single();
+
+  if (!existing) {
+    return { error: "Employee not found." };
+  }
+
+  const submittedKpiTracked = formData.get("kpi_tracked");
+  const kpiTracked =
+    submittedKpiTracked === "false"
+      ? false
+      : submittedKpiTracked === "true"
+        ? true
+        : existing.kpi_tracked !== false;
+
+  if (existing.role === "admin" && !kpiTracked) {
+    return { error: "Admins must use KPI tracking." };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -246,6 +394,7 @@ export async function updateEmployeeDetailsAction(
       job_designation: jobDesignation ? jobDesignation : null,
       department: department ? department : null,
       monthly_salary: monthlySalary,
+      kpi_tracked: kpiTracked,
     })
     .eq("id", employeeId);
 
@@ -263,6 +412,7 @@ export async function updateEmployeeDetailsAction(
       job_designation: jobDesignation || null,
       department: department || null,
       monthly_salary: monthlySalary,
+      kpi_tracked: kpiTracked,
     },
   });
 

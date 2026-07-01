@@ -13,5 +13,9 @@ export default async function HomePage() {
     redirect("/admin");
   }
 
+  if (profile.kpi_tracked === false) {
+    redirect("/employee/attendance");
+  }
+
   redirect("/employee");
 }

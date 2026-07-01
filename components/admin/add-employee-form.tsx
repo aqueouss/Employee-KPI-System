@@ -75,6 +75,22 @@ export function AddEmployeeForm() {
         <Input id="hire_date" name="hire_date" type="date" />
       </div>
       <div className="space-y-2">
+        <Label htmlFor="employee_type">Employee type</Label>
+        <select
+          id="employee_type"
+          name="employee_type"
+          defaultValue="kpi"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="kpi">KPI employee</option>
+          <option value="payroll_only">Payroll only (labour / telecaller)</option>
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Payroll-only staff are included in attendance and payroll but not tasks,
+          KPI, warnings, or rankings.
+        </p>
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="role">Role</Label>
         <select
           id="role"

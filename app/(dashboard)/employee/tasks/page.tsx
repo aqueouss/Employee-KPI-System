@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth/require-role";
+import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTodayDateString,
@@ -46,7 +46,7 @@ export default async function EmployeeTasksPage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  const profile = await requireRole(["admin", "employee"]);
+  const profile = await requireKpiEmployee();
   const today = getTodayDateString();
   const params = await searchParams;
   const date = parseDateString(params.date) ?? today;
