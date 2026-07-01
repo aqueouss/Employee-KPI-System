@@ -122,19 +122,63 @@ test("computeSalarySummary: absent marked days earn no credit", () => {
     { attendance_date: "2026-06-02", status: "absent" as const },
     { attendance_date: "2026-06-03", status: "present" as const },
   ];
-  const s = computeSalarySummary(records, "2026-06-01", {
-    paid_leave: 1,
-    overtime_hours: 0,
-    half_day: 1,
-    short_leave: 1,
-    late: 4,
-  }, 30000);
+  const s = computeSalarySummary(
+    records,
+    "2026-06-01",
+    {
+      paid_leave: 1,
+      overtime_hours: 0,
+      half_day: 1,
+      short_leave: 1,
+      late: 4,
+    },
+    30000,
+    { asOfDate: "2026-06-30" },
+  );
   assert.equal(s.total_working_days, 26);
   assert.equal(s.total_calendar_days, 30);
   assert.equal(s.month_calendar_days, 30);
   assert.equal(s.absent_days, 1);
   assert.equal(s.salaried_days, 2);
   assert.equal(s.calculated_salary, 2000);
+});
+
+test("computeSalarySummary: zero salary for months before hire date", () => {
+  const s = computeSalarySummary(
+    [],
+    "2026-05-01",
+    {
+      paid_leave: 1,
+      overtime_hours: 0,
+      half_day: 1,
+      short_leave: 1,
+      late: 4,
+    },
+    36000,
+    { hireDate: "2026-06-01", asOfDate: "2026-06-30" },
+  );
+  assert.equal(s.total_calendar_days, 0);
+  assert.equal(s.salaried_days, 0);
+  assert.equal(s.calculated_salary, 0);
+});
+
+test("computeSalarySummary: zero salary for future months", () => {
+  const s = computeSalarySummary(
+    [],
+    "2026-07-01",
+    {
+      paid_leave: 1,
+      overtime_hours: 0,
+      half_day: 1,
+      short_leave: 1,
+      late: 4,
+    },
+    36000,
+    { hireDate: "2026-06-01", asOfDate: "2026-06-30" },
+  );
+  assert.equal(s.total_calendar_days, 0);
+  assert.equal(s.salaried_days, 0);
+  assert.equal(s.calculated_salary, 0);
 });
 
 test("computeSalarySummary: prorates for mid-month hire with marked attendance", () => {
@@ -153,7 +197,7 @@ test("computeSalarySummary: prorates for mid-month hire with marked attendance",
       late: 4,
     },
     36000,
-    { hireDate: "2026-06-10" },
+    { hireDate: "2026-06-10", asOfDate: "2026-06-30" },
   );
   assert.equal(s.total_calendar_days, 21);
   assert.equal(s.month_calendar_days, 30);
@@ -177,11 +221,23 @@ test("computeSalarySummary: unmarked eligible days are not paid", () => {
       late: 4,
     },
     36000,
-    { hireDate: "2026-06-10" },
+    { hireDate: "2026-06-10", asOfDate: "2026-06-30" },
   );
   assert.equal(s.total_calendar_days, 21);
   assert.equal(s.salaried_days, 5);
   assert.equal(s.calculated_salary, 6000);
+});
+
+test("computeSalarySummary: unmarked Sundays only through previous week", () => {
+  const s = computeSalarySummary([], "2026-06-01", {
+    paid_leave: 1,
+    overtime_hours: 0,
+    half_day: 1,
+    short_leave: 1,
+    late: 4,
+  }, 30000, { asOfDate: "2026-06-15" });
+  assert.equal(s.salaried_days, 2);
+  assert.equal(s.calculated_salary, 2000);
 });
 
 test("computeSalarySummary: unmarked Sundays in eligible period are paid", () => {
@@ -196,7 +252,7 @@ test("computeSalarySummary: unmarked Sundays in eligible period are paid", () =>
     half_day: 1,
     short_leave: 1,
     late: 4,
-  }, 30000);
+  }, 30000, { asOfDate: "2026-06-30" });
 
   assert.equal(s.salaried_days, 30);
   assert.equal(s.calculated_salary, 30000);
@@ -219,7 +275,7 @@ test("computeSalarySummary: extra half days consume paid leave before salary ded
       late: 4,
     },
     30000,
-    { carryForward: 1 },
+    { carryForward: 1, asOfDate: "2026-06-30" },
   );
   assert.equal(s.extra_half_days, 0);
   assert.equal(s.salaried_days, 3);
@@ -238,7 +294,7 @@ test("computeSalarySummary: salary deducts only uncovered extra half days", () =
     half_day: 1,
     short_leave: 1,
     late: 4,
-  }, 30000);
+  }, 30000, { asOfDate: "2026-06-30" });
   assert.equal(s.extra_half_days, 1);
   assert.equal(s.salaried_days, 3.5);
 });

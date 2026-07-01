@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   endOfMonthDateString,
+  getTodayDateString,
   normalizeDateString,
   startOfMonthDateString,
 } from "@/lib/utils/dates";
@@ -111,6 +112,7 @@ export async function loadMonthAttendance(
     {
       hireDate: profile?.hire_date ?? null,
       carryForward: summary.paid_leave_carried_forward,
+      asOfDate: getTodayDateString(),
     },
   );
 

@@ -408,12 +408,23 @@ export function currentMonthStart(today: string): string {
 function eligibleWorkingDays(
   monthStart: string,
   hireDate?: string | null,
+  asOfDate?: string | null,
 ): string[] {
   const days = workingDaysInMonth(monthStart);
-  if (!hireDate || !isInMonth(hireDate, monthStart)) {
-    return days;
+  const { to: monthEnd } = monthDateRange(monthStart);
+
+  let filtered = days;
+  if (hireDate) {
+    const hire = hireDate.slice(0, 10);
+    if (hire > monthEnd) return [];
+    if (isInMonth(hire, monthStart)) {
+      filtered = days.filter((d) => d >= hire);
+    }
   }
-  return days.filter((d) => d >= hireDate.slice(0, 10));
+
+  const periodEnd = salaryPeriodEnd(monthStart, asOfDate);
+  if (periodEnd === null) return [];
+  return filtered.filter((d) => d <= periodEnd);
 }
 
 function eligibleCalendarDays(
@@ -421,10 +432,44 @@ function eligibleCalendarDays(
   hireDate?: string | null,
 ): string[] {
   const days = calendarDaysInMonth(monthStart);
-  if (!hireDate || !isInMonth(hireDate, monthStart)) {
-    return days;
+  const { to: monthEnd } = monthDateRange(monthStart);
+
+  if (hireDate) {
+    const hire = hireDate.slice(0, 10);
+    if (hire > monthEnd) return [];
+    if (isInMonth(hire, monthStart)) {
+      return days.filter((d) => d >= hire);
+    }
   }
-  return days.filter((d) => d >= hireDate.slice(0, 10));
+  return days;
+}
+
+/** Last date that counts toward salary for a month (respects hire month and as-of date). */
+export function salaryPeriodEnd(
+  monthStart: string,
+  asOfDate?: string | null,
+): string | null {
+  const { to: monthEnd } = monthDateRange(monthStart);
+  if (!asOfDate) return monthEnd;
+
+  const asOf = asOfDate.slice(0, 10);
+  if (asOf < monthStart) return null;
+  if (asOf > monthEnd) return monthEnd;
+
+  const prevWeekEnd = addDaysToDateString(startOfWeekDateString(asOf), -1);
+  const end = prevWeekEnd < monthStart ? asOf : prevWeekEnd;
+  return end > monthEnd ? monthEnd : end;
+}
+
+function eligibleCalendarDaysForSalary(
+  monthStart: string,
+  hireDate?: string | null,
+  asOfDate?: string | null,
+): string[] {
+  const periodEnd = salaryPeriodEnd(monthStart, asOfDate);
+  if (periodEnd === null) return [];
+
+  return eligibleCalendarDays(monthStart, hireDate).filter((d) => d <= periodEnd);
 }
 
 function salariedDayCredit(status: AttendanceStatus): number {
@@ -482,7 +527,11 @@ export function computeSalarySummary(
   monthStart: string,
   allowances: LeaveAllowances,
   monthlySalary: number | null,
-  options?: { hireDate?: string | null; carryForward?: number },
+  options?: {
+    hireDate?: string | null;
+    carryForward?: number;
+    asOfDate?: string | null;
+  },
 ): SalarySummary {
   const merged = applyWeeklySundayRules(records);
   const monthRecords = merged.filter((r) =>
@@ -490,7 +539,11 @@ export function computeSalarySummary(
   );
 
   const monthCalendarDays = calendarDaysInMonth(monthStart).length;
-  const eligibleDays = eligibleCalendarDays(monthStart, options?.hireDate);
+  const eligibleDays = eligibleCalendarDaysForSalary(
+    monthStart,
+    options?.hireDate,
+    options?.asOfDate,
+  );
   const eligibleDaySet = new Set(eligibleDays);
   const eligibleMonthRecords = monthRecords.filter((r) =>
     eligibleDaySet.has(r.attendance_date.slice(0, 10)),
@@ -499,6 +552,7 @@ export function computeSalarySummary(
   const totalWorkingDays = eligibleWorkingDays(
     monthStart,
     options?.hireDate,
+    options?.asOfDate,
   ).length;
   const totalCalendarDays = eligibleDays.length;
 
