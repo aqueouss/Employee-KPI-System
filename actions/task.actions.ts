@@ -13,6 +13,7 @@ import {
   type TaskPeriod,
 } from "@/lib/utils/dates";
 import { getKpiRules, upsertDailySnapshot } from "@/services/kpi/kpi.service";
+import { reconcileMonthlyWarning } from "@/services/warnings/warning.service";
 import {
   adminCreateTaskSchema,
   createTaskSchema,
@@ -48,6 +49,7 @@ async function recomputeDailyKpiSnapshot(
     const admin = createAdminClient();
     const rules = await getKpiRules(admin);
     await upsertDailySnapshot(admin, employeeId, taskDate, rules);
+    await reconcileMonthlyWarning(admin, employeeId, taskDate, rules);
   } catch {
     // Best-effort; the nightly pipeline will reconcile.
   }
@@ -307,6 +309,9 @@ export async function reviewTaskAction(
   revalidateApprovalViews();
   revalidateTaskViews();
   revalidatePath("/employee/kpi");
+  revalidatePath("/employee/warnings");
+  revalidatePath("/admin/warnings");
+  revalidatePath("/admin/termination-reviews");
   revalidatePath("/rankings");
   revalidatePath(`/admin/employees/${task.employee_id}`);
   return { success: true };

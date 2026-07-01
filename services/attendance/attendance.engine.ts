@@ -48,6 +48,7 @@ export type LeaveAllowances = {
 export type SalarySummary = {
   total_working_days: number;
   total_calendar_days: number;
+  month_calendar_days: number;
   absent_days: number;
   extra_half_days: number;
   salaried_days: number;
@@ -426,6 +427,20 @@ function eligibleCalendarDays(
   return days.filter((d) => d >= hireDate.slice(0, 10));
 }
 
+function salariedDayCredit(status: AttendanceStatus): number {
+  switch (status) {
+    case "present":
+    case "late":
+    case "paid_leave":
+    case "short_leave":
+    case "half_day":
+    case "sunday_leave":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
 type HalfDaySettlement = {
   halfDayUsed: number;
   penaltyHalfDays: number;
@@ -474,26 +489,48 @@ export function computeSalarySummary(
     isInMonth(r.attendance_date, monthStart),
   );
 
+  const monthCalendarDays = calendarDaysInMonth(monthStart).length;
+  const eligibleDays = eligibleCalendarDays(monthStart, options?.hireDate);
+  const eligibleDaySet = new Set(eligibleDays);
+  const eligibleMonthRecords = monthRecords.filter((r) =>
+    eligibleDaySet.has(r.attendance_date.slice(0, 10)),
+  );
+
   const totalWorkingDays = eligibleWorkingDays(
     monthStart,
     options?.hireDate,
   ).length;
-  const totalCalendarDays = eligibleCalendarDays(
-    monthStart,
-    options?.hireDate,
-  ).length;
+  const totalCalendarDays = eligibleDays.length;
 
   let absentDays = 0;
-  for (const rec of monthRecords) {
-    if (rec.status === "absent") {
-      absentDays += 1;
+  let markedSalariedDays = 0;
+  const recordByDate = new Map(
+    eligibleMonthRecords.map((r) => [r.attendance_date.slice(0, 10), r]),
+  );
+
+  for (const day of eligibleDays) {
+    const rec = recordByDate.get(day);
+    if (rec) {
+      if (rec.status === "absent") {
+        absentDays += 1;
+      }
+      markedSalariedDays += salariedDayCredit(rec.status);
+      continue;
+    }
+
+    if (isSunday(day)) {
+      markedSalariedDays += 1;
     }
   }
 
-  const halfDayUsed = monthRecords.filter((r) => r.status === "half_day").length;
-  const lateCount = monthRecords.filter((r) => r.status === "late").length;
+  const halfDayUsed = eligibleMonthRecords.filter(
+    (r) => r.status === "half_day",
+  ).length;
+  const lateCount = eligibleMonthRecords.filter(
+    (r) => r.status === "late",
+  ).length;
   const penaltyHalfDays = Math.max(0, lateCount - allowances.late);
-  const paidLeaveUsed = monthRecords.filter(
+  const paidLeaveUsed = eligibleMonthRecords.filter(
     (r) => r.status === "paid_leave",
   ).length;
   const totalPaidLeave =
@@ -510,16 +547,15 @@ export function computeSalarySummary(
   const salariedDays = Math.max(
     0,
     Math.round(
-      (totalCalendarDays -
-        absentDays -
+      (markedSalariedDays -
         halfDaySettlement.salaryDeductibleHalfDays * 0.5) *
         100,
     ) / 100,
   );
 
   const dailyRate =
-    monthlySalary !== null && totalCalendarDays > 0
-      ? Math.round((monthlySalary / totalCalendarDays) * 100) / 100
+    monthlySalary !== null && monthCalendarDays > 0
+      ? Math.round((monthlySalary / monthCalendarDays) * 100) / 100
       : null;
 
   const calculatedSalary =
@@ -530,6 +566,7 @@ export function computeSalarySummary(
   return {
     total_working_days: totalWorkingDays,
     total_calendar_days: totalCalendarDays,
+    month_calendar_days: monthCalendarDays,
     absent_days: absentDays,
     extra_half_days: halfDaySettlement.salaryDeductibleHalfDays,
     salaried_days: salariedDays,

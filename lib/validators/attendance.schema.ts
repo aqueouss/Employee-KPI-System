@@ -58,6 +58,30 @@ export const payrollSchema = z.object({
   notes: z.string().max(500).optional().nullable(),
 });
 
+export const bulkMarkAttendanceSchema = z.object({
+  attendance_date: z
+    .string()
+    .refine((v) => parseDateString(v) !== null, "Invalid date."),
+  entries: z
+    .array(
+      z
+        .object({
+          employee_id: z.string().uuid(),
+          status: attendanceStatus,
+          short_leave_type: shortLeaveType.optional().nullable(),
+        })
+        .refine(
+          (data) =>
+            data.status !== "short_leave" || Boolean(data.short_leave_type),
+          {
+            message: "Select short leave type.",
+            path: ["short_leave_type"],
+          },
+        ),
+    )
+    .min(1, "Select at least one employee."),
+});
+
 export type MarkAttendanceInput = z.infer<typeof markAttendanceSchema>;
 export type LeaveBalanceInput = z.infer<typeof leaveBalanceSchema>;
 export type PayrollInput = z.infer<typeof payrollSchema>;

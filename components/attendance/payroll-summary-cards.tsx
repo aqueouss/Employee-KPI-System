@@ -64,8 +64,7 @@ export function PayrollSummaryCards({ summary }: { summary: PayrollSummary }) {
           value={summary.salaried_days}
           detail={
             <>
-              {summary.total_calendar_days} days (incl. Sun) −{" "}
-              {summary.absent_days} absent
+              {summary.salaried_days} marked
               {summary.extra_half_days > 0
                 ? ` − ${summary.extra_half_days} extra half`
                 : ""}
@@ -88,7 +87,7 @@ export function PayrollSummaryCards({ summary }: { summary: PayrollSummary }) {
           value={formatAmount(summary.calculated_salary)}
           detail={
             summary.monthly_salary !== null && summary.daily_rate !== null
-              ? `${formatCurrency(summary.monthly_salary)} ÷ ${summary.total_calendar_days} days × ${summary.salaried_days} days`
+              ? `${formatCurrency(summary.monthly_salary)} ÷ ${summary.month_calendar_days} days × ${summary.salaried_days} marked`
               : "Monthly salary not set"
           }
           accent="from-brand/75 to-emerald-700/55 dark:from-brand/80 dark:to-primary/60"

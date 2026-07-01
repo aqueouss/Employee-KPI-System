@@ -54,11 +54,19 @@ export default async function AdminAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
-        <p className="text-muted-foreground">
-          Click Manage to open the calendar grid and mark attendance.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
+          <p className="text-muted-foreground">
+            Mark everyone for today on one page, or open an employee calendar.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/admin/attendance/today">
+            <CalendarCheck className="mr-2 h-4 w-4" />
+            Mark today
+          </Link>
+        </Button>
       </div>
 
       <FunnyCaption>{adminAttendanceCaption}</FunnyCaption>

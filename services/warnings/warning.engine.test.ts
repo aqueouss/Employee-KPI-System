@@ -5,6 +5,7 @@ import {
   evaluateMonthlyWarning,
   evaluateTerminationReview,
   monthKeyForDate,
+  reconcileMonthlyWarningState,
   terminationWindowStart,
 } from "./warning.engine.ts";
 
@@ -37,6 +38,37 @@ test("evaluateMonthlyWarning: idempotent when warning exists", () => {
   );
   assert.equal(r.shouldIssue, false);
   assert.equal(r.redFlagCount, 4);
+});
+
+test("reconcileMonthlyWarningState: revokes active warning below threshold", () => {
+  const r = reconcileMonthlyWarningState(
+    ["2026-06-10", "2026-06-03"],
+    3,
+    { status: "active" },
+  );
+  assert.equal(r.shouldRevoke, true);
+  assert.equal(r.shouldIssue, false);
+});
+
+test("reconcileMonthlyWarningState: keeps acknowledged warning below threshold", () => {
+  const r = reconcileMonthlyWarningState(
+    ["2026-06-10", "2026-06-03"],
+    3,
+    { status: "acknowledged" },
+  );
+  assert.equal(r.shouldRevoke, false);
+  assert.equal(r.shouldUpdate, false);
+});
+
+test("reconcileMonthlyWarningState: updates when still above threshold", () => {
+  const r = reconcileMonthlyWarningState(
+    ["2026-06-10", "2026-06-03", "2026-06-20"],
+    3,
+    { status: "active" },
+  );
+  assert.equal(r.shouldRevoke, false);
+  assert.equal(r.shouldIssue, false);
+  assert.equal(r.shouldUpdate, true);
 });
 
 test("terminationWindowStart computes inclusive lower bound", () => {

@@ -11,6 +11,7 @@ import {
   ClipboardList,
   ClipboardCheck,
   CalendarCheck,
+  UserCheck,
   Building2,
   Gauge,
   Gavel,
@@ -57,6 +58,11 @@ const adminNav: NavItem[] = [
   },
   { href: "/admin/rewards", label: "Rewards", icon: Award, badgeKey: "rewards" },
   { href: "/admin/attendance", label: "Attendance", icon: CalendarCheck },
+  {
+    href: "/admin/attendance/today",
+    label: "Mark today",
+    icon: UserCheck,
+  },
   {
     href: "/admin/reminders",
     label: "Reminders",

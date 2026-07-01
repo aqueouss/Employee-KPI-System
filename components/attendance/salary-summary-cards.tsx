@@ -29,8 +29,7 @@ export function SalarySummaryCards({ summary }: { summary: SalarySummary }) {
           <CardDescription>Salaried days</CardDescription>
           <CardTitle className="text-2xl">{summary.salaried_days}</CardTitle>
           <p className="text-xs text-muted-foreground">
-            {summary.total_calendar_days} days (incl. Sun) − {summary.absent_days}{" "}
-            absent
+            {summary.salaried_days} marked
             {summary.extra_half_days > 0
               ? ` − ${summary.extra_half_days} extra half`
               : ""}
@@ -58,7 +57,7 @@ export function SalarySummaryCards({ summary }: { summary: SalarySummary }) {
           </CardTitle>
           <p className="text-xs text-muted-foreground">
             {summary.monthly_salary !== null && summary.daily_rate !== null
-              ? `${formatCurrency(summary.monthly_salary)} ÷ ${summary.total_calendar_days} days`
+              ? `${formatCurrency(summary.monthly_salary)} ÷ ${summary.month_calendar_days} days × ${summary.salaried_days} marked`
               : "Monthly salary not set"}
           </p>
         </CardHeader>

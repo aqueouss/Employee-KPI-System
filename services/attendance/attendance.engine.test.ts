@@ -116,11 +116,11 @@ test("applyWeeklySundayRules: adds auto absent on Sunday", () => {
   assert.equal(sunday?.is_auto_generated, true);
 });
 
-test("computeSalarySummary: salaried days deduct absents and extra half days", () => {
+test("computeSalarySummary: absent marked days earn no credit", () => {
   const records = [
+    { attendance_date: "2026-06-01", status: "present" as const },
     { attendance_date: "2026-06-02", status: "absent" as const },
-    { attendance_date: "2026-06-03", status: "half_day" as const },
-    { attendance_date: "2026-06-04", status: "half_day" as const },
+    { attendance_date: "2026-06-03", status: "present" as const },
   ];
   const s = computeSalarySummary(records, "2026-06-01", {
     paid_leave: 1,
@@ -131,10 +131,75 @@ test("computeSalarySummary: salaried days deduct absents and extra half days", (
   }, 30000);
   assert.equal(s.total_working_days, 26);
   assert.equal(s.total_calendar_days, 30);
+  assert.equal(s.month_calendar_days, 30);
   assert.equal(s.absent_days, 1);
-  assert.equal(s.extra_half_days, 0);
-  assert.equal(s.salaried_days, 29);
-  assert.ok(s.calculated_salary !== null && s.calculated_salary < 30000);
+  assert.equal(s.salaried_days, 2);
+  assert.equal(s.calculated_salary, 2000);
+});
+
+test("computeSalarySummary: prorates for mid-month hire with marked attendance", () => {
+  const records = Array.from({ length: 21 }, (_, i) => ({
+    attendance_date: `2026-06-${String(i + 10).padStart(2, "0")}`,
+    status: "present" as const,
+  }));
+  const s = computeSalarySummary(
+    records,
+    "2026-06-01",
+    {
+      paid_leave: 1,
+      overtime_hours: 0,
+      half_day: 1,
+      short_leave: 1,
+      late: 4,
+    },
+    36000,
+    { hireDate: "2026-06-10" },
+  );
+  assert.equal(s.total_calendar_days, 21);
+  assert.equal(s.month_calendar_days, 30);
+  assert.equal(s.salaried_days, 21);
+  assert.equal(s.calculated_salary, 25200);
+});
+
+test("computeSalarySummary: unmarked eligible days are not paid", () => {
+  const records = [
+    { attendance_date: "2026-06-10", status: "present" as const },
+    { attendance_date: "2026-06-11", status: "present" as const },
+  ];
+  const s = computeSalarySummary(
+    records,
+    "2026-06-01",
+    {
+      paid_leave: 1,
+      overtime_hours: 0,
+      half_day: 1,
+      short_leave: 1,
+      late: 4,
+    },
+    36000,
+    { hireDate: "2026-06-10" },
+  );
+  assert.equal(s.total_calendar_days, 21);
+  assert.equal(s.salaried_days, 5);
+  assert.equal(s.calculated_salary, 6000);
+});
+
+test("computeSalarySummary: unmarked Sundays in eligible period are paid", () => {
+  const records = Array.from({ length: 30 }, (_, i) => {
+    const date = `2026-06-${String(i + 1).padStart(2, "0")}`;
+    return { attendance_date: date, status: "present" as const };
+  }).filter((r) => new Date(`${r.attendance_date}T00:00:00Z`).getUTCDay() !== 0);
+
+  const s = computeSalarySummary(records, "2026-06-01", {
+    paid_leave: 1,
+    overtime_hours: 0,
+    half_day: 1,
+    short_leave: 1,
+    late: 4,
+  }, 30000);
+
+  assert.equal(s.salaried_days, 30);
+  assert.equal(s.calculated_salary, 30000);
 });
 
 test("computeSalarySummary: extra half days consume paid leave before salary deduction", () => {
@@ -157,7 +222,7 @@ test("computeSalarySummary: extra half days consume paid leave before salary ded
     { carryForward: 1 },
   );
   assert.equal(s.extra_half_days, 0);
-  assert.equal(s.salaried_days, 30);
+  assert.equal(s.salaried_days, 3);
 });
 
 test("computeSalarySummary: salary deducts only uncovered extra half days", () => {
@@ -175,7 +240,7 @@ test("computeSalarySummary: salary deducts only uncovered extra half days", () =
     late: 4,
   }, 30000);
   assert.equal(s.extra_half_days, 1);
-  assert.equal(s.salaried_days, 29.5);
+  assert.equal(s.salaried_days, 3.5);
 });
 
 test("computeLeaveBalanceForMonth: extra half days reduce paid leave remaining", () => {
@@ -198,6 +263,7 @@ test("computePayrollSummary: net salary includes adjustments", () => {
   const salary = {
     total_working_days: 26,
     total_calendar_days: 30,
+    month_calendar_days: 30,
     absent_days: 0,
     extra_half_days: 0,
     salaried_days: 30,
@@ -218,6 +284,7 @@ test("computePayrollSummary: returns null when no salary and no adjustments", ()
   const salary = {
     total_working_days: 26,
     total_calendar_days: 30,
+    month_calendar_days: 30,
     absent_days: 0,
     extra_half_days: 0,
     salaried_days: 30,

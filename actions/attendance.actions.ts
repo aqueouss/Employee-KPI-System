@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { createClient } from "@/lib/supabase/server";
 import {
+  bulkMarkAttendanceSchema,
   leaveBalanceSchema,
   markAttendanceSchema,
   overtimeSchema,
@@ -119,6 +120,15 @@ function isSundayDate(date: string): boolean {
   return new Date(`${normalizeDateString(date)}T00:00:00Z`).getUTCDay() === 0;
 }
 
+function revalidateAttendancePaths(employeeIds: string[] = []) {
+  revalidatePath("/admin/attendance");
+  revalidatePath("/admin/attendance/today");
+  revalidatePath("/employee/attendance");
+  for (const employeeId of employeeIds) {
+    revalidatePath(`/admin/attendance/${employeeId}`);
+  }
+}
+
 export async function markAttendanceAction(
   _prev: AttendanceActionState,
   formData: FormData,
@@ -185,9 +195,7 @@ export async function markAttendanceAction(
     metadata: parsed.data,
   });
 
-  revalidatePath("/admin/attendance");
-  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
-  revalidatePath("/employee/attendance");
+  revalidateAttendancePaths([parsed.data.employee_id]);
   return { success: "Attendance saved." };
 }
 
@@ -237,10 +245,77 @@ export async function markAttendanceQuickAction(
   let rows = await loadEmployeeRecords(supabase, parsed.data.employee_id, monthStart);
   await syncAutoSundayLeaves(supabase, parsed.data.employee_id, admin.id, rows);
 
-  revalidatePath("/admin/attendance");
-  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
-  revalidatePath("/employee/attendance");
+  revalidateAttendancePaths([parsed.data.employee_id]);
   return { success: "Saved." };
+}
+
+export async function markBulkAttendanceAction(
+  attendanceDate: string,
+  entries: Array<{
+    employee_id: string;
+    status: string;
+    short_leave_type?: string | null;
+  }>,
+): Promise<AttendanceActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const parsed = bulkMarkAttendanceSchema.safeParse({
+    attendance_date: normalizeDateString(attendanceDate),
+    entries,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+  const date = normalizeDateString(parsed.data.attendance_date);
+  const monthStart = startOfMonthDateString(date);
+  const now = new Date().toISOString();
+  const employeeIds = new Set<string>();
+
+  for (const entry of parsed.data.entries) {
+    const { error } = await supabase.from("attendance_records").upsert(
+      {
+        employee_id: entry.employee_id,
+        attendance_date: date,
+        status: entry.status,
+        short_leave_type:
+          entry.status === "short_leave" ? entry.short_leave_type : null,
+        is_auto_generated: false,
+        marked_by: admin.id,
+        updated_at: now,
+      },
+      { onConflict: "employee_id,attendance_date" },
+    );
+
+    if (error) return { error: error.message };
+    employeeIds.add(entry.employee_id);
+  }
+
+  for (const employeeId of employeeIds) {
+    const rows = await loadEmployeeRecords(supabase, employeeId, monthStart);
+    await syncAutoSundayLeaves(supabase, employeeId, admin.id, rows);
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_id: admin.id,
+    action: "attendance.bulk_marked",
+    entity_type: "attendance_records",
+    entity_id: admin.id,
+    metadata: {
+      attendance_date: date,
+      employee_count: parsed.data.entries.length,
+    },
+  });
+
+  revalidateAttendancePaths([...employeeIds]);
+  return {
+    success: `Attendance saved for ${parsed.data.entries.length} employee${
+      parsed.data.entries.length === 1 ? "" : "s"
+    }.`,
+  };
 }
 
 export async function clearAttendanceAction(
@@ -263,9 +338,7 @@ export async function clearAttendanceAction(
   const rows = await loadEmployeeRecords(supabase, employeeId, monthStart);
   await syncAutoSundayLeaves(supabase, employeeId, admin.id, rows);
 
-  revalidatePath("/admin/attendance");
-  revalidatePath(`/admin/attendance/${employeeId}`);
-  revalidatePath("/employee/attendance");
+  revalidateAttendancePaths([employeeId]);
   return { success: "Cleared." };
 }
 
@@ -290,9 +363,7 @@ export async function deleteAttendanceAction(
   let rows = await loadEmployeeRecords(supabase, employeeId, monthStart);
   await syncAutoSundayLeaves(supabase, employeeId, admin.id, rows);
 
-  revalidatePath("/admin/attendance");
-  revalidatePath(`/admin/attendance/${employeeId}`);
-  revalidatePath("/employee/attendance");
+  revalidateAttendancePaths([employeeId]);
   return { success: "Attendance removed." };
 }
 
@@ -353,9 +424,7 @@ export async function updateLeaveBalanceAction(
     metadata: parsed.data,
   });
 
-  revalidatePath("/admin/attendance");
-  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
-  revalidatePath("/employee/attendance");
+  revalidateAttendancePaths([parsed.data.employee_id]);
   revalidatePath("/employee");
   return { success: "Leave balance updated." };
 }
@@ -414,9 +483,7 @@ export async function updateOvertimeAction(
     metadata: parsed.data,
   });
 
-  revalidatePath("/admin/attendance");
-  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
-  revalidatePath("/employee/attendance");
+  revalidateAttendancePaths([parsed.data.employee_id]);
   revalidatePath("/employee");
   return { success: "Overtime saved." };
 }
@@ -475,9 +542,7 @@ export async function updatePayrollAction(
     metadata: parsed.data,
   });
 
-  revalidatePath("/admin/attendance");
-  revalidatePath(`/admin/attendance/${parsed.data.employee_id}`);
-  revalidatePath("/employee/attendance");
+  revalidateAttendancePaths([parsed.data.employee_id]);
   revalidatePath("/employee");
   return { success: "Payroll saved." };
 }

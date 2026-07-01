@@ -16,6 +16,11 @@ export interface WarningEvaluation {
   redFlagCount: number;
 }
 
+export interface WarningReconciliation extends WarningEvaluation {
+  shouldRevoke: boolean;
+  shouldUpdate: boolean;
+}
+
 /**
  * Decide whether a warning is due for a month.
  * @param redFlagDates  all red-flag dates within the month
@@ -27,11 +32,66 @@ export function evaluateMonthlyWarning(
   threshold: number,
   hasExistingWarning: boolean,
 ): WarningEvaluation {
-  const sorted = [...redFlagDates].sort();
+  const reconciliation = reconcileMonthlyWarningState(
+    redFlagDates,
+    threshold,
+    hasExistingWarning ? { status: "active" } : null,
+  );
   return {
-    shouldIssue: !hasExistingWarning && sorted.length >= threshold,
+    shouldIssue: reconciliation.shouldIssue,
+    redFlagDates: reconciliation.redFlagDates,
+    redFlagCount: reconciliation.redFlagCount,
+  };
+}
+
+/**
+ * Reconcile a monthly warning after KPI snapshots change.
+ * Revokes active warnings when red flags drop below threshold (e.g. late admin approval).
+ */
+export function reconcileMonthlyWarningState(
+  redFlagDates: string[],
+  threshold: number,
+  existingWarning: { status: "active" | "acknowledged" } | null,
+): WarningReconciliation {
+  const sorted = [...redFlagDates].sort();
+  const redFlagCount = sorted.length;
+
+  if (!existingWarning) {
+    return {
+      shouldIssue: redFlagCount >= threshold,
+      shouldRevoke: false,
+      shouldUpdate: false,
+      redFlagDates: sorted,
+      redFlagCount,
+    };
+  }
+
+  if (redFlagCount < threshold && existingWarning.status === "active") {
+    return {
+      shouldIssue: false,
+      shouldRevoke: true,
+      shouldUpdate: false,
+      redFlagDates: sorted,
+      redFlagCount,
+    };
+  }
+
+  if (redFlagCount >= threshold) {
+    return {
+      shouldIssue: false,
+      shouldRevoke: false,
+      shouldUpdate: true,
+      redFlagDates: sorted,
+      redFlagCount,
+    };
+  }
+
+  return {
+    shouldIssue: false,
+    shouldRevoke: false,
+    shouldUpdate: false,
     redFlagDates: sorted,
-    redFlagCount: sorted.length,
+    redFlagCount,
   };
 }
 
