@@ -7,6 +7,10 @@ import type { Tables } from "@/types/database.types";
 export type MonthlyPayrollExportRow = {
   serial: number;
   name: string;
+  accountHolderName: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
   fixedSalary: number | null;
   daysWorked: number;
   totalAmount: number | null;
@@ -46,12 +50,22 @@ export async function loadMonthlyPayrollExport(
 
   const { data: employees } = await supabase
     .from("profiles")
-    .select("id, full_name")
+    .select(
+      "id, full_name, bank_account_holder, bank_name, bank_account_number, bank_ifsc",
+    )
     .eq("role", "employee")
     .eq("is_active", true)
     .order("full_name");
 
-  const list = (employees ?? []) as Pick<Tables<"profiles">, "id" | "full_name">[];
+  const list = (employees ?? []) as Pick<
+    Tables<"profiles">,
+    | "id"
+    | "full_name"
+    | "bank_account_holder"
+    | "bank_name"
+    | "bank_account_number"
+    | "bank_ifsc"
+  >[];
   const rows: MonthlyPayrollExportRow[] = [];
 
   for (const [index, employee] of list.entries()) {
@@ -63,6 +77,10 @@ export async function loadMonthlyPayrollExport(
     rows.push({
       serial: index + 1,
       name: employee.full_name,
+      accountHolderName: employee.bank_account_holder?.trim() ?? "",
+      bankName: employee.bank_name?.trim() ?? "",
+      accountNumber: employee.bank_account_number?.trim() ?? "",
+      ifscCode: employee.bank_ifsc?.trim() ?? "",
       fixedSalary: payrollSummary.monthly_salary,
       daysWorked: payrollSummary.salaried_days,
       totalAmount: payrollSummary.calculated_salary,

@@ -3,8 +3,6 @@
 import type { ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 
-const REPORT_WIDTH_PX = 1200;
-
 function waitForRender(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
@@ -20,7 +18,8 @@ export async function generateReportPdf(
 ): Promise<void> {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
-  iframe.style.cssText = `position:fixed;left:-10000px;top:0;width:${REPORT_WIDTH_PX}px;height:2000px;border:none;visibility:hidden;`;
+  iframe.style.cssText =
+    "position:fixed;left:-10000px;top:0;width:1400px;height:2400px;border:none;visibility:hidden;";
 
   document.body.appendChild(iframe);
 
@@ -32,7 +31,11 @@ export async function generateReportPdf(
 
   doc.open();
   doc.write(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;background:#fff;}</style></head><body></body></html>`,
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      html, body { margin: 0; padding: 0; background: #fff; }
+      table { border-collapse: collapse; }
+      th, td { box-sizing: border-box; }
+    </style></head><body></body></html>`,
   );
   doc.close();
 
@@ -44,6 +47,7 @@ export async function generateReportPdf(
 
   try {
     await waitForRender();
+    await waitForRender();
 
     const node = mount.firstElementChild as HTMLElement | null;
     if (!node) return;
@@ -51,27 +55,30 @@ export async function generateReportPdf(
     const html2canvas = (await import("html2canvas")).default;
     const { jsPDF } = await import("jspdf");
 
+    const captureWidth = node.offsetWidth;
+    const captureHeight = node.offsetHeight;
+
     const canvas = await html2canvas(node, {
       scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: "#ffffff",
-      width: REPORT_WIDTH_PX,
-      height: node.offsetHeight,
-      windowWidth: REPORT_WIDTH_PX,
-      windowHeight: node.offsetHeight,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
       scrollX: 0,
       scrollY: 0,
     });
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
     const pdf = new jsPDF({
       orientation,
       unit: "mm",
       format: "a4",
     });
 
-    const margin = 6;
+    const margin = 8;
     const pageWidth =
       (orientation === "landscape" ? 297 : 210) - margin * 2;
     const pageHeight =

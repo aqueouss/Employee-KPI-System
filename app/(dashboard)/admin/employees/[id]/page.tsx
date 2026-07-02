@@ -388,6 +388,14 @@ export default async function EmployeeDetailPage({
 
             currentMonth={today}
 
+            bankAccountHolder={profile.bank_account_holder}
+
+            bankName={profile.bank_name}
+
+            bankAccountNumber={profile.bank_account_number}
+
+            bankIfsc={profile.bank_ifsc}
+
             kpiTracked={profile.kpi_tracked === false ? false : true}
 
             isAdmin={profile.role === "admin"}

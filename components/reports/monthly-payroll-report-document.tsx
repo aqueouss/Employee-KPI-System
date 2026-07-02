@@ -1,16 +1,58 @@
-import type { CSSProperties } from "react";
-
 import { COMPANY } from "@/lib/payroll/payslip.constants";
 import { formatInrOrDash } from "@/lib/payroll/format-month-label";
 import type { MonthlyPayrollExport } from "@/lib/reports/load-monthly-payroll-export";
+import {
+  REPORT_CELL_STYLE,
+  REPORT_DOCUMENT_STYLE,
+  REPORT_HEADER_CELL_STYLE,
+  REPORT_NAME_CELL_STYLE,
+  REPORT_TABLE_STYLE,
+} from "@/lib/reports/report-document-styles";
 
-const cellStyle: CSSProperties = {
-  border: "1px solid #000",
-  padding: "4px 3px",
-  fontSize: "10px",
-  textAlign: "center",
-  verticalAlign: "middle",
-};
+const PAYROLL_HEADINGS = [
+  "S. NO.",
+  "NAME OF STAFF",
+  "Account Holder Name",
+  "Bank Name",
+  "A/C No.",
+  "IFSC Code",
+  "NEW FIXED SALARY",
+  "NO. OF DAY",
+  "TOTAL AMT.",
+  "Reimbursment/Conveyance",
+  "OVERTIME",
+  "INCENTIVES",
+  "ADVANCE DEDUCTION",
+  "ADVANCE PENDING AMOUNT",
+  "Previous Balance Amount",
+  "Net Payable",
+  "Remark",
+] as const;
+
+function headerStyle(heading: (typeof PAYROLL_HEADINGS)[number]) {
+  if (heading === "NAME OF STAFF") {
+    return {
+      ...REPORT_HEADER_CELL_STYLE,
+      background: "#b6d7a8",
+      textAlign: "left" as const,
+    };
+  }
+
+  if (
+    heading === "Account Holder Name" ||
+    heading === "Bank Name" ||
+    heading === "A/C No." ||
+    heading === "IFSC Code"
+  ) {
+    return {
+      ...REPORT_HEADER_CELL_STYLE,
+      fontSize: "9px",
+      padding: "8px 3px 9px",
+    };
+  }
+
+  return REPORT_HEADER_CELL_STYLE;
+}
 
 export function MonthlyPayrollReportDocument({
   report,
@@ -18,17 +60,11 @@ export function MonthlyPayrollReportDocument({
   report: MonthlyPayrollExport;
 }) {
   return (
-    <div
-      style={{
-        width: "1120px",
-        padding: "12px",
-        fontFamily: "Arial, sans-serif",
-        color: "#000",
-        background: "#fff",
-      }}
-    >
-      <div style={{ fontSize: "14px", fontWeight: 700 }}>{COMPANY.name}</div>
-      <div style={{ fontSize: "11px", marginBottom: "8px" }}>
+    <div style={{ ...REPORT_DOCUMENT_STYLE, width: "1500px" }}>
+      <div style={{ fontSize: "14px", fontWeight: 700, marginBottom: "4px" }}>
+        {COMPANY.name}
+      </div>
+      <div style={{ fontSize: "11px", marginBottom: "10px", lineHeight: 1.4 }}>
         {COMPANY.address.toUpperCase()}
       </div>
       <div
@@ -36,31 +72,18 @@ export function MonthlyPayrollReportDocument({
           fontSize: "13px",
           fontWeight: 700,
           textAlign: "center",
-          marginBottom: "10px",
+          marginBottom: "12px",
+          lineHeight: 1.4,
         }}
       >
         SALARY SUMMARY WITH CONV. FOR THE MONTH OF {report.monthLabel}
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table style={REPORT_TABLE_STYLE}>
         <thead>
           <tr>
-            {[
-              "S. NO.",
-              "NAME OF STAFF",
-              "NEW FIXED SALARY",
-              "NO. OF DAY",
-              "TOTAL AMT.",
-              "Reimbursment/Conveyance",
-              "OVERTIME",
-              "INCENTIVES",
-              "ADVANCE DEDUCTION",
-              "ADVANCE PENDING AMOUNT",
-              "Previous Balance Amount",
-              "Net Payable",
-              "Remark",
-            ].map((heading) => (
-              <th key={heading} style={{ ...cellStyle, fontWeight: 700 }}>
+            {PAYROLL_HEADINGS.map((heading) => (
+              <th key={heading} style={headerStyle(heading)}>
                 {heading}
               </th>
             ))}
@@ -69,55 +92,73 @@ export function MonthlyPayrollReportDocument({
         <tbody>
           {report.rows.map((row) => (
             <tr key={row.serial}>
-              <td style={cellStyle}>{row.serial}</td>
-              <td
-                style={{
-                  ...cellStyle,
-                  textAlign: "left",
-                  background: "#b6d7a8",
-                  fontWeight: 600,
-                }}
-              >
-                {row.name}
+              <td style={REPORT_CELL_STYLE}>{row.serial}</td>
+              <td style={REPORT_NAME_CELL_STYLE}>{row.name}</td>
+              <td style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}>
+                {row.accountHolderName}
               </td>
-              <td style={cellStyle}>{formatInrOrDash(row.fixedSalary)}</td>
-              <td style={cellStyle}>{row.daysWorked}</td>
-              <td style={cellStyle}>{formatInrOrDash(row.totalAmount)}</td>
-              <td style={cellStyle}>{formatInrOrDash(row.conveyance)}</td>
-              <td style={cellStyle}>{formatInrOrDash(row.overtime)}</td>
-              <td style={cellStyle}>{formatInrOrDash(row.incentives)}</td>
-              <td style={cellStyle}>{formatInrOrDash(row.advanceDeduction)}</td>
-              <td style={cellStyle}>{formatInrOrDash(row.advancePending)}</td>
-              <td style={cellStyle}>{formatInrOrDash(row.previousBalance)}</td>
-              <td style={{ ...cellStyle, fontWeight: 700 }}>
+              <td style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}>
+                {row.bankName}
+              </td>
+              <td style={REPORT_CELL_STYLE}>{row.accountNumber}</td>
+              <td style={REPORT_CELL_STYLE}>{row.ifscCode}</td>
+              <td style={REPORT_CELL_STYLE}>{formatInrOrDash(row.fixedSalary)}</td>
+              <td style={REPORT_CELL_STYLE}>{row.daysWorked}</td>
+              <td style={REPORT_CELL_STYLE}>{formatInrOrDash(row.totalAmount)}</td>
+              <td style={REPORT_CELL_STYLE}>{formatInrOrDash(row.conveyance)}</td>
+              <td style={REPORT_CELL_STYLE}>{formatInrOrDash(row.overtime)}</td>
+              <td style={REPORT_CELL_STYLE}>{formatInrOrDash(row.incentives)}</td>
+              <td style={REPORT_CELL_STYLE}>
+                {formatInrOrDash(row.advanceDeduction)}
+              </td>
+              <td style={REPORT_CELL_STYLE}>
+                {formatInrOrDash(row.advancePending)}
+              </td>
+              <td style={REPORT_CELL_STYLE}>
+                {formatInrOrDash(row.previousBalance)}
+              </td>
+              <td style={{ ...REPORT_CELL_STYLE, fontWeight: 700 }}>
                 {formatInrOrDash(row.netPayable)}
               </td>
-              <td style={{ ...cellStyle, textAlign: "left" }}>{row.remark}</td>
+              <td style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}>
+                {row.remark}
+              </td>
             </tr>
           ))}
           <tr>
-            <td style={cellStyle} colSpan={2}>
+            <td style={REPORT_CELL_STYLE} colSpan={2}>
               Total
             </td>
-            <td style={cellStyle}>{formatInrOrDash(report.totals.fixedSalary)}</td>
-            <td style={cellStyle}>{report.totals.daysWorked}</td>
-            <td style={cellStyle}>{formatInrOrDash(report.totals.totalAmount)}</td>
-            <td style={cellStyle}>{formatInrOrDash(report.totals.conveyance)}</td>
-            <td style={cellStyle}>{formatInrOrDash(report.totals.overtime)}</td>
-            <td style={cellStyle}>{formatInrOrDash(report.totals.incentives)}</td>
-            <td style={cellStyle}>
+            <td style={REPORT_CELL_STYLE} colSpan={4} />
+            <td style={REPORT_CELL_STYLE}>
+              {formatInrOrDash(report.totals.fixedSalary)}
+            </td>
+            <td style={REPORT_CELL_STYLE}>{report.totals.daysWorked}</td>
+            <td style={REPORT_CELL_STYLE}>
+              {formatInrOrDash(report.totals.totalAmount)}
+            </td>
+            <td style={REPORT_CELL_STYLE}>
+              {formatInrOrDash(report.totals.conveyance)}
+            </td>
+            <td style={REPORT_CELL_STYLE}>
+              {formatInrOrDash(report.totals.overtime)}
+            </td>
+            <td style={REPORT_CELL_STYLE}>
+              {formatInrOrDash(report.totals.incentives)}
+            </td>
+            <td style={REPORT_CELL_STYLE}>
               {formatInrOrDash(report.totals.advanceDeduction)}
             </td>
-            <td style={cellStyle}>
+            <td style={REPORT_CELL_STYLE}>
               {formatInrOrDash(report.totals.advancePending)}
             </td>
-            <td style={cellStyle}>
+            <td style={REPORT_CELL_STYLE}>
               {formatInrOrDash(report.totals.previousBalance)}
             </td>
-            <td style={{ ...cellStyle, fontWeight: 700 }}>
+            <td style={{ ...REPORT_CELL_STYLE, fontWeight: 700 }}>
               {formatInrOrDash(report.totals.netPayable)}
             </td>
-            <td style={cellStyle} />
+            <td style={REPORT_CELL_STYLE} />
           </tr>
         </tbody>
       </table>
@@ -126,9 +167,10 @@ export function MonthlyPayrollReportDocument({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginTop: "28px",
+          marginTop: "32px",
           fontSize: "11px",
           fontWeight: 700,
+          lineHeight: 1.4,
         }}
       >
         <span>PREPARED BY</span>

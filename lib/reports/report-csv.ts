@@ -82,6 +82,10 @@ export function buildPayrollCsv(report: MonthlyPayrollExport): string {
   const tableHeader = [
     "S. NO.",
     "NAME OF STAFF",
+    "Account Holder Name",
+    "Bank Name",
+    "A/C No.",
+    "IFSC Code",
     "NEW FIXED SALARY",
     "NO. OF DAY",
     "TOTAL AMT.",
@@ -98,6 +102,10 @@ export function buildPayrollCsv(report: MonthlyPayrollExport): string {
   const body = report.rows.map((row) => [
     row.serial,
     row.name,
+    row.accountHolderName,
+    row.bankName,
+    row.accountNumber,
+    row.ifscCode,
     num(row.fixedSalary),
     num(row.daysWorked),
     num(row.totalAmount),
@@ -114,6 +122,10 @@ export function buildPayrollCsv(report: MonthlyPayrollExport): string {
   const totalRow = [
     "",
     "Total",
+    "",
+    "",
+    "",
+    "",
     num(report.totals.fixedSalary),
     num(report.totals.daysWorked),
     num(report.totals.totalAmount),

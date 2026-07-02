@@ -352,6 +352,16 @@ export async function updateEmployeeDetailsAction(
   const salaryEffectiveMonthRaw = String(
     formData.get("salary_effective_month") ?? "",
   ).trim();
+  const bankAccountHolder = String(
+    formData.get("bank_account_holder") ?? "",
+  ).trim();
+  const bankName = String(formData.get("bank_name") ?? "").trim();
+  const bankAccountNumber = String(
+    formData.get("bank_account_number") ?? "",
+  ).trim();
+  const bankIfsc = String(formData.get("bank_ifsc") ?? "")
+    .trim()
+    .toUpperCase();
 
   if (hireDateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(hireDateRaw)) {
     return { error: "Invalid hire date." };
@@ -364,6 +374,21 @@ export async function updateEmployeeDetailsAction(
   }
   if (salaryEffectiveMonthRaw && !/^\d{4}-\d{2}$/.test(salaryEffectiveMonthRaw)) {
     return { error: "Invalid salary effective month." };
+  }
+  if (bankAccountHolder.length > 120) {
+    return { error: "Account holder name is too long." };
+  }
+  if (bankName.length > 120) {
+    return { error: "Bank name is too long." };
+  }
+  if (bankAccountNumber.length > 30) {
+    return { error: "Account number is too long." };
+  }
+  if (bankAccountNumber && !/^\d{6,18}$/.test(bankAccountNumber)) {
+    return { error: "Invalid account number." };
+  }
+  if (bankIfsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankIfsc)) {
+    return { error: "Invalid IFSC code." };
   }
   let monthlySalary: number | null = null;
   if (monthlySalaryRaw) {
@@ -405,6 +430,10 @@ export async function updateEmployeeDetailsAction(
       department: department ? department : null,
       monthly_salary: monthlySalary,
       kpi_tracked: kpiTracked,
+      bank_account_holder: bankAccountHolder || null,
+      bank_name: bankName || null,
+      bank_account_number: bankAccountNumber || null,
+      bank_ifsc: bankIfsc || null,
     })
     .eq("id", employeeId);
 
@@ -492,6 +521,10 @@ export async function updateEmployeeDetailsAction(
       department: department || null,
       monthly_salary: monthlySalary,
       kpi_tracked: kpiTracked,
+      bank_account_holder: bankAccountHolder || null,
+      bank_name: bankName || null,
+      bank_account_number: bankAccountNumber || null,
+      bank_ifsc: bankIfsc || null,
     },
   });
 

@@ -39,6 +39,10 @@ export type Profile = {
   department: string | null;
   monthly_salary: number | null;
   kpi_tracked: boolean;
+  bank_account_holder: string | null;
+  bank_name: string | null;
+  bank_account_number: string | null;
+  bank_ifsc: string | null;
   created_at: string;
   updated_at: string;
 };

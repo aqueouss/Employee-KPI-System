@@ -24,6 +24,7 @@ export function attendanceDayCode(
     case "half_day":
       return "HD";
     case "paid_leave":
+      return "PL";
     case "short_leave":
       return "SL";
     case "sunday_leave":

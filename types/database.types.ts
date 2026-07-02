@@ -362,6 +362,10 @@ export type Database = {
           job_designation: string | null
           kpi_tracked: boolean
           monthly_salary: number | null
+          bank_account_holder: string | null
+          bank_name: string | null
+          bank_account_number: string | null
+          bank_ifsc: string | null
           role: Database["public"]["Enums"]["user_role"]
           termination_review_status: Database["public"]["Enums"]["termination_status"]
           updated_at: string
@@ -377,6 +381,10 @@ export type Database = {
           job_designation?: string | null
           kpi_tracked?: boolean
           monthly_salary?: number | null
+          bank_account_holder?: string | null
+          bank_name?: string | null
+          bank_account_number?: string | null
+          bank_ifsc?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           termination_review_status?: Database["public"]["Enums"]["termination_status"]
           updated_at?: string
@@ -392,6 +400,10 @@ export type Database = {
           job_designation?: string | null
           kpi_tracked?: boolean
           monthly_salary?: number | null
+          bank_account_holder?: string | null
+          bank_name?: string | null
+          bank_account_number?: string | null
+          bank_ifsc?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           termination_review_status?: Database["public"]["Enums"]["termination_status"]
           updated_at?: string

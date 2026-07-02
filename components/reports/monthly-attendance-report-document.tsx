@@ -1,28 +1,13 @@
-import type { CSSProperties } from "react";
-
 import { COMPANY } from "@/lib/payroll/payslip.constants";
 import type { MonthlyAttendanceExport } from "@/lib/reports/load-monthly-attendance-export";
-
-const cellStyle: CSSProperties = {
-  border: "1px solid #000",
-  padding: "3px 2px",
-  fontSize: "10px",
-  textAlign: "center",
-  verticalAlign: "middle",
-};
-
-function codeStyle(code: string): CSSProperties {
-  switch (code) {
-    case "A":
-      return { ...cellStyle, background: "#ff0000", color: "#fff", fontWeight: 700 };
-    case "HD":
-      return { ...cellStyle, background: "#4a86e8", color: "#fff", fontWeight: 700 };
-    case "SL":
-      return { ...cellStyle, background: "#ffff00", fontWeight: 700 };
-    default:
-      return cellStyle;
-  }
-}
+import {
+  REPORT_CELL_STYLE,
+  REPORT_DOCUMENT_STYLE,
+  REPORT_HEADER_CELL_STYLE,
+  REPORT_NAME_CELL_STYLE,
+  REPORT_TABLE_STYLE,
+  attendanceCodeStyle,
+} from "@/lib/reports/report-document-styles";
 
 export function MonthlyAttendanceReportDocument({
   report,
@@ -34,17 +19,11 @@ export function MonthlyAttendanceReportDocument({
   );
 
   return (
-    <div
-      style={{
-        width: "1180px",
-        padding: "12px",
-        fontFamily: "Arial, sans-serif",
-        color: "#000",
-        background: "#fff",
-      }}
-    >
-      <div style={{ fontSize: "14px", fontWeight: 700 }}>{COMPANY.name}</div>
-      <div style={{ fontSize: "11px", marginBottom: "8px" }}>
+    <div style={REPORT_DOCUMENT_STYLE}>
+      <div style={{ fontSize: "14px", fontWeight: 700, marginBottom: "4px" }}>
+        {COMPANY.name}
+      </div>
+      <div style={{ fontSize: "11px", marginBottom: "10px", lineHeight: 1.4 }}>
         {COMPANY.address.toUpperCase()}
       </div>
       <div
@@ -52,82 +31,82 @@ export function MonthlyAttendanceReportDocument({
           fontSize: "13px",
           fontWeight: 700,
           textAlign: "center",
-          marginBottom: "10px",
+          marginBottom: "12px",
+          lineHeight: 1.4,
         }}
       >
         ATTENDANCE FOR THE MONTH OF {report.monthLabel}
       </div>
 
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          tableLayout: "fixed",
-        }}
-      >
+      <table style={REPORT_TABLE_STYLE}>
         <thead>
           <tr>
-            <th style={{ ...cellStyle, width: "28px" }}>S. No.</th>
-            <th style={{ ...cellStyle, width: "120px", background: "#b6d7a8" }}>
+            <th style={{ ...REPORT_HEADER_CELL_STYLE, width: "28px" }}>S. No.</th>
+            <th
+              style={{
+                ...REPORT_HEADER_CELL_STYLE,
+                width: "120px",
+                background: "#b6d7a8",
+              }}
+            >
               NAME
             </th>
             {dayHeaders.map((day) => (
-              <th key={day} style={{ ...cellStyle, width: "22px" }}>
+              <th key={day} style={{ ...REPORT_HEADER_CELL_STYLE, width: "22px" }}>
                 {day}
               </th>
             ))}
-            <th style={{ ...cellStyle, width: "42px" }}>TOTAL</th>
-            <th style={{ ...cellStyle, width: "52px" }}>BALANCE (Previous)</th>
-            <th style={{ ...cellStyle, width: "52px" }}>New Balance</th>
-            <th style={{ ...cellStyle, width: "52px" }}>OVERTIME</th>
-            <th style={{ ...cellStyle, width: "36px" }}>Late</th>
+            <th style={{ ...REPORT_HEADER_CELL_STYLE, width: "42px" }}>TOTAL</th>
+            <th style={{ ...REPORT_HEADER_CELL_STYLE, width: "52px" }}>
+              BALANCE (Previous)
+            </th>
+            <th style={{ ...REPORT_HEADER_CELL_STYLE, width: "52px" }}>
+              New Balance
+            </th>
+            <th style={{ ...REPORT_HEADER_CELL_STYLE, width: "52px" }}>
+              OVERTIME
+            </th>
+            <th style={{ ...REPORT_HEADER_CELL_STYLE, width: "36px" }}>Late</th>
           </tr>
         </thead>
         <tbody>
           {report.rows.map((row) => (
             <tr key={row.serial}>
-              <td style={cellStyle}>{row.serial}</td>
-              <td
-                style={{
-                  ...cellStyle,
-                  textAlign: "left",
-                  background: "#b6d7a8",
-                  fontWeight: 600,
-                }}
-              >
-                {row.name}
-              </td>
+              <td style={REPORT_CELL_STYLE}>{row.serial}</td>
+              <td style={REPORT_NAME_CELL_STYLE}>{row.name}</td>
               {dayHeaders.map((day) => {
                 const code = row.days[day] ?? "";
                 return (
-                  <td key={day} style={codeStyle(code)}>
+                  <td key={day} style={attendanceCodeStyle(code)}>
                     {code}
                   </td>
                 );
               })}
-              <td style={cellStyle}>{row.total}</td>
-              <td style={cellStyle}>{row.balancePrevious}</td>
-              <td style={cellStyle}>{row.newBalance}</td>
+              <td style={REPORT_CELL_STYLE}>{row.total}</td>
+              <td style={REPORT_CELL_STYLE}>{row.balancePrevious}</td>
+              <td style={REPORT_CELL_STYLE}>{row.newBalance}</td>
               <td
                 style={{
-                  ...cellStyle,
+                  ...REPORT_CELL_STYLE,
                   background: row.overtime ? "#ffff00" : undefined,
                 }}
               >
                 {row.overtime}
               </td>
-              <td style={cellStyle}>{row.late || ""}</td>
+              <td style={REPORT_CELL_STYLE}>{row.late || ""}</td>
             </tr>
           ))}
           <tr>
-            <td style={cellStyle} colSpan={2}>
+            <td style={REPORT_CELL_STYLE} colSpan={2}>
               Total
             </td>
             {dayHeaders.map((day) => (
-              <td key={day} style={cellStyle} />
+              <td key={day} style={REPORT_CELL_STYLE} />
             ))}
-            <td style={{ ...cellStyle, fontWeight: 700 }}>{report.totalDays}</td>
-            <td style={cellStyle} colSpan={4} />
+            <td style={{ ...REPORT_CELL_STYLE, fontWeight: 700 }}>
+              {report.totalDays}
+            </td>
+            <td style={REPORT_CELL_STYLE} colSpan={4} />
           </tr>
         </tbody>
       </table>
@@ -136,9 +115,10 @@ export function MonthlyAttendanceReportDocument({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginTop: "28px",
+          marginTop: "32px",
           fontSize: "11px",
           fontWeight: 700,
+          lineHeight: 1.4,
         }}
       >
         <span>PREPARED BY</span>
