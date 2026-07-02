@@ -3,13 +3,15 @@ import { Users, AlertTriangle, Award, Gavel, ArrowRight } from "lucide-react";
 
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { getTodayDateString, addDaysToDateString } from "@/lib/utils/dates";
+import { getTodayDateString, addDaysToDateString, parseDateString } from "@/lib/utils/dates";
 import {
   groupEmployeesByDepartment,
   type DepartmentEmployee,
 } from "@/lib/departments/department-utils";
 import { getAdminDashboardCaption } from "@/lib/captions/funny-captions";
+import { loadTodayAttendanceOverview } from "@/lib/attendance/today-overview";
 import { DepartmentOverviewCard } from "@/components/admin/department-overview-card";
+import { TodayAttendanceGrid } from "@/components/admin/today-attendance-grid";
 import { FunnyCaption } from "@/components/ui/funny-caption";
 import { DashboardDateBadge } from "@/components/layout/dashboard-date-badge";
 import { FlagBadge } from "@/components/kpi/flag-badge";
@@ -22,10 +24,19 @@ import {
 } from "@/components/ui/card";
 import type { KpiFlag } from "@/types/domain";
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
   await requireRole(["admin"]);
   const supabase = await createClient();
+  const sp = await searchParams;
   const today = getTodayDateString();
+  const parsedDate = parseDateString(sp.date);
+  const attendanceDate =
+    parsedDate && parsedDate <= today ? parsedDate : today;
+  const isAttendanceToday = attendanceDate === today;
   const yesterday = addDaysToDateString(today, -1);
 
   const [
@@ -37,6 +48,7 @@ export default async function AdminDashboardPage() {
     { count: openReminders },
     { data: latestSnapshots },
     { data: profileRows },
+    todayAttendance,
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase
@@ -69,6 +81,7 @@ export default async function AdminDashboardPage() {
         "id, full_name, email, job_designation, department, is_active, role",
       )
       .order("full_name"),
+    loadTodayAttendanceOverview(supabase, attendanceDate),
   ]);
 
   const flagCounts = (latestSnapshots ?? []).reduce<Record<string, number>>(
@@ -156,6 +169,13 @@ export default async function AdminDashboardPage() {
           );
         })}
       </div>
+
+      <TodayAttendanceGrid
+        date={attendanceDate}
+        employees={todayAttendance.employees}
+        counts={todayAttendance.counts}
+        isToday={isAttendanceToday}
+      />
 
       <Card>
         <CardHeader>

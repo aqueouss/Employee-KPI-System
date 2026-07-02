@@ -7,6 +7,7 @@ import {
 import { loadDepartmentPayroll } from "@/lib/payroll/department-payroll";
 import { formatMonthLabel } from "@/lib/payroll/format-month-label";
 import { DepartmentPayrollSection } from "@/components/admin/department-payroll-section";
+import { MonthlyPayrollExportButtons } from "@/components/admin/monthly-report-export-buttons";
 import { MonthNav } from "@/components/attendance/month-nav";
 import {
   Card,
@@ -49,7 +50,10 @@ export default async function AdminPayrollPage({
             {formatMonthLabel(report.monthStart)} — net salary by department.
           </p>
         </div>
-        <MonthNav basePath="/admin/payroll" monthStart={report.monthStart} />
+        <div className="flex flex-wrap items-center gap-3">
+          <MonthNav basePath="/admin/payroll" monthStart={report.monthStart} />
+          <MonthlyPayrollExportButtons monthStart={report.monthStart} />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

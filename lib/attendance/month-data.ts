@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveMonthlySalaryForMonth } from "@/lib/payroll/salary-for-month";
 import {
   endOfMonthDateString,
   getTodayDateString,
@@ -38,6 +39,7 @@ export async function loadMonthAttendance(
 
   const [
     { data: profile },
+    { data: salaryRevisionRows },
     { data: allRecordRows },
     { data: balanceRows },
     { data: monthRecordRows },
@@ -48,6 +50,11 @@ export async function loadMonthAttendance(
       .select("hire_date, monthly_salary")
       .eq("id", employeeId)
       .single(),
+    supabase
+      .from("salary_revisions")
+      .select("effective_month, monthly_salary")
+      .eq("employee_id", employeeId)
+      .order("effective_month", { ascending: false }),
     supabase
       .from("attendance_records")
       .select("*")
@@ -104,11 +111,22 @@ export async function loadMonthAttendance(
   const weeks = buildMonthCalendarGrid(monthStart, merged);
 
   const baseAllowances = getBaseAllowances(monthStart);
+  const monthlySalary = resolveMonthlySalaryForMonth(
+    ((salaryRevisionRows ?? []) as Array<{
+      effective_month: string;
+      monthly_salary: number;
+    }>).map((row) => ({
+      effective_month: row.effective_month,
+      monthly_salary: Number(row.monthly_salary),
+    })),
+    monthStart,
+    profile?.monthly_salary != null ? Number(profile.monthly_salary) : null,
+  );
   const salarySummary = computeSalarySummary(
     allInputs,
     monthStart,
     baseAllowances,
-    profile?.monthly_salary != null ? Number(profile.monthly_salary) : null,
+    monthlySalary,
     {
       hireDate: profile?.hire_date ?? null,
       carryForward: summary.paid_leave_carried_forward,

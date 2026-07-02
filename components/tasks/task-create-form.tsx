@@ -5,7 +5,6 @@ import { Plus } from "lucide-react";
 
 import { createTaskAction, type TaskActionState } from "@/actions/task.actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { TaskPeriod } from "@/lib/utils/dates";
 
 const initialState: TaskActionState = {};
@@ -32,18 +31,29 @@ export function TaskCreateForm({
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-2">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-2"
+      onKeyDown={(e) => {
+        if (e.key !== "Enter") return;
+        if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+        e.preventDefault();
+      }}
+    >
       <input type="hidden" name="task_date" value={taskDate} />
       <input type="hidden" name="period" value={period} />
-      <div className="flex gap-2">
-        <Input
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+        <textarea
           name="title"
           placeholder={placeholder}
           required
           maxLength={200}
           autoComplete="off"
+          rows={3}
+          className="flex min-h-[5.5rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:flex-1"
         />
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending} className="shrink-0">
           <Plus className="mr-1 h-4 w-4" />
           {isPending ? "Adding..." : "Add"}
         </Button>

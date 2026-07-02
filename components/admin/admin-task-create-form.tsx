@@ -19,7 +19,7 @@ export function AdminTaskCreateForm({
   employeeId: string;
   today: string;
 }) {
-  const [period, setPeriod] = useState("daily");
+  const [period, setPeriod] = useState("weekly");
   const [state, formAction, isPending] = useActionState(
     adminCreateTaskAction,
     initialState,
@@ -29,7 +29,7 @@ export function AdminTaskCreateForm({
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
-      setPeriod("daily");
+      setPeriod("weekly");
     }
   }, [state.success]);
 
@@ -37,17 +37,28 @@ export function AdminTaskCreateForm({
   const usesStartDate = period === "daily" || period === "custom";
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-3">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-3"
+      onKeyDown={(e) => {
+        if (e.key !== "Enter") return;
+        if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+        e.preventDefault();
+      }}
+    >
       <input type="hidden" name="employee_id" value={employeeId} />
       <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto_auto] lg:items-end">
         <div className="space-y-1.5">
           <Label htmlFor="admin-task-title">Task title</Label>
-          <Input
+          <textarea
             id="admin-task-title"
             name="title"
             placeholder="e.g. Complete onboarding checklist"
             maxLength={200}
             required
+            rows={3}
+            className="flex min-h-[5.5rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
         <div className="space-y-1.5">

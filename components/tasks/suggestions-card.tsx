@@ -17,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { MAX_SUGGESTIONS } from "@/lib/validators/suggestion.schema";
 
 type Suggestion = { id: string; title: string };
@@ -103,16 +102,16 @@ export function SuggestionsCard({
               >
                 {editingId === s.id ? (
                   <>
-                    <Input
+                    <textarea
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       maxLength={200}
                       autoFocus
+                      rows={3}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveEdit(s.id);
                         if (e.key === "Escape") setEditingId(null);
                       }}
-                      className="h-8"
+                      className="flex min-h-[4.5rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
                     <Button
                       type="button"
@@ -138,7 +137,7 @@ export function SuggestionsCard({
                   </>
                 ) : (
                   <>
-                    <span className="min-w-0 flex-1 truncate text-sm">
+                    <span className="min-w-0 flex-1 whitespace-pre-wrap text-sm">
                       {s.title}
                     </span>
                     <Button
@@ -183,8 +182,8 @@ export function SuggestionsCard({
           </ul>
         )}
 
-        <div className="flex gap-2">
-          <Input
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <textarea
             value={newValue}
             onChange={(e) => setNewValue(e.target.value)}
             placeholder={
@@ -194,14 +193,14 @@ export function SuggestionsCard({
             }
             maxLength={200}
             disabled={atLimit || isPending}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleCreate();
-            }}
+            rows={3}
+            className="flex min-h-[4.5rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:flex-1"
           />
           <Button
             type="button"
             disabled={atLimit || isPending || newValue.trim() === ""}
             onClick={handleCreate}
+            className="shrink-0"
           >
             <Plus className="mr-1 h-4 w-4" />
             Save

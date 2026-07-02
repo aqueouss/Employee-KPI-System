@@ -10,7 +10,6 @@ import {
 } from "@/actions/task.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   formatDateLabel,
   taskDeadline,
@@ -47,7 +46,10 @@ export function TaskItem({
   const meta = STATUS_META[status];
 
   const canToggle = editable && !isApproved;
-  const canEdit = editable && (status === "pending" || status === "rejected");
+  const canEdit =
+    editable &&
+    !task.created_by_admin &&
+    (status === "pending" || status === "rejected");
   const canDelete =
     editable && status === "pending" && !task.created_by_admin;
 
@@ -112,13 +114,14 @@ export function TaskItem({
 
         <div className="min-w-0 flex-1 space-y-2">
           {isEditing ? (
-            <div className="flex items-center gap-2">
-              <Input
+            <div className="flex items-start gap-2">
+              <textarea
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={200}
                 autoFocus
-                className="h-9"
+                rows={3}
+                className="flex min-h-[4.5rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <Button
                 type="button"
@@ -152,7 +155,7 @@ export function TaskItem({
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
-                    "text-sm font-medium leading-snug",
+                    "whitespace-pre-wrap text-sm font-medium leading-snug",
                     isApproved && "text-muted-foreground line-through",
                   )}
                 >
@@ -187,9 +190,13 @@ export function TaskItem({
                 </p>
               ) : null}
 
-              {status === "rejected" && editable ? (
+              {status === "rejected" && canEdit ? (
                 <p className="text-xs text-muted-foreground">
                   Edit if needed, then submit again before the due date.
+                </p>
+              ) : status === "rejected" && editable && task.created_by_admin ? (
+                <p className="text-xs text-muted-foreground">
+                  Submit again before the due date.
                 </p>
               ) : null}
             </>

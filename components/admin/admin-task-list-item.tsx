@@ -52,7 +52,9 @@ export function AdminTaskListItem({ task }: { task: Tables<"tasks"> }) {
     <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium leading-snug">{task.title}</p>
+          <p className="whitespace-pre-wrap text-sm font-medium leading-snug">
+            {task.title}
+          </p>
           {task.period !== "daily" ? (
             <Badge variant="outline" className="shrink-0 capitalize">
               {task.period}

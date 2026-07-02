@@ -14,6 +14,7 @@ import { DashboardDateBadge } from "@/components/layout/dashboard-date-badge";
 import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
 import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
 import { OpenTasksSection } from "@/components/tasks/open-tasks-section";
+import { WeeklyTasksSection } from "@/components/tasks/weekly-tasks-section";
 import { SuggestionsCard } from "@/components/tasks/suggestions-card";
 import { TaskCreateForm } from "@/components/tasks/task-create-form";
 import { TaskItem } from "@/components/tasks/task-item";
@@ -34,7 +35,7 @@ export default async function EmployeeDashboardPage() {
   const monthStart = startOfMonthDateString(today);
 
   const supabase = await createClient();
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, attendanceData, { data: rankingData }] =
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -61,6 +62,13 @@ export default async function EmployeeDashboardPage() {
         .eq("employee_id", profile.id)
         .in("status", ["pending", "submitted"])
         .order("task_date", { ascending: true }),
+      supabase
+        .from("tasks")
+        .select("*")
+        .eq("employee_id", profile.id)
+        .eq("period", "weekly")
+        .eq("created_by_admin", true)
+        .order("created_at", { ascending: true }),
       loadMonthAttendance(profile.id, monthStart),
       supabase.rpc("get_employee_rankings", {
         p_start: monthStart,
@@ -69,6 +77,7 @@ export default async function EmployeeDashboardPage() {
     ]);
 
   const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
+  const weeklyTasks = (weeklyTaskRows ?? []) as Tables<"tasks">[];
 
   const suggestions = (suggestionRows ?? []) as {
     id: string;
@@ -206,6 +215,8 @@ export default async function EmployeeDashboardPage() {
           <KpiFlagGrid snapshots={flagSnapshots} endDate={today} days={30} />
         </CardContent>
       </Card>
+
+      <WeeklyTasksSection tasks={weeklyTasks} today={today} />
 
       <SuggestionsCard suggestions={suggestions} />
 

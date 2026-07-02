@@ -15,6 +15,7 @@ import {
   formatDateLabel,
   isOpenTask,
   isTaskEditableNow,
+  isTaskWithinDeadline,
   periodLabel,
   taskDeadline,
 } from "@/lib/utils/dates";
@@ -30,6 +31,19 @@ export function OpenTasksSection({
   const openTasks = tasks
     .filter((task) =>
       isOpenTask(task.status, task.period, task.task_date, today, task.due_date),
+    )
+    .filter(
+      (task) =>
+        !(
+          task.period === "weekly" &&
+          task.created_by_admin &&
+          isTaskWithinDeadline(
+            task.period,
+            task.task_date,
+            today,
+            task.due_date,
+          )
+        ),
     )
     .filter(
       (task) => !(task.period === "daily" && task.task_date === today),

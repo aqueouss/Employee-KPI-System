@@ -103,6 +103,15 @@ export function endOfQuarterDateString(value: string): string {
   return `${year}-${String(endMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 }
 
+/** Deadline for admin-assigned weekly tasks (due_date) or calendar-week end. */
+export function weeklyTaskDeadline(
+  taskDate: string,
+  dueDate?: string | null,
+): string {
+  if (dueDate) return dueDate;
+  return addDaysToDateString(taskDate, 6);
+}
+
 /** Deadline for a task (inclusive). Custom tasks use due_date; others derive from period. */
 export function taskDeadline(
   period: TaskPeriod,
@@ -111,7 +120,7 @@ export function taskDeadline(
 ): string {
   if (period === "custom" && dueDate) return dueDate;
   if (period === "daily") return taskDate;
-  if (period === "weekly") return addDaysToDateString(taskDate, 6);
+  if (period === "weekly") return weeklyTaskDeadline(taskDate, dueDate);
   if (period === "monthly") return endOfMonthDateString(taskDate);
   if (period === "quarterly") return endOfQuarterDateString(taskDate);
   return taskDate;
@@ -163,6 +172,9 @@ export function periodLabel(
 ): string {
   switch (period) {
     case "weekly":
+      if (dueDate) {
+        return `Assigned ${formatDateLabel(startValue)} · due ${formatDateLabel(dueDate)}`;
+      }
       return `Week of ${formatDateLabel(startValue)} · due ${formatDateLabel(addDaysToDateString(startValue, 6))}`;
     case "monthly":
       return `${new Date(`${startValue}T00:00:00Z`).toLocaleDateString(undefined, {
@@ -235,6 +247,10 @@ export function isTaskEditableNow(
   if (period === "custom") {
     if (!dueDate) return false;
     return today <= dueDate;
+  }
+  if (period === "weekly") {
+    if (dueDate) return today <= dueDate;
+    return taskDate === periodStartDate(period, today);
   }
   return taskDate === periodStartDate(period, today);
 }

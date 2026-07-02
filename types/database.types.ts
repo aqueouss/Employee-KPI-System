@@ -308,6 +308,48 @@ export type Database = {
           },
         ]
       }
+      salary_revisions: {
+        Row: {
+          effective_month: string
+          employee_id: string
+          id: string
+          monthly_salary: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          effective_month: string
+          employee_id: string
+          id?: string
+          monthly_salary: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          effective_month?: string
+          employee_id?: string
+          id?: string
+          monthly_salary?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_revisions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_revisions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

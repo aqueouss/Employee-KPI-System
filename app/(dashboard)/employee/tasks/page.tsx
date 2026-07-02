@@ -5,6 +5,7 @@ import {
   isEditableDate,
   isOpenTask,
   isTaskEditableNow,
+  isTaskWithinDeadline,
   parseDateString,
   periodStartDate,
   periodLabel,
@@ -89,6 +90,14 @@ export default async function EmployeeTasksPage({
     .in("task_date", Object.values(periodStarts))
     .order("created_at", { ascending: true });
 
+  const { data: adminWeeklyData } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("employee_id", profile.id)
+    .eq("period", "weekly")
+    .eq("created_by_admin", true)
+    .order("created_at", { ascending: true });
+
   const { data: customTaskData } = await supabase
     .from("tasks")
     .select("*")
@@ -97,6 +106,11 @@ export default async function EmployeeTasksPage({
     .order("due_date", { ascending: true });
 
   const nonDailyTasks = (nonDailyData ?? []) as Tables<"tasks">[];
+  const adminWeeklyTasks = ((adminWeeklyData ?? []) as Tables<"tasks">[]).filter(
+    (task) =>
+      isTaskWithinDeadline("weekly", task.task_date, today, task.due_date) ||
+      task.status === "completed",
+  );
   const customTasks = ((customTaskData ?? []) as Tables<"tasks">[]).filter(
     (task) =>
       isOpenTask(task.status, task.period, task.task_date, today, task.due_date),
@@ -168,14 +182,29 @@ export default async function EmployeeTasksPage({
 
       {NON_DAILY.map(({ period, title, placeholder }) => {
         const start = periodStarts[period];
-        const items = nonDailyTasks.filter(
-          (t) => t.period === period && t.task_date === start,
-        );
+        const items =
+          period === "weekly"
+            ? [
+                ...nonDailyTasks.filter(
+                  (t) =>
+                    t.period === period &&
+                    t.task_date === start &&
+                    !t.created_by_admin,
+                ),
+                ...adminWeeklyTasks,
+              ]
+            : nonDailyTasks.filter(
+                (t) => t.period === period && t.task_date === start,
+              );
         return (
           <Card key={period}>
             <CardHeader>
               <CardTitle>{title}</CardTitle>
-              <CardDescription>{periodLabel(period, start)}</CardDescription>
+              <CardDescription>
+                {period === "weekly" && adminWeeklyTasks.length > 0
+                  ? "Your weekly goals and admin-assigned tasks"
+                  : periodLabel(period, start)}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <TaskCreateForm

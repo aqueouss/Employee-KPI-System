@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getTodayDateString,
+  startOfMonthDateString,
+} from "@/lib/utils/dates";
 import { kpiRulesSchema } from "@/lib/validators/kpi-rules.schema";
 
 export type AdminActionState = {
@@ -345,6 +349,9 @@ export async function updateEmployeeDetailsAction(
   const jobDesignation = String(formData.get("job_designation") ?? "").trim();
   const department = String(formData.get("department") ?? "").trim();
   const monthlySalaryRaw = String(formData.get("monthly_salary") ?? "").trim();
+  const salaryEffectiveMonthRaw = String(
+    formData.get("salary_effective_month") ?? "",
+  ).trim();
 
   if (hireDateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(hireDateRaw)) {
     return { error: "Invalid hire date." };
@@ -354,6 +361,9 @@ export async function updateEmployeeDetailsAction(
   }
   if (department.length > 80) {
     return { error: "Department name is too long." };
+  }
+  if (salaryEffectiveMonthRaw && !/^\d{4}-\d{2}$/.test(salaryEffectiveMonthRaw)) {
+    return { error: "Invalid salary effective month." };
   }
   let monthlySalary: number | null = null;
   if (monthlySalaryRaw) {
@@ -367,7 +377,7 @@ export async function updateEmployeeDetailsAction(
 
   const { data: existing } = await supabase
     .from("profiles")
-    .select("role, kpi_tracked")
+    .select("role, kpi_tracked, monthly_salary")
     .eq("id", employeeId)
     .single();
 
@@ -402,6 +412,75 @@ export async function updateEmployeeDetailsAction(
     return { error: error.message };
   }
 
+  const previousSalary =
+    existing.monthly_salary != null ? Number(existing.monthly_salary) : null;
+  const salaryChanged = previousSalary !== monthlySalary;
+
+  if (salaryChanged && monthlySalary !== null) {
+    const effectiveMonth = salaryEffectiveMonthRaw
+      ? startOfMonthDateString(`${salaryEffectiveMonthRaw}-01`)
+      : startOfMonthDateString(getTodayDateString());
+
+    if (previousSalary !== null && previousSalary !== monthlySalary) {
+      const { data: priorRevision } = await supabase
+        .from("salary_revisions")
+        .select("effective_month")
+        .eq("employee_id", employeeId)
+        .lt("effective_month", effectiveMonth)
+        .order("effective_month", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!priorRevision) {
+        const { data: employeeProfile } = await supabase
+          .from("profiles")
+          .select("hire_date, created_at")
+          .eq("id", employeeId)
+          .single();
+
+        const seedMonth = employeeProfile?.hire_date
+          ? startOfMonthDateString(employeeProfile.hire_date)
+          : startOfMonthDateString(
+              employeeProfile?.created_at ?? getTodayDateString(),
+            );
+
+        if (seedMonth < effectiveMonth) {
+          const { error: seedError } = await supabase
+            .from("salary_revisions")
+            .upsert(
+              {
+                employee_id: employeeId,
+                effective_month: seedMonth,
+                monthly_salary: previousSalary,
+                updated_by: admin.id,
+              },
+              { onConflict: "employee_id,effective_month" },
+            );
+
+          if (seedError) {
+            return { error: seedError.message };
+          }
+        }
+      }
+    }
+
+    const { error: revisionError } = await supabase
+      .from("salary_revisions")
+      .upsert(
+        {
+          employee_id: employeeId,
+          effective_month: effectiveMonth,
+          monthly_salary: monthlySalary,
+          updated_by: admin.id,
+        },
+        { onConflict: "employee_id,effective_month" },
+      );
+
+    if (revisionError) {
+      return { error: revisionError.message };
+    }
+  }
+
   await supabase.from("audit_logs").insert({
     actor_id: admin.id,
     action: "employee.details_updated",
@@ -420,5 +499,8 @@ export async function updateEmployeeDetailsAction(
   revalidatePath("/admin/employees");
   revalidatePath("/admin");
   revalidatePath("/admin/departments");
+  revalidatePath(`/admin/attendance/${employeeId}`);
+  revalidatePath("/admin/payroll");
+  revalidatePath("/employee/attendance");
   return { success: "Employee details updated." };
 }

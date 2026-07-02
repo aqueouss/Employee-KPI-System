@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database, Tables } from "@/types/database.types";
 import { addDaysToDateString } from "@/lib/utils/dates";
+import { loadMonthlyWeeklyRedFlagDates } from "@/services/kpi/weekly.service";
 import {
   evaluateTerminationReview,
   monthKeyForDate,
@@ -20,6 +21,7 @@ async function loadMonthlyRedFlagDates(
   client: Client,
   employeeId: string,
   date: string,
+  asOfDate: string = date,
 ): Promise<{ monthKey: string; redFlagDates: string[] }> {
   const monthKey = monthKeyForDate(date);
   const monthStart = monthKey;
@@ -38,9 +40,17 @@ async function loadMonthlyRedFlagDates(
 
   if (error) throw new Error(`Failed to load red snapshots: ${error.message}`);
 
+  const dailyRedFlagDates = (redSnapshots ?? []).map((s) => s.kpi_date);
+  const weeklyRedFlagDates = await loadMonthlyWeeklyRedFlagDates(
+    client,
+    employeeId,
+    date,
+    asOfDate,
+  );
+
   return {
     monthKey,
-    redFlagDates: (redSnapshots ?? []).map((s) => s.kpi_date),
+    redFlagDates: [...dailyRedFlagDates, ...weeklyRedFlagDates].sort(),
   };
 }
 
@@ -54,11 +64,14 @@ export async function reconcileMonthlyWarning(
   employeeId: string,
   date: string,
   rules: Tables<"kpi_rules">,
+  asOfDate?: string,
 ): Promise<MonthlyWarningReconciliation> {
+  const effectiveAsOf = asOfDate ?? date;
   const { monthKey, redFlagDates } = await loadMonthlyRedFlagDates(
     client,
     employeeId,
     date,
+    effectiveAsOf,
   );
 
   const { data: existing } = await client
@@ -101,7 +114,7 @@ export async function reconcileMonthlyWarning(
         employee_id: employeeId,
         warning_month: monthKey,
         red_flag_dates: evaluation.redFlagDates,
-        reason: `${evaluation.redFlagCount} red KPI flags in ${monthKey.slice(0, 7)}.`,
+        reason: `${evaluation.redFlagCount} red KPI flags in ${monthKey.slice(0, 7)} (daily + weekly).`,
       })
       .select("*")
       .single();
@@ -120,7 +133,7 @@ export async function reconcileMonthlyWarning(
       .from("warnings")
       .update({
         red_flag_dates: evaluation.redFlagDates,
-        reason: `${evaluation.redFlagCount} red KPI flags in ${monthKey.slice(0, 7)}.`,
+        reason: `${evaluation.redFlagCount} red KPI flags in ${monthKey.slice(0, 7)} (daily + weekly).`,
       })
       .eq("id", existing.id);
 

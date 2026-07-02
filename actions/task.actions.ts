@@ -10,6 +10,7 @@ import {
   isEditableDate,
   isTaskEditableNow,
   periodStartDate,
+  addDaysToDateString,
   type TaskPeriod,
 } from "@/lib/utils/dates";
 import { getKpiRules, upsertDailySnapshot } from "@/services/kpi/kpi.service";
@@ -38,18 +39,26 @@ function revalidateApprovalViews() {
   revalidatePath("/admin");
 }
 
-/** Recompute the daily KPI snapshot for a task's date after approval changes. */
-async function recomputeDailyKpiSnapshot(
+/** Recompute KPI impact after task approval or deletion. */
+async function recomputeKpiAfterTaskChange(
   employeeId: string,
   taskDate: string,
   period: TaskPeriod,
 ) {
-  if (period !== "daily") return;
   try {
     const admin = createAdminClient();
     const rules = await getKpiRules(admin);
-    await upsertDailySnapshot(admin, employeeId, taskDate, rules);
-    await reconcileMonthlyWarning(admin, employeeId, taskDate, rules);
+    const today = getTodayDateString();
+
+    if (period === "daily") {
+      await upsertDailySnapshot(admin, employeeId, taskDate, rules);
+      await reconcileMonthlyWarning(admin, employeeId, taskDate, rules, today);
+      return;
+    }
+
+    if (period === "weekly") {
+      await reconcileMonthlyWarning(admin, employeeId, today, rules, today);
+    }
   } catch {
     // Best-effort; the nightly pipeline will reconcile.
   }
@@ -128,14 +137,19 @@ export async function adminCreateTaskAction(
 
   const period = parsed.data.period;
   const today = getTodayDateString();
-  const taskDate =
+  let taskDate =
     period === "daily" || period === "custom"
       ? parsed.data.task_date
       : periodStartDate(period, today);
-  const dueDate =
+  let dueDate =
     period === "custom" && parsed.data.due_date
       ? parsed.data.due_date
       : null;
+
+  if (period === "weekly") {
+    taskDate = today;
+    dueDate = addDaysToDateString(today, 7);
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from("tasks").insert({
@@ -300,7 +314,7 @@ export async function reviewTaskAction(
     metadata: parsed.data.note ? { note: parsed.data.note } : {},
   });
 
-  await recomputeDailyKpiSnapshot(
+  await recomputeKpiAfterTaskChange(
     task.employee_id,
     task.task_date,
     task.period,
@@ -333,12 +347,15 @@ export async function updateTaskAction(
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("task_date, employee_id, status, period, due_date")
+    .select("task_date, employee_id, status, period, due_date, created_by_admin")
     .eq("id", parsed.data.id)
     .single();
 
   if (fetchError || !task) return { error: "Task not found." };
   if (task.employee_id !== profile.id) return { error: "Forbidden." };
+  if (task.created_by_admin) {
+    return { error: "Admin-assigned tasks cannot be edited." };
+  }
 
   const today = getTodayDateString();
   if (!isTaskEditableNow(task.period, task.task_date, today, task.due_date)) {
@@ -456,7 +473,7 @@ export async function adminDeleteTaskAction(
     metadata: { employee_id: task.employee_id, task_date: task.task_date },
   });
 
-  await recomputeDailyKpiSnapshot(
+  await recomputeKpiAfterTaskChange(
     task.employee_id,
     task.task_date,
     task.period,
