@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatDateLabel, getTodayDateString, addDaysToDateString, parseDateString, startOfMonthDateString } from "@/lib/utils/dates";
+import { formatDateLabel, startOfMonthDateString } from "@/lib/utils/dates";
 import { AttendanceDatePicker } from "@/components/admin/attendance-date-picker";
 import type { TodayAttendanceEmployee } from "@/lib/attendance/today-overview";
 import type { AttendanceStatus } from "@/types/domain";

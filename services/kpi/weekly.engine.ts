@@ -1,4 +1,4 @@
-import { taskDeadline } from "../../lib/utils/dates.ts";
+import { taskDeadline } from "@/lib/utils/dates";
 
 export type WeeklyTaskStatus =
   | "pending"

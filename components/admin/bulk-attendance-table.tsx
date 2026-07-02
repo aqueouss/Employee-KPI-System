@@ -69,7 +69,7 @@ export function BulkAttendanceTable({
     setDrafts(
       Object.fromEntries(employees.map((emp) => [emp.id, initialDraft(emp)])),
     );
-  }, [employeeSnapshot]);
+  }, [employeeSnapshot, employees]);
 
   const markedCount = useMemo(
     () => employees.filter((emp) => emp.status !== null).length,
