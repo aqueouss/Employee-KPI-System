@@ -75,16 +75,36 @@ export default async function ProfilePage() {
                 {formatDate(profile.created_at)}
               </span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Bank</span>
+              <span className="font-medium">{profile.bank_name || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Account number</span>
+              <span className="font-medium">
+                {profile.bank_account_number
+                  ? `••••${profile.bank_account_number.slice(-4)}`
+                  : "—"}
+              </span>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Edit profile</CardTitle>
-            <CardDescription>Update your display name</CardDescription>
+            <CardDescription>
+              Update your name and bank details for payroll
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <ProfileForm fullName={profile.full_name} />
+            <ProfileForm
+              fullName={profile.full_name}
+              bankAccountHolder={profile.bank_account_holder}
+              bankName={profile.bank_name}
+              bankAccountNumber={profile.bank_account_number}
+              bankIfsc={profile.bank_ifsc}
+            />
           </CardContent>
         </Card>
       </div>

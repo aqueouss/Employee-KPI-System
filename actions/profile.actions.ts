@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { createClient } from "@/lib/supabase/server";
+import { parseBankDetailsFromForm } from "@/lib/validators/bank-details";
 
 export type ProfileActionState = {
   error?: string;
@@ -26,10 +27,18 @@ export async function updateProfileAction(
     return { error: "Full name must be at least 2 characters." };
   }
 
+  const bankResult = parseBankDetailsFromForm(formData);
+  if ("error" in bankResult) {
+    return { error: bankResult.error };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
-    .update({ full_name: fullName })
+    .update({
+      full_name: fullName,
+      ...bankResult.data,
+    })
     .eq("id", profile.id);
 
   if (error) {
