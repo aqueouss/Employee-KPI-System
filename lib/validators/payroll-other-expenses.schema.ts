@@ -10,7 +10,20 @@ const otherExpenseItemSchema = z.object({
 
 export const payrollOtherExpensesSchema = z.object({
   month: z.string().refine((v) => parseDateString(v) !== null, "Invalid month."),
-  items: z.array(otherExpenseItemSchema).length(3),
+  items: z.array(otherExpenseItemSchema).max(50),
 });
 
 export type PayrollOtherExpensesInput = z.infer<typeof payrollOtherExpensesSchema>;
+
+export function parsePayrollOtherExpensesItems(
+  raw: unknown,
+): PayrollOtherExpensesInput["items"] | null {
+  if (typeof raw !== "string" || raw.trim() === "") return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}

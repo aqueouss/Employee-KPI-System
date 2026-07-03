@@ -472,43 +472,19 @@ export type Database = {
       }
       monthly_payroll_other_expenses: {
         Row: {
-          item_1_expense: number
-          item_1_remarks: string | null
-          item_1_title: string
-          item_2_expense: number
-          item_2_remarks: string | null
-          item_2_title: string
-          item_3_expense: number
-          item_3_remarks: string | null
-          item_3_title: string
+          items: Json
           month: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          item_1_expense?: number
-          item_1_remarks?: string | null
-          item_1_title?: string
-          item_2_expense?: number
-          item_2_remarks?: string | null
-          item_2_title?: string
-          item_3_expense?: number
-          item_3_remarks?: string | null
-          item_3_title?: string
+          items?: Json
           month: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          item_1_expense?: number
-          item_1_remarks?: string | null
-          item_1_title?: string
-          item_2_expense?: number
-          item_2_remarks?: string | null
-          item_2_title?: string
-          item_3_expense?: number
-          item_3_remarks?: string | null
-          item_3_title?: string
+          items?: Json
           month?: string
           updated_at?: string
           updated_by?: string | null

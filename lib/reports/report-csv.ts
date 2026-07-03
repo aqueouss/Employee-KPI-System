@@ -135,21 +135,28 @@ export function buildPayrollCsv(report: MonthlyPayrollExport): string {
 
   const footer = ["PREPARED BY", PAYROLL_PREPARED_BY, "", "", "APPROVED BY"];
 
+  const otherExpenseSection =
+    report.otherExpenses.length > 0
+      ? [
+          [],
+          ["OTHER EXPENSES", "", ""],
+          ["S. NO.", "Title", "Expense", "Remarks"],
+          ...report.otherExpenses.map((item, index) => [
+            index + 1,
+            item.title,
+            num(item.expense),
+            item.remarks,
+          ]),
+        ]
+      : [[]];
+
   return buildCsv([
     headerRow1,
     headerRow2,
     [],
     tableHeader,
     ...body,
-    [],
-    ["OTHER EXPENSES", "", ""],
-    ["S. NO.", "Title", "Expense", "Remarks"],
-    ...report.otherExpenses.map((item, index) => [
-      index + 1,
-      item.title,
-      num(item.expense),
-      item.remarks,
-    ]),
+    ...otherExpenseSection,
     [],
     totalRow,
     [],

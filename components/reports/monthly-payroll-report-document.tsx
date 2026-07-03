@@ -179,53 +179,57 @@ export function MonthlyPayrollReportDocument({
               <td style={cellStyle(PAYROLL_COLUMNS[14])}>{row.remark}</td>
             </tr>
           ))}
-          <tr>
-            <td
-              colSpan={15}
-              style={{
-                ...REPORT_OTHER_EXPENSES_HEADER_STYLE,
-                padding: "10px 6px",
-              }}
-            >
-              OTHER EXPENSES
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={2} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
-              S. NO.
-            </td>
-            <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
-              Title
-            </td>
-            <td colSpan={3} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
-              Expense
-            </td>
-            <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
-              Remarks
-            </td>
-          </tr>
-          {report.otherExpenses.map((item, index) => (
-            <tr key={index}>
-              <td colSpan={2} style={REPORT_CELL_STYLE}>
-                {index + 1}
-              </td>
-              <td
-                colSpan={5}
-                style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
-              >
-                {item.title}
-              </td>
-              <td colSpan={3} style={REPORT_CELL_STYLE}>
-                {formatInrOrDash(item.expense || null)}
-              </td>
-              <td
-                colSpan={5}
-                style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
-              >
-                {item.remarks}
-              </td>
-            </tr>
-          ))}
+          {report.otherExpenses.length > 0 ? (
+            <>
+              <tr>
+                <td
+                  colSpan={15}
+                  style={{
+                    ...REPORT_OTHER_EXPENSES_HEADER_STYLE,
+                    padding: "10px 6px",
+                  }}
+                >
+                  OTHER EXPENSES
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+                  S. NO.
+                </td>
+                <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+                  Title
+                </td>
+                <td colSpan={3} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+                  Expense
+                </td>
+                <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+                  Remarks
+                </td>
+              </tr>
+              {report.otherExpenses.map((item, index) => (
+                <tr key={index}>
+                  <td colSpan={2} style={REPORT_CELL_STYLE}>
+                    {index + 1}
+                  </td>
+                  <td
+                    colSpan={5}
+                    style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
+                  >
+                    {item.title}
+                  </td>
+                  <td colSpan={3} style={REPORT_CELL_STYLE}>
+                    {formatInrOrDash(item.expense || null)}
+                  </td>
+                  <td
+                    colSpan={5}
+                    style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
+                  >
+                    {item.remarks}
+                  </td>
+                </tr>
+              ))}
+            </>
+          ) : null}
           <tr>
             <td style={{ ...REPORT_TOTAL_ROW_CELL_STYLE, textAlign: "left" }} colSpan={2}>
               Total

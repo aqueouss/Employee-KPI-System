@@ -104,7 +104,7 @@ export default async function AdminPayrollPage({
         <CardHeader>
           <CardTitle>Other expenses</CardTitle>
           <CardDescription>
-            Three additional expense lines included in payroll PDF and Excel exports.
+            Add as many expense lines as needed for this month&apos;s payroll export.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -11,7 +11,8 @@ import {
   overtimeSchema,
   payrollSchema,
 } from "@/lib/validators/attendance.schema";
-import { payrollOtherExpensesSchema } from "@/lib/validators/payroll-other-expenses.schema";
+import { payrollOtherExpensesSchema, parsePayrollOtherExpensesItems } from "@/lib/validators/payroll-other-expenses.schema";
+import { payrollOtherExpensesToJson } from "@/lib/payroll/other-expenses";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import {
   applyWeeklySundayRules,
@@ -598,35 +599,30 @@ export async function updatePayrollOtherExpensesAction(
 
   const monthRaw = String(formData.get("month") ?? "");
   const month = startOfMonthDateString(monthRaw);
+  const itemsRaw = parsePayrollOtherExpensesItems(formData.get("items_json"));
+  if (itemsRaw === null) {
+    return { error: "Invalid other expenses data." };
+  }
 
   const parsed = payrollOtherExpensesSchema.safeParse({
     month,
-    items: [0, 1, 2].map((index) => ({
-      title: String(formData.get(`item_${index}_title`) ?? "").trim(),
-      expense: formData.get(`item_${index}_expense`),
-      remarks: String(formData.get(`item_${index}_remarks`) ?? "").trim(),
-    })),
+    items: itemsRaw,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
+  const items = parsed.data.items.filter(
+    (item) => item.title.trim() || item.expense > 0 || item.remarks.trim(),
+  );
+
   const supabase = await createClient();
-  const [item1, item2, item3] = parsed.data.items;
 
   const { error } = await supabase.from("monthly_payroll_other_expenses").upsert(
     {
       month: parsed.data.month,
-      item_1_title: item1.title,
-      item_1_expense: item1.expense,
-      item_1_remarks: item1.remarks || null,
-      item_2_title: item2.title,
-      item_2_expense: item2.expense,
-      item_2_remarks: item2.remarks || null,
-      item_3_title: item3.title,
-      item_3_expense: item3.expense,
-      item_3_remarks: item3.remarks || null,
+      items: payrollOtherExpensesToJson(items),
       updated_by: admin.id,
       updated_at: new Date().toISOString(),
     },
