@@ -137,12 +137,18 @@ export async function loadMonthlyPayrollExport(
     },
   );
 
+  const otherExpensesTotalAmount = otherExpensesTotal(otherExpenses);
+
   return {
     monthStart,
     monthLabel: formatMonthLabel(monthStart).toUpperCase(),
     rows,
     otherExpenses,
-    otherExpensesTotal: otherExpensesTotal(otherExpenses),
-    totals,
+    otherExpensesTotal: otherExpensesTotalAmount,
+    totals: {
+      ...totals,
+      netPayable:
+        Math.round((totals.netPayable + otherExpensesTotalAmount) * 100) / 100,
+    },
   };
 }

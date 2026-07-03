@@ -6,6 +6,7 @@ import {
 } from "@/lib/utils/dates";
 import { loadDepartmentPayroll } from "@/lib/payroll/department-payroll";
 import {
+  otherExpensesTotal,
   payrollOtherExpensesFromRow,
 } from "@/lib/payroll/other-expenses";
 import { formatMonthLabel } from "@/lib/payroll/format-month-label";
@@ -50,6 +51,11 @@ export default async function AdminPayrollPage({
     .eq("month", report.monthStart)
     .maybeSingle();
   const otherExpenses = payrollOtherExpensesFromRow(otherExpensesRow);
+  const otherExpensesTotalAmount = otherExpensesTotal(otherExpenses);
+  const totalNetPayable =
+    Math.round((report.grandTotalNet + otherExpensesTotalAmount) * 100) / 100;
+  const totalExpense =
+    Math.round((report.grandTotalExpense + otherExpensesTotalAmount) * 100) / 100;
 
   return (
     <div className="space-y-6">
@@ -73,12 +79,13 @@ export default async function AdminPayrollPage({
           <CardHeader>
             <CardDescription>Total expense this month</CardDescription>
             <CardTitle className="text-3xl tabular-nums">
-              {formatCurrency(report.grandTotalExpense)}
+              {formatCurrency(totalExpense)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Sum of each employee&apos;s max(attendance salary, net salary).
+              Employee payroll expense plus other expenses (
+              {formatCurrency(otherExpensesTotalAmount)}).
             </p>
           </CardContent>
         </Card>
@@ -86,15 +93,13 @@ export default async function AdminPayrollPage({
           <CardHeader>
             <CardDescription>Net salary to be paid</CardDescription>
             <CardTitle className="text-3xl tabular-nums">
-              {formatCurrency(report.grandTotalNet)}
+              {formatCurrency(totalNetPayable)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {report.totalEmployees} active employee
-              {report.totalEmployees === 1 ? "" : "s"} across{" "}
-              {report.departments.length} department
-              {report.departments.length === 1 ? "" : "s"}
+              Employee net salary plus other expenses (
+              {formatCurrency(otherExpensesTotalAmount)}).
             </p>
           </CardContent>
         </Card>

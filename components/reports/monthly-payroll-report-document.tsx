@@ -193,37 +193,29 @@ export function MonthlyPayrollReportDocument({
                 </td>
               </tr>
               <tr>
-                <td colSpan={2} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
-                  S. NO.
-                </td>
-                <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+                <td style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>S. NO.</td>
+                <td
+                  colSpan={12}
+                  style={REPORT_OTHER_EXPENSES_HEADER_STYLE}
+                >
                   Title
                 </td>
-                <td colSpan={3} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
-                  Expense
-                </td>
-                <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
-                  Remarks
-                </td>
+                <td style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>Expense</td>
+                <td style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>Remarks</td>
               </tr>
               {report.otherExpenses.map((item, index) => (
                 <tr key={index}>
-                  <td colSpan={2} style={REPORT_CELL_STYLE}>
-                    {index + 1}
-                  </td>
+                  <td style={cellStyle(PAYROLL_COLUMNS[0])}>{index + 1}</td>
                   <td
-                    colSpan={5}
+                    colSpan={12}
                     style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
                   >
                     {item.title}
                   </td>
-                  <td colSpan={3} style={REPORT_CELL_STYLE}>
+                  <td style={cellStyle(PAYROLL_COLUMNS[13])}>
                     {formatInrOrDash(item.expense || null)}
                   </td>
-                  <td
-                    colSpan={5}
-                    style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
-                  >
+                  <td style={cellStyle(PAYROLL_COLUMNS[14])}>
                     {item.remarks}
                   </td>
                 </tr>
