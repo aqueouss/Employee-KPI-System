@@ -57,7 +57,7 @@ function headerStyle(column: PayrollColumn) {
   };
 
   if (column.key === "name") {
-    return { ...base, background: "#b6d7a8", textAlign: "left" as const };
+    return { ...base, textAlign: "left" as const };
   }
 
   if (
@@ -75,6 +75,12 @@ function headerStyle(column: PayrollColumn) {
 
   return base;
 }
+
+const REPORT_TOTAL_ROW_CELL_STYLE = {
+  ...REPORT_CELL_STYLE,
+  background: "#fff2cc",
+  fontWeight: 700 as const,
+};
 
 function cellStyle(column: PayrollColumn) {
   return {
@@ -168,35 +174,35 @@ export function MonthlyPayrollReportDocument({
             </tr>
           ))}
           <tr>
-            <td style={REPORT_CELL_STYLE} colSpan={2}>
+            <td style={{ ...REPORT_TOTAL_ROW_CELL_STYLE, textAlign: "left" }} colSpan={2}>
               Total
             </td>
-            <td style={REPORT_CELL_STYLE} colSpan={4} />
-            <td style={{ ...REPORT_CELL_STYLE, fontWeight: 700 }}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE} colSpan={4} />
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {formatInrOrDash(report.totals.fixedSalary)}
             </td>
-            <td style={{ ...REPORT_CELL_STYLE, fontWeight: 700 }}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {report.totals.daysWorked}
             </td>
-            <td style={{ ...REPORT_CELL_STYLE, fontWeight: 700 }}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {formatInrOrDash(report.totals.totalAmount)}
             </td>
-            <td style={REPORT_CELL_STYLE}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {formatInrOrDash(report.totals.conveyance)}
             </td>
-            <td style={REPORT_CELL_STYLE}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {formatInrOrDash(report.totals.overtime)}
             </td>
-            <td style={REPORT_CELL_STYLE}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {formatInrOrDash(report.totals.incentives)}
             </td>
-            <td style={REPORT_CELL_STYLE}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {formatInrOrDash(report.totals.advanceDeduction)}
             </td>
-            <td style={{ ...REPORT_CELL_STYLE, fontWeight: 700 }}>
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE}>
               {formatInrOrDash(report.totals.netPayable)}
             </td>
-            <td style={REPORT_CELL_STYLE} />
+            <td style={REPORT_TOTAL_ROW_CELL_STYLE} />
           </tr>
         </tbody>
       </table>
