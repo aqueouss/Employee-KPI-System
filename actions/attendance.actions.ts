@@ -11,6 +11,7 @@ import {
   overtimeSchema,
   payrollSchema,
 } from "@/lib/validators/attendance.schema";
+import { payrollOtherExpensesSchema } from "@/lib/validators/payroll-other-expenses.schema";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import {
   applyWeeklySundayRules,
@@ -586,6 +587,64 @@ export async function updatePayrollAction(
   revalidateAttendancePaths([parsed.data.employee_id]);
   revalidatePath("/employee");
   return { success: "Payroll saved." };
+}
+
+export async function updatePayrollOtherExpensesAction(
+  _prev: AttendanceActionState,
+  formData: FormData,
+): Promise<AttendanceActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Forbidden." };
+
+  const monthRaw = String(formData.get("month") ?? "");
+  const month = startOfMonthDateString(monthRaw);
+
+  const parsed = payrollOtherExpensesSchema.safeParse({
+    month,
+    items: [0, 1, 2].map((index) => ({
+      title: String(formData.get(`item_${index}_title`) ?? "").trim(),
+      expense: formData.get(`item_${index}_expense`),
+      remarks: String(formData.get(`item_${index}_remarks`) ?? "").trim(),
+    })),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+  const [item1, item2, item3] = parsed.data.items;
+
+  const { error } = await supabase.from("monthly_payroll_other_expenses").upsert(
+    {
+      month: parsed.data.month,
+      item_1_title: item1.title,
+      item_1_expense: item1.expense,
+      item_1_remarks: item1.remarks || null,
+      item_2_title: item2.title,
+      item_2_expense: item2.expense,
+      item_2_remarks: item2.remarks || null,
+      item_3_title: item3.title,
+      item_3_expense: item3.expense,
+      item_3_remarks: item3.remarks || null,
+      updated_by: admin.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "month" },
+  );
+
+  if (error) return { error: error.message };
+
+  await supabase.from("audit_logs").insert({
+    actor_id: admin.id,
+    action: "payroll.other_expenses_updated",
+    entity_type: "monthly_payroll_other_expenses",
+    entity_id: admin.id,
+    metadata: { month: parsed.data.month },
+  });
+
+  revalidatePath("/admin/payroll");
+  return { success: "Other expenses saved." };
 }
 
 export async function getAttendanceSummary(

@@ -5,10 +5,15 @@ import {
   startOfMonthDateString,
 } from "@/lib/utils/dates";
 import { loadDepartmentPayroll } from "@/lib/payroll/department-payroll";
+import {
+  payrollOtherExpensesFromRow,
+} from "@/lib/payroll/other-expenses";
 import { formatMonthLabel } from "@/lib/payroll/format-month-label";
 import { DepartmentPayrollSection } from "@/components/admin/department-payroll-section";
 import { MonthlyPayrollExportButtons } from "@/components/admin/monthly-report-export-buttons";
+import { PayrollOtherExpensesForm } from "@/components/admin/payroll-other-expenses-form";
 import { MonthNav } from "@/components/attendance/month-nav";
+import { createClient } from "@/lib/supabase/server";
 import {
   Card,
   CardContent,
@@ -38,6 +43,13 @@ export default async function AdminPayrollPage({
       : startOfMonthDateString(getTodayDateString());
 
   const report = await loadDepartmentPayroll(month);
+  const supabase = await createClient();
+  const { data: otherExpensesRow } = await supabase
+    .from("monthly_payroll_other_expenses")
+    .select("*")
+    .eq("month", report.monthStart)
+    .maybeSingle();
+  const otherExpenses = payrollOtherExpensesFromRow(otherExpensesRow);
 
   return (
     <div className="space-y-6">
@@ -87,6 +99,21 @@ export default async function AdminPayrollPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Other expenses</CardTitle>
+          <CardDescription>
+            Three additional expense lines included in payroll PDF and Excel exports.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PayrollOtherExpensesForm
+            month={report.monthStart}
+            items={otherExpenses}
+          />
+        </CardContent>
+      </Card>
 
       {report.departments.length === 0 ? (
         <Card>

@@ -1,5 +1,10 @@
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import { formatMonthLabel } from "@/lib/payroll/format-month-label";
+import {
+  otherExpensesTotal,
+  payrollOtherExpensesFromRow,
+  type PayrollOtherExpenseItem,
+} from "@/lib/payroll/other-expenses";
 import { createClient } from "@/lib/supabase/server";
 import { startOfMonthDateString } from "@/lib/utils/dates";
 import type { Tables } from "@/types/database.types";
@@ -28,6 +33,8 @@ export type MonthlyPayrollExport = {
   monthStart: string;
   monthLabel: string;
   rows: MonthlyPayrollExportRow[];
+  otherExpenses: PayrollOtherExpenseItem[];
+  otherExpensesTotal: number;
   totals: {
     fixedSalary: number;
     daysWorked: number;
@@ -47,6 +54,14 @@ export async function loadMonthlyPayrollExport(
 ): Promise<MonthlyPayrollExport> {
   const monthStart = startOfMonthDateString(month);
   const supabase = await createClient();
+
+  const { data: otherExpensesRow } = await supabase
+    .from("monthly_payroll_other_expenses")
+    .select("*")
+    .eq("month", monthStart)
+    .maybeSingle();
+
+  const otherExpenses = payrollOtherExpensesFromRow(otherExpensesRow);
 
   const { data: employees } = await supabase
     .from("profiles")
@@ -126,6 +141,8 @@ export async function loadMonthlyPayrollExport(
     monthStart,
     monthLabel: formatMonthLabel(monthStart).toUpperCase(),
     rows,
+    otherExpenses,
+    otherExpensesTotal: otherExpensesTotal(otherExpenses),
     totals,
   };
 }

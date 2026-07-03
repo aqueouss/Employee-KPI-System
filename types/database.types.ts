@@ -468,7 +468,60 @@ export type Database = {
           termination_review_status?: Database["public"]["Enums"]["termination_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [        ]
+      }
+      monthly_payroll_other_expenses: {
+        Row: {
+          item_1_expense: number
+          item_1_remarks: string | null
+          item_1_title: string
+          item_2_expense: number
+          item_2_remarks: string | null
+          item_2_title: string
+          item_3_expense: number
+          item_3_remarks: string | null
+          item_3_title: string
+          month: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          item_1_expense?: number
+          item_1_remarks?: string | null
+          item_1_title?: string
+          item_2_expense?: number
+          item_2_remarks?: string | null
+          item_2_title?: string
+          item_3_expense?: number
+          item_3_remarks?: string | null
+          item_3_title?: string
+          month: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          item_1_expense?: number
+          item_1_remarks?: string | null
+          item_1_title?: string
+          item_2_expense?: number
+          item_2_remarks?: string | null
+          item_2_title?: string
+          item_3_expense?: number
+          item_3_remarks?: string | null
+          item_3_title?: string
+          month?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_payroll_other_expenses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reminders: {
         Row: {

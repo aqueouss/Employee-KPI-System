@@ -82,6 +82,12 @@ const REPORT_TOTAL_ROW_CELL_STYLE = {
   fontWeight: 700 as const,
 };
 
+const REPORT_OTHER_EXPENSES_HEADER_STYLE = {
+  ...REPORT_HEADER_CELL_STYLE,
+  textAlign: "left" as const,
+  fontSize: "10px",
+};
+
 function cellStyle(column: PayrollColumn) {
   return {
     ...REPORT_CELL_STYLE,
@@ -171,6 +177,53 @@ export function MonthlyPayrollReportDocument({
                 {formatInrOrDash(row.netPayable)}
               </td>
               <td style={cellStyle(PAYROLL_COLUMNS[14])}>{row.remark}</td>
+            </tr>
+          ))}
+          <tr>
+            <td
+              colSpan={15}
+              style={{
+                ...REPORT_OTHER_EXPENSES_HEADER_STYLE,
+                padding: "10px 6px",
+              }}
+            >
+              OTHER EXPENSES
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={2} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+              S. NO.
+            </td>
+            <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+              Title
+            </td>
+            <td colSpan={3} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+              Expense
+            </td>
+            <td colSpan={5} style={REPORT_OTHER_EXPENSES_HEADER_STYLE}>
+              Remarks
+            </td>
+          </tr>
+          {report.otherExpenses.map((item, index) => (
+            <tr key={index}>
+              <td colSpan={2} style={REPORT_CELL_STYLE}>
+                {index + 1}
+              </td>
+              <td
+                colSpan={5}
+                style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
+              >
+                {item.title}
+              </td>
+              <td colSpan={3} style={REPORT_CELL_STYLE}>
+                {formatInrOrDash(item.expense || null)}
+              </td>
+              <td
+                colSpan={5}
+                style={{ ...REPORT_CELL_STYLE, textAlign: "left" }}
+              >
+                {item.remarks}
+              </td>
             </tr>
           ))}
           <tr>
