@@ -27,6 +27,10 @@ export type AttendanceStatus =
 
 export type ShortLeaveType = "late_arrival" | "early_departure";
 
+export type LeaveRequestType = "paid_leave" | "half_day" | "short_leave";
+
+export type LeaveRequestStatus = "pending" | "approved" | "rejected";
+
 export type Profile = {
   id: string;
   email: string;

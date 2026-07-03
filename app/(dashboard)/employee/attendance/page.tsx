@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth/require-role";
+import { createClient } from "@/lib/supabase/server";
 import {
   getTodayDateString,
   parseDateString,
@@ -6,6 +7,7 @@ import {
 } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import { getAttendanceCaption } from "@/lib/captions/funny-captions";
+import { getKpiRules } from "@/services/kpi/kpi.service";
 import { FunnyCaption } from "@/components/ui/funny-caption";
 import { MonthNav } from "@/components/attendance/month-nav";
 import { AttendanceCalendarGrid } from "@/components/attendance/attendance-calendar-grid";
@@ -13,6 +15,9 @@ import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
 import { PayrollSummaryCards } from "@/components/attendance/payroll-summary-cards";
 import { DownloadPayslipButton } from "@/components/payroll/download-payslip-button";
 import { formatMonthLabel } from "@/lib/payroll/format-month-label";
+import { EmployeeLeaveRequestList } from "@/components/leave/employee-leave-request-list";
+import { LeaveRequestForm } from "@/components/leave/leave-request-form";
+import type { Tables } from "@/types/database.types";
 import {
   Card,
   CardContent,
@@ -35,6 +40,20 @@ export default async function EmployeeAttendancePage({
 
   const { monthStart, summary, payrollSummary, payrollRow, weeks } =
     await loadMonthAttendance(profile.id, month);
+
+  const supabase = await createClient();
+  const rules = await getKpiRules(supabase);
+  const today = getTodayDateString(rules.company_timezone);
+
+  const { data: leaveRequestData } = await supabase
+    .from("leave_requests")
+    .select("*")
+    .eq("employee_id", profile.id)
+    .order("leave_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const leaveRequests = (leaveRequestData ?? []) as Tables<"leave_requests">[];
 
   const attendanceCaption = getAttendanceCaption({
     date: getTodayDateString(),
@@ -60,6 +79,31 @@ export default async function EmployeeAttendancePage({
       <FunnyCaption>{attendanceCaption}</FunnyCaption>
 
       <LeaveBalanceCards summary={summary} />
+
+      {profile.role === "employee" ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Apply for leave</CardTitle>
+              <CardDescription>
+                Submit full-day, half-day, or short leave for admin approval.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LeaveRequestForm today={today} timezone={rules.company_timezone} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Your leave requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EmployeeLeaveRequestList requests={leaveRequests} />
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">

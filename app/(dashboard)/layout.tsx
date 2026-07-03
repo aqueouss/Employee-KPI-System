@@ -23,14 +23,14 @@ export default async function DashboardLayout({
   return (
     <NotificationsProvider initialCounts={initialCounts}>
       <div className="relative min-h-screen">
-        <header className="sticky top-0 z-10 border-b border-border/60 bg-surface/80 shadow-sm backdrop-blur-xl dark:bg-card/80">
-          <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-40 border-b border-border/60 bg-surface/80 shadow-sm backdrop-blur-xl dark:bg-card/80">
+          <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:px-4">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <MobileNav role={profile.role} kpiTracked={profile.kpi_tracked} />
               <AppLogo />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 text-sm sm:flex">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+              <div className="hidden items-center gap-2 text-sm md:flex">
                 <span className="text-muted-foreground">
                   {profile.full_name}
                   {profile.department ? (
@@ -49,16 +49,21 @@ export default async function DashboardLayout({
               <ThemeToggle />
               <NotificationBell />
               <form action={logoutAction}>
-                <Button type="submit" variant="outline" size="sm">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 sm:h-9 sm:w-auto sm:px-3"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:ml-2 sm:inline">Logout</span>
                 </Button>
               </form>
             </div>
           </div>
         </header>
 
-        <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
+        <div className="mx-auto flex max-w-7xl gap-6 px-3 py-4 sm:px-4 sm:py-6">
           <aside className="hidden w-56 shrink-0 md:block">
             <div className="sticky top-20">
               <div className="glass-panel rounded-xl p-2">

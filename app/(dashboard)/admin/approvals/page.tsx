@@ -73,7 +73,7 @@ export default async function AdminApprovalsPage() {
                 {employeeTasks.length === 1 ? "" : "s"} awaiting approval
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="overflow-x-auto p-0">
               <div className="divide-y divide-border/60">
                 {employeeTasks.map((task) => (
                   <AdminTaskListItem key={task.id} task={task} />

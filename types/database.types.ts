@@ -257,6 +257,66 @@ export type Database = {
           },
         ]
       }
+      leave_requests: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          leave_date: string
+          leave_type: Database["public"]["Enums"]["leave_request_type"]
+          reason: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          short_leave_type: Database["public"]["Enums"]["short_leave_type"] | null
+          status: Database["public"]["Enums"]["leave_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          leave_date: string
+          leave_type: Database["public"]["Enums"]["leave_request_type"]
+          reason?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          short_leave_type?: Database["public"]["Enums"]["short_leave_type"] | null
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          leave_date?: string
+          leave_type?: Database["public"]["Enums"]["leave_request_type"]
+          reason?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          short_leave_type?: Database["public"]["Enums"]["short_leave_type"] | null
+          status?: Database["public"]["Enums"]["leave_request_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_payroll: {
         Row: {
           advance_deduction: number
@@ -763,6 +823,8 @@ export type Database = {
         | "absent"
         | "sunday_leave"
       kpi_flag: "green" | "yellow" | "red" | "no_tasks"
+      leave_request_status: "pending" | "approved" | "rejected"
+      leave_request_type: "paid_leave" | "half_day" | "short_leave"
       reminder_status: "open" | "resolved"
       review_status: "eligible" | "under_review" | "resolved"
       reward_status: "eligible" | "issued" | "declined"
@@ -909,6 +971,8 @@ export const Constants = {
         "sunday_leave",
       ],
       kpi_flag: ["green", "yellow", "red", "no_tasks"],
+      leave_request_status: ["pending", "approved", "rejected"],
+      leave_request_type: ["paid_leave", "half_day", "short_leave"],
       review_status: ["eligible", "under_review", "resolved"],
       reminder_status: ["open", "resolved"],
       reward_status: ["eligible", "issued", "declined"],

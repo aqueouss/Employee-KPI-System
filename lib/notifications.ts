@@ -20,6 +20,7 @@ export async function getNotificationCounts(
       { count: reviews },
       { count: rewards },
       { count: reminders },
+      { count: leaveRequests },
     ] = await Promise.all([
       supabase
         .from("tasks")
@@ -41,6 +42,10 @@ export async function getNotificationCounts(
         .from("reminders")
         .select("id", { count: "exact", head: true })
         .eq("status", "open"),
+      supabase
+        .from("leave_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending"),
     ]);
 
     return {
@@ -49,6 +54,7 @@ export async function getNotificationCounts(
       reviews: reviews ?? 0,
       rewards: rewards ?? 0,
       reminders: reminders ?? 0,
+      leaveRequests: leaveRequests ?? 0,
     };
   }
 

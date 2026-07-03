@@ -38,6 +38,28 @@ export function isValidTimezone(timezone: string): boolean {
   }
 }
 
+/** Current calendar date and minutes-since-midnight in an IANA timezone. */
+export function getNowInTimezone(timezone = "UTC"): {
+  date: string;
+  minutes: number;
+} {
+  let tz = timezone;
+  if (!isValidTimezone(tz)) tz = "UTC";
+
+  const date = getTodayDateString(tz);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+
+  return { date, minutes: hour * 60 + minute };
+}
+
 /** Validates a YYYY-MM-DD string. Returns the value or null. */
 export function parseDateString(value: string | undefined | null): string | null {
   if (!value || !DATE_RE.test(value)) return null;

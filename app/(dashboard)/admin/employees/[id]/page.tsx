@@ -672,7 +672,7 @@ export default async function EmployeeDetailPage({
 
             </CardHeader>
 
-            <CardContent className="p-0">
+            <CardContent className="overflow-x-auto p-0">
 
               {snapshots.length === 0 ? (
 

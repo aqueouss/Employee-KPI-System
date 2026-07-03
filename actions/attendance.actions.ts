@@ -123,10 +123,51 @@ function isSundayDate(date: string): boolean {
 function revalidateAttendancePaths(employeeIds: string[] = []) {
   revalidatePath("/admin/attendance");
   revalidatePath("/admin/attendance/today");
+  revalidatePath("/admin/attendance/leaves");
   revalidatePath("/employee/attendance");
   for (const employeeId of employeeIds) {
     revalidatePath(`/admin/attendance/${employeeId}`);
   }
+}
+
+export async function applyAttendanceMark(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: {
+    employeeId: string;
+    attendanceDate: string;
+    status: Tables<"attendance_records">["status"];
+    shortLeaveType?: Tables<"attendance_records">["short_leave_type"] | null;
+    markedBy: string;
+    notes?: string | null;
+  },
+) {
+  const date = normalizeDateString(params.attendanceDate);
+  const monthStart = startOfMonthDateString(date);
+
+  const { error } = await supabase.from("attendance_records").upsert(
+    {
+      employee_id: params.employeeId,
+      attendance_date: date,
+      status: params.status,
+      short_leave_type:
+        params.status === "short_leave" ? params.shortLeaveType ?? null : null,
+      notes: params.notes ?? null,
+      is_auto_generated: false,
+      marked_by: params.markedBy,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "employee_id,attendance_date" },
+  );
+
+  if (error) throw new Error(error.message);
+
+  let rows = await loadEmployeeRecords(supabase, params.employeeId, monthStart);
+  await syncAutoSundayLeaves(
+    supabase,
+    params.employeeId,
+    params.markedBy,
+    rows,
+  );
 }
 
 export async function markAttendanceAction(

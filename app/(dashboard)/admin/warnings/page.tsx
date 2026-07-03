@@ -66,7 +66,7 @@ export default async function AdminWarningsPage() {
             Auto-issued by the daily KPI job. Acknowledge once reviewed.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           {warnings.length === 0 ? (
             <div className="px-6 py-10 text-center text-sm text-muted-foreground">
               No warnings issued yet.

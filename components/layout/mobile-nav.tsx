@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
@@ -18,30 +18,49 @@ export function MobileNav({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   return (
     <div className="md:hidden">
       <Button
         type="button"
         variant="outline"
         size="icon"
-        className="h-9 w-9"
+        className="h-9 w-9 shrink-0"
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((value) => !value)}
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
       {open ? (
         <>
-          <div
+          <button
+            type="button"
             className="fixed inset-0 top-14 z-20 bg-black/40"
+            aria-label="Close menu"
             onClick={() => setOpen(false)}
           />
-          <div className="fixed inset-x-0 top-14 z-30 border-b border-border/60 bg-card/90 p-4 shadow-xl shadow-primary/10 backdrop-blur-xl">
-            <div key={pathname} onClick={() => setOpen(false)}>
-              <DashboardNav role={role} kpiTracked={kpiTracked} />
-            </div>
+          <div className="fixed inset-x-0 top-14 z-30 max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-border/60 bg-card/95 p-4 shadow-xl shadow-primary/10 backdrop-blur-xl">
+            <DashboardNav
+              role={role}
+              kpiTracked={kpiTracked}
+              onNavigate={() => setOpen(false)}
+            />
           </div>
         </>
       ) : null}

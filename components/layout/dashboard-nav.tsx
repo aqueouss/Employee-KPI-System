@@ -103,6 +103,11 @@ const adminNav: NavEntry[] = [
             !pathname.startsWith("/admin/attendance/today")),
       },
       { href: "/admin/attendance/today", label: "Mark today", exact: true },
+      {
+        href: "/admin/attendance/leaves",
+        label: "Leave requests",
+        badgeKey: "leaveRequests",
+      },
       { href: "/admin/payroll", label: "Monthly payroll" },
     ],
   },
@@ -200,11 +205,13 @@ function NavLinkItem({
   pathname,
   badge,
   nested,
+  onNavigate,
 }: {
   item: NavItem;
   pathname: string;
   badge: number;
   nested?: boolean;
+  onNavigate?: () => void;
 }) {
   const isActive = isItemActive(pathname, item);
   const Icon = item.icon;
@@ -212,6 +219,7 @@ function NavLinkItem({
   return (
     <Link
       href={item.href}
+      onClick={() => onNavigate?.()}
       className={cn(
         "group flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200 ease-out",
         nested ? "px-3 py-2" : "px-3 py-2.5",
@@ -247,10 +255,12 @@ function NavGroupSection({
   group,
   pathname,
   counts,
+  onNavigate,
 }: {
   group: NavGroup;
   pathname: string;
   counts: Record<string, number>;
+  onNavigate?: () => void;
 }) {
   const hasActiveChild = group.children.some((child) =>
     isItemActive(pathname, child),
@@ -308,6 +318,7 @@ function NavGroupSection({
               pathname={pathname}
               badge={child.badgeKey ? (counts[child.badgeKey] ?? 0) : 0}
               nested
+              onNavigate={onNavigate}
             />
           ))}
         </div>
@@ -319,9 +330,11 @@ function NavGroupSection({
 export function DashboardNav({
   role,
   kpiTracked = true,
+  onNavigate,
 }: {
   role: UserRole;
   kpiTracked?: boolean;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const { counts } = useNotifications();
@@ -343,6 +356,7 @@ export function DashboardNav({
               group={entry}
               pathname={pathname}
               counts={counts}
+              onNavigate={onNavigate}
             />
           );
         }
@@ -353,6 +367,7 @@ export function DashboardNav({
             item={entry}
             pathname={pathname}
             badge={entry.badgeKey ? (counts[entry.badgeKey] ?? 0) : 0}
+            onNavigate={onNavigate}
           />
         );
       })}

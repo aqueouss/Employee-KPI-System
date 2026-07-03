@@ -73,7 +73,7 @@ export default async function AdminEmployeesPage() {
             <CardTitle>Directory</CardTitle>
             <CardDescription>All registered accounts</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader>
                 <TableRow>

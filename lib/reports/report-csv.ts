@@ -1,7 +1,7 @@
 import { buildCsv } from "@/lib/reports/build-csv";
 import type { MonthlyAttendanceExport } from "@/lib/reports/load-monthly-attendance-export";
 import type { MonthlyPayrollExport } from "@/lib/reports/load-monthly-payroll-export";
-import { COMPANY } from "@/lib/payroll/payslip.constants";
+import { COMPANY, PAYROLL_PREPARED_BY } from "@/lib/payroll/payslip.constants";
 
 function num(value: number | null | undefined): string {
   if (value == null) return "";
@@ -89,12 +89,10 @@ export function buildPayrollCsv(report: MonthlyPayrollExport): string {
     "NEW FIXED SALARY",
     "NO. OF DAY",
     "TOTAL AMT.",
-    "Reimbursment/Conveyance",
+    "Reimb./Conveyance",
     "OVERTIME",
     "INCENTIVES",
     "ADVANCE DEDUCTION",
-    "ADVANCE PENDING AMOUNT",
-    "Previous Balance Amount",
     "Net Payable",
     "Remark",
   ];
@@ -113,8 +111,6 @@ export function buildPayrollCsv(report: MonthlyPayrollExport): string {
     num(row.overtime),
     num(row.incentives),
     num(row.advanceDeduction),
-    num(row.advancePending),
-    num(row.previousBalance),
     num(row.netPayable),
     row.remark,
   ]);
@@ -133,13 +129,11 @@ export function buildPayrollCsv(report: MonthlyPayrollExport): string {
     num(report.totals.overtime),
     num(report.totals.incentives),
     num(report.totals.advanceDeduction),
-    num(report.totals.advancePending),
-    num(report.totals.previousBalance),
     num(report.totals.netPayable),
     "",
   ];
 
-  const footer = ["", "", "", "", "", "", "PREPARED BY", "", "APPROVED BY"];
+  const footer = ["PREPARED BY", PAYROLL_PREPARED_BY, "", "", "APPROVED BY"];
 
   return buildCsv([
     headerRow1,

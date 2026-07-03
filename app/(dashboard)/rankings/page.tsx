@@ -134,7 +134,7 @@ export default async function RankingsPage() {
             Ranked by this month&apos;s average completion (since {monthStart}).
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           {month.length === 0 ? (
             <div className="px-6 py-8 text-center text-sm text-muted-foreground">
               No active employees to rank.

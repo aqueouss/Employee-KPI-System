@@ -8,6 +8,8 @@ export const COMPANY = {
   gstin: "07ABGFA2761H1ZK",
 } as const;
 
+export const PAYROLL_PREPARED_BY = "Aryan Chauhan";
+
 export const PAYSLIP_THEME = {
   cyan: "#00bcd4",
   cyanLight: "#4dd0e1",
