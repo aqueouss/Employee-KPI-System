@@ -30,6 +30,27 @@ test("determineKpiFlag: no tasks => no_tasks", () => {
   assert.equal(determineKpiFlag(0, 0, rules), "no_tasks");
 });
 
+test("determineKpiFlag: no tasks + present => red", () => {
+  assert.equal(
+    determineKpiFlag(0, 0, rules, { attendanceStatus: "present" }),
+    "red",
+  );
+});
+
+test("determineKpiFlag: no tasks + half day => no_tasks", () => {
+  assert.equal(
+    determineKpiFlag(0, 0, rules, { attendanceStatus: "half_day" }),
+    "no_tasks",
+  );
+});
+
+test("determineKpiFlag: no tasks + short leave => no_tasks", () => {
+  assert.equal(
+    determineKpiFlag(0, 0, rules, { attendanceStatus: "short_leave" }),
+    "no_tasks",
+  );
+});
+
 test("determineKpiFlag: green at boundary (90)", () => {
   assert.equal(determineKpiFlag(90, 10, rules), "green");
 });
@@ -70,6 +91,11 @@ test("computeDailyKpi: no_tasks scenario (0/0)", () => {
   const r = computeDailyKpi(0, 0, rules);
   assert.equal(r.flag, "no_tasks");
   assert.equal(r.completionPct, 0);
+});
+
+test("computeDailyKpi: present with no tasks => red", () => {
+  const r = computeDailyKpi(0, 0, rules, { attendanceStatus: "present" });
+  assert.equal(r.flag, "red");
 });
 
 test("computeDailyKpi: respects custom thresholds", () => {

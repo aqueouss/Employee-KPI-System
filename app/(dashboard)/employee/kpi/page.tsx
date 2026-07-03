@@ -35,11 +35,19 @@ export default async function EmployeeKpiPage() {
     .eq("employee_id", profile.id)
     .eq("task_date", today);
 
-  const { data: rules } = await supabase
-    .from("kpi_rules")
-    .select("green_threshold, yellow_threshold")
-    .eq("id", 1)
-    .single();
+  const [{ data: rules }, { data: todayAttendance }] = await Promise.all([
+    supabase
+      .from("kpi_rules")
+      .select("green_threshold, yellow_threshold")
+      .eq("id", 1)
+      .single(),
+    supabase
+      .from("attendance_records")
+      .select("status")
+      .eq("employee_id", profile.id)
+      .eq("attendance_date", today)
+      .maybeSingle(),
+  ]);
 
   const total = todayTasks?.length ?? 0;
   const completed =
@@ -47,6 +55,8 @@ export default async function EmployeeKpiPage() {
   const live = computeDailyKpi(total, completed, {
     green_threshold: rules?.green_threshold ?? 90,
     yellow_threshold: rules?.yellow_threshold ?? 70,
+  }, {
+    attendanceStatus: todayAttendance?.status ?? null,
   });
 
   // History: last 30 finalized snapshots

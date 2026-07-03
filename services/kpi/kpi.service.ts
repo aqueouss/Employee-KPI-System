@@ -51,7 +51,16 @@ export async function upsertDailySnapshot(
   const completed =
     tasks?.filter((t) => t.status === "completed").length ?? 0;
 
-  const result = computeDailyKpi(total, completed, rules);
+  const { data: attendance } = await client
+    .from("attendance_records")
+    .select("status")
+    .eq("employee_id", employeeId)
+    .eq("attendance_date", date)
+    .maybeSingle();
+
+  const result = computeDailyKpi(total, completed, rules, {
+    attendanceStatus: attendance?.status ?? null,
+  });
 
   const { error: upsertError } = await client
     .from("daily_kpi_snapshots")

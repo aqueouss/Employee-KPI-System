@@ -5,6 +5,7 @@ import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString, startOfMonthDateString } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { computeDailyKpi } from "@/services/kpi/kpi.engine";
 import {
   getEmployeeDashboardCaption,
   getRankingCaption,
@@ -12,13 +13,13 @@ import {
 import { FunnyCaption } from "@/components/ui/funny-caption";
 import { DashboardDateBadge } from "@/components/layout/dashboard-date-badge";
 import { LeaveBalanceCards } from "@/components/attendance/leave-balance-cards";
+import { FlagBadge } from "@/components/kpi/flag-badge";
 import { KpiFlagGrid } from "@/components/kpi/kpi-flag-grid";
 import { OpenTasksSection } from "@/components/tasks/open-tasks-section";
 import { WeeklyTasksSection } from "@/components/tasks/weekly-tasks-section";
 import { SuggestionsCard } from "@/components/tasks/suggestions-card";
 import { TaskCreateForm } from "@/components/tasks/task-create-form";
 import { TaskItem } from "@/components/tasks/task-item";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,7 +36,7 @@ export default async function EmployeeDashboardPage() {
   const monthStart = startOfMonthDateString(today);
 
   const supabase = await createClient();
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }] =
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -74,6 +75,17 @@ export default async function EmployeeDashboardPage() {
         p_start: monthStart,
         p_end: today,
       }),
+      supabase
+        .from("kpi_rules")
+        .select("green_threshold, yellow_threshold")
+        .eq("id", 1)
+        .single(),
+      supabase
+        .from("attendance_records")
+        .select("status")
+        .eq("employee_id", profile.id)
+        .eq("attendance_date", today)
+        .maybeSingle(),
     ]);
 
   const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
@@ -94,23 +106,12 @@ export default async function EmployeeDashboardPage() {
   const completed = tasks.filter((t) => t.status === "completed").length;
   const submitted = tasks.filter((t) => t.status === "submitted").length;
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
-
-  const flagVariant =
-    total === 0
-      ? "secondary"
-      : pct >= 90
-        ? "success"
-        : pct >= 70
-          ? "warning"
-          : "destructive";
-  const flagLabel =
-    total === 0
-      ? "No tasks"
-      : pct >= 90
-        ? "Green"
-        : pct >= 70
-          ? "Yellow"
-          : "Red";
+  const liveKpi = computeDailyKpi(total, completed, {
+    green_threshold: rules?.green_threshold ?? 90,
+    yellow_threshold: rules?.yellow_threshold ?? 70,
+  }, {
+    attendanceStatus: todayAttendance?.status ?? null,
+  });
 
   const rankings = (rankingData ?? []) as Array<{
     employee_id: string;
@@ -182,7 +183,7 @@ export default async function EmployeeDashboardPage() {
           <CardHeader className="pb-2">
             <CardDescription>Live flag (preview)</CardDescription>
             <CardTitle>
-              <Badge variant={flagVariant}>{flagLabel}</Badge>
+              <FlagBadge flag={liveKpi.flag} />
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
