@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Megaphone } from "lucide-react";
 
@@ -13,23 +13,92 @@ import { Button } from "@/components/ui/button";
 
 const initialState: BroadcastNotificationActionState = {};
 
-export function BroadcastNotificationGate({
+function BroadcastNotificationModal({
   notification,
-  children,
+  remaining,
+  onAcknowledged,
 }: {
-  notification: BroadcastNotification | null;
-  children: React.ReactNode;
+  notification: BroadcastNotification;
+  remaining: number;
+  onAcknowledged: () => void;
 }) {
-  const router = useRouter();
-  const [visible, setVisible] = useState(Boolean(notification));
   const [state, formAction, isPending] = useActionState(
     acknowledgeBroadcastNotificationAction,
     initialState,
   );
 
   useEffect(() => {
-    setVisible(Boolean(notification));
-  }, [notification]);
+    if (state.success) onAcknowledged();
+  }, [state.success, onAcknowledged]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm">
+      <div className="glass-panel w-full max-w-2xl animate-fade-in-up rounded-2xl border p-6 shadow-xl sm:p-8">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full bg-primary/10 p-3">
+            <Megaphone className="h-6 w-6 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-semibold tracking-tight">
+              Message from admin
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {remaining > 1
+                ? `${remaining} announcements waiting. Read and acknowledge each one to continue.`
+                : "Please read this announcement and acknowledge to continue."}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-xl border bg-card/70 p-4 sm:p-5">
+          <p className="whitespace-pre-wrap text-sm leading-7 sm:text-base">
+            {notification.message}
+          </p>
+        </div>
+
+        <form
+          action={formAction}
+          className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center"
+        >
+          <input type="hidden" name="notification_id" value={notification.id} />
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isPending}
+            className="sm:min-w-40"
+          >
+            {isPending
+              ? "Saving..."
+              : remaining > 1
+                ? "Acknowledge & next"
+                : "Acknowledge"}
+          </Button>
+          {state.error ? (
+            <p className="text-sm text-destructive">{state.error}</p>
+          ) : null}
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export function BroadcastNotificationGate({
+  notifications,
+  children,
+}: {
+  notifications: BroadcastNotification[];
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const notification = notifications[currentIndex] ?? null;
+  const visible = notifications.length > 0 && currentIndex < notifications.length;
+  const remaining = notifications.length - currentIndex;
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [notifications]);
 
   useEffect(() => {
     if (!visible) return;
@@ -40,62 +109,24 @@ export function BroadcastNotificationGate({
     };
   }, [visible]);
 
-  useEffect(() => {
-    if (state.success) {
-      setVisible(false);
-      router.refresh();
+  const handleAcknowledged = useCallback(() => {
+    if (currentIndex + 1 < notifications.length) {
+      setCurrentIndex((index) => index + 1);
+      return;
     }
-  }, [state.success, router]);
+    router.refresh();
+  }, [currentIndex, notifications.length, router]);
 
   return (
     <>
       {children}
       {visible && notification ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm">
-          <div className="glass-panel w-full max-w-2xl animate-fade-in-up rounded-2xl border p-6 shadow-xl sm:p-8">
-            <div className="flex items-start gap-3">
-              <div className="rounded-full bg-primary/10 p-3">
-                <Megaphone className="h-6 w-6 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="text-xl font-semibold tracking-tight">
-                  Message from admin
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Please read this announcement and acknowledge to continue.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-xl border bg-card/70 p-4 sm:p-5">
-              <p className="whitespace-pre-wrap text-sm leading-7 sm:text-base">
-                {notification.message}
-              </p>
-            </div>
-
-            <form
-              action={formAction}
-              className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center"
-            >
-              <input
-                type="hidden"
-                name="notification_id"
-                value={notification.id}
-              />
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isPending}
-                className="sm:min-w-40"
-              >
-                {isPending ? "Saving..." : "Acknowledge"}
-              </Button>
-              {state.error ? (
-                <p className="text-sm text-destructive">{state.error}</p>
-              ) : null}
-            </form>
-          </div>
-        </div>
+        <BroadcastNotificationModal
+          key={notification.id}
+          notification={notification}
+          remaining={remaining}
+          onAcknowledged={handleAcknowledged}
+        />
       ) : null}
     </>
   );

@@ -3,7 +3,7 @@ import { LogOut } from "lucide-react";
 import { logoutAction } from "@/actions/auth.actions";
 import { AppLogo } from "@/components/layout/app-logo";
 import { requireRole } from "@/lib/auth/require-role";
-import { loadPendingBroadcastNotification } from "@/lib/broadcast-notifications";
+import { loadPendingBroadcastNotifications } from "@/lib/broadcast-notifications";
 import { getNotificationCounts } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardNav } from "@/components/layout/dashboard-nav";
@@ -23,10 +23,10 @@ export default async function DashboardLayout({
   const profile = await requireRole(["admin", "employee"]);
   const initialCounts = await getNotificationCounts(profile);
   const supabase = await createClient();
-  const pendingBroadcastNotification =
+  const pendingBroadcastNotifications =
     profile.role === "employee"
-      ? await loadPendingBroadcastNotification(supabase, profile.id)
-      : null;
+      ? await loadPendingBroadcastNotifications(supabase, profile.id)
+      : [];
 
   const shell = (
     <div className="relative min-h-screen">
@@ -86,7 +86,7 @@ export default async function DashboardLayout({
   return (
     <NotificationsProvider initialCounts={initialCounts}>
       {profile.role === "employee" ? (
-        <BroadcastNotificationGate notification={pendingBroadcastNotification}>
+        <BroadcastNotificationGate notifications={pendingBroadcastNotifications}>
           {shell}
         </BroadcastNotificationGate>
       ) : (

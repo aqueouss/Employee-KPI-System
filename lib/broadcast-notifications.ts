@@ -24,22 +24,31 @@ export async function loadLatestBroadcastNotification(
   return data;
 }
 
-export async function loadPendingBroadcastNotification(
+export async function loadPendingBroadcastNotifications(
   client: Client,
   employeeId: string,
-): Promise<BroadcastNotification | null> {
-  const latest = await loadLatestBroadcastNotification(client);
-  if (!latest) return null;
+): Promise<BroadcastNotification[]> {
+  const { data: notifications, error } = await client
+    .from("broadcast_notifications")
+    .select("id, message, created_at")
+    .order("created_at", { ascending: true });
 
-  const { data: acknowledgment } = await client
+  if (error || !notifications?.length) return [];
+
+  const { data: acknowledgments, error: ackError } = await client
     .from("broadcast_notification_acknowledgments")
     .select("notification_id")
-    .eq("notification_id", latest.id)
-    .eq("employee_id", employeeId)
-    .maybeSingle();
+    .eq("employee_id", employeeId);
 
-  if (acknowledgment) return null;
-  return latest;
+  if (ackError) return [];
+
+  const acknowledgedIds = new Set(
+    (acknowledgments ?? []).map((row) => row.notification_id),
+  );
+
+  return notifications.filter(
+    (notification) => !acknowledgedIds.has(notification.id),
+  );
 }
 
 export async function countBroadcastAcknowledgments(
