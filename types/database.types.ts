@@ -106,6 +106,68 @@ export type Database = {
           },
         ]
       }
+      broadcast_notification_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          employee_id: string
+          notification_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          employee_id: string
+          notification_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          employee_id?: string
+          notification_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_notification_acknowledgments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_notification_acknowledgments_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_notifications: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          message: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          message: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          message?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_kpi_snapshots: {
         Row: {
           calculated_at: string

@@ -9,7 +9,12 @@ import {
   type DepartmentEmployee,
 } from "@/lib/departments/department-utils";
 import { getAdminDashboardCaption } from "@/lib/captions/funny-captions";
+import {
+  countBroadcastAcknowledgments,
+  loadLatestBroadcastNotification,
+} from "@/lib/broadcast-notifications";
 import { loadTodayAttendanceOverview } from "@/lib/attendance/today-overview";
+import { BroadcastNotificationControls } from "@/components/admin/broadcast-notification-controls";
 import { DepartmentOverviewCard } from "@/components/admin/department-overview-card";
 import { TodayAttendanceGrid } from "@/components/admin/today-attendance-grid";
 import { FunnyCaption } from "@/components/ui/funny-caption";
@@ -84,6 +89,20 @@ export default async function AdminDashboardPage({
     loadTodayAttendanceOverview(supabase, attendanceDate),
   ]);
 
+  const latestBroadcastNotification =
+    await loadLatestBroadcastNotification(supabase);
+  const { count: activeEmployeeCount } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "employee")
+    .eq("is_active", true);
+  const broadcastAcknowledgedCount = latestBroadcastNotification
+    ? await countBroadcastAcknowledgments(
+        supabase,
+        latestBroadcastNotification.id,
+      )
+    : 0;
+
   const flagCounts = (latestSnapshots ?? []).reduce<Record<string, number>>(
     (acc, s) => {
       acc[s.flag] = (acc[s.flag] ?? 0) + 1;
@@ -143,7 +162,14 @@ export default async function AdminDashboardPage({
             Company-wide KPI, warnings, and rewards at a glance.
           </p>
         </div>
-        <DashboardDateBadge date={today} />
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-end">
+          <DashboardDateBadge date={today} />
+          <BroadcastNotificationControls
+            latestNotification={latestBroadcastNotification}
+            acknowledgedCount={broadcastAcknowledgedCount}
+            employeeCount={activeEmployeeCount ?? 0}
+          />
+        </div>
       </div>
 
       <FunnyCaption>{adminCaption}</FunnyCaption>
