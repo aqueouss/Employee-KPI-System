@@ -18,6 +18,7 @@ import { shortLeaveLabel } from "@/components/attendance/attendance-status-badge
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatDateLabel } from "@/lib/utils/dates";
+import { requiresShortLeaveType } from "@/services/attendance/attendance.engine";
 import type { GridDay } from "@/services/attendance/attendance.engine";
 import type { AttendanceStatus, ShortLeaveType } from "@/types/domain";
 
@@ -179,7 +180,9 @@ function DayEditorDialog({
         employeeId,
         day.date,
         status,
-        status === "short_leave" ? shortType || null : null,
+        status === "short_leave" || status === "late_short_leave"
+          ? shortType || null
+          : null,
       );
       if (result.error) {
         setError(result.error);
@@ -229,7 +232,7 @@ function DayEditorDialog({
             ))}
           </div>
 
-          {status === "short_leave" ? (
+          {requiresShortLeaveType(status) ? (
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Short leave type</label>
               <select

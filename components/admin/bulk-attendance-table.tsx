@@ -9,6 +9,7 @@ import {
   ATTENDANCE_STATUS_LABELS,
   EDITABLE_STATUSES,
 } from "@/components/attendance/attendance-constants";
+import { requiresShortLeaveType } from "@/services/attendance/attendance.engine";
 import { AttendanceStatusBadge } from "@/components/attendance/attendance-status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -107,14 +108,15 @@ export function BulkAttendanceTable({
         return {
           employee_id: emp.id,
           status: draft.status,
-          short_leave_type:
-            draft.status === "short_leave" ? draft.short_leave_type || null : null,
+          short_leave_type: requiresShortLeaveType(draft.status)
+            ? draft.short_leave_type || null
+            : null,
         };
       });
 
       const invalid = entries.find(
         (entry) =>
-          entry.status === "short_leave" && !entry.short_leave_type,
+          requiresShortLeaveType(entry.status) && !entry.short_leave_type,
       );
       if (invalid) {
         setError("Select short leave type for every short leave entry.");
@@ -209,7 +211,7 @@ export function BulkAttendanceTable({
                           updateDraft(emp.id, {
                             status,
                             short_leave_type:
-                              status === "short_leave"
+                              requiresShortLeaveType(status)
                                 ? draft.short_leave_type
                                 : "",
                           })
@@ -227,7 +229,7 @@ export function BulkAttendanceTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  {draft.status === "short_leave" ? (
+                  {requiresShortLeaveType(draft.status) ? (
                     <select
                       value={draft.short_leave_type}
                       onChange={(e) =>

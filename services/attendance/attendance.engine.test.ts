@@ -49,6 +49,40 @@ test("computeLeaveBalanceForMonth: default allowances and usage", () => {
   assert.equal(b.late_remaining, 3);
 });
 
+test("computeLeaveBalanceForMonth: late + half day counts both allowances", () => {
+  const records = [
+    { attendance_date: "2026-06-02", status: "late_half_day" as const },
+  ];
+  const b = computeLeaveBalanceForMonth(records, "2026-06-01", () => ({
+    paid_leave: 1,
+    overtime_hours: 0,
+    half_day: 1,
+    short_leave: 1,
+    late: 4,
+  }));
+  assert.equal(b.late_used, 1);
+  assert.equal(b.half_day_used, 1);
+});
+
+test("computeLeaveBalanceForMonth: late + short leave counts both allowances", () => {
+  const records = [
+    {
+      attendance_date: "2026-06-02",
+      status: "late_short_leave" as const,
+      short_leave_type: "late_arrival" as const,
+    },
+  ];
+  const b = computeLeaveBalanceForMonth(records, "2026-06-01", () => ({
+    paid_leave: 1,
+    overtime_hours: 0,
+    half_day: 1,
+    short_leave: 1,
+    late: 4,
+  }));
+  assert.equal(b.late_used, 1);
+  assert.equal(b.short_leave_used, 1);
+});
+
 test("computeLeaveBalanceForMonth: excess lates become half-day penalties", () => {
   const records = Array.from({ length: 6 }, (_, i) => ({
     attendance_date: `2026-06-${String(i + 2).padStart(2, "0")}`,

@@ -1,13 +1,16 @@
 import { z } from "zod";
 
 import { parseDateString } from "@/lib/utils/dates";
+import { requiresShortLeaveType } from "@/services/attendance/attendance.engine";
 
 const attendanceStatus = z.enum([
   "present",
   "late",
   "paid_leave",
   "half_day",
+  "late_half_day",
   "short_leave",
+  "late_short_leave",
   "absent",
   "sunday_leave",
 ]);
@@ -26,7 +29,7 @@ export const markAttendanceSchema = z
   })
   .refine(
     (data) =>
-      data.status !== "short_leave" || Boolean(data.short_leave_type),
+      !requiresShortLeaveType(data.status) || Boolean(data.short_leave_type),
     {
       message: "Select short leave type (11:30 arrival or 4:30 departure).",
       path: ["short_leave_type"],
@@ -72,7 +75,8 @@ export const bulkMarkAttendanceSchema = z.object({
         })
         .refine(
           (data) =>
-            data.status !== "short_leave" || Boolean(data.short_leave_type),
+            !requiresShortLeaveType(data.status) ||
+            Boolean(data.short_leave_type),
           {
             message: "Select short leave type.",
             path: ["short_leave_type"],

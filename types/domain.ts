@@ -21,7 +21,9 @@ export type AttendanceStatus =
   | "late"
   | "paid_leave"
   | "half_day"
+  | "late_half_day"
   | "short_leave"
+  | "late_short_leave"
   | "absent"
   | "sunday_leave";
 

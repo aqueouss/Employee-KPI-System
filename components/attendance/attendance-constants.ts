@@ -5,7 +5,9 @@ export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
   late: "Late",
   paid_leave: "Paid leave",
   half_day: "Half day",
+  late_half_day: "Late + Half day",
   short_leave: "Short leave",
+  late_short_leave: "Late + Short leave",
   absent: "Absent",
   sunday_leave: "Sunday leave",
 };
@@ -16,7 +18,11 @@ export const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, string> = {
   late: "bg-amber-500 text-white border-amber-600 hover:bg-amber-600",
   paid_leave: "bg-blue-500 text-white border-blue-600 hover:bg-blue-600",
   half_day: "bg-violet-500 text-white border-violet-600 hover:bg-violet-600",
+  late_half_day:
+    "bg-violet-500 text-white border-amber-500 hover:bg-violet-600 ring-1 ring-amber-400",
   short_leave: "bg-cyan-600 text-white border-cyan-700 hover:bg-cyan-700",
+  late_short_leave:
+    "bg-cyan-600 text-white border-amber-500 hover:bg-cyan-700 ring-1 ring-amber-400",
   absent: "bg-red-500 text-white border-red-600 hover:bg-red-600",
   sunday_leave: "bg-orange-500 text-white border-orange-600 hover:bg-orange-600",
 };
@@ -26,9 +32,47 @@ export const ATTENDANCE_STATUS_DOT: Record<AttendanceStatus, string> = {
   late: "bg-amber-500",
   paid_leave: "bg-blue-500",
   half_day: "bg-violet-500",
+  late_half_day: "bg-violet-500 ring-2 ring-amber-400",
   short_leave: "bg-cyan-600",
+  late_short_leave: "bg-cyan-600 ring-2 ring-amber-400",
   absent: "bg-red-500",
   sunday_leave: "bg-orange-500",
+};
+
+/** Bold card surfaces for admin dashboard attendance grid. */
+export const ATTENDANCE_STATUS_CARD: Record<AttendanceStatus, string> = {
+  present:
+    "border-emerald-600 bg-emerald-400/45 shadow-sm shadow-emerald-600/25 dark:border-emerald-500 dark:bg-emerald-600/50",
+  late:
+    "border-amber-500 bg-amber-400/45 shadow-sm shadow-amber-500/25 dark:border-amber-400 dark:bg-amber-600/50",
+  paid_leave:
+    "border-blue-600 bg-blue-400/45 shadow-sm shadow-blue-600/25 dark:border-blue-500 dark:bg-blue-600/50",
+  half_day:
+    "border-violet-600 bg-violet-400/45 shadow-sm shadow-violet-600/25 dark:border-violet-500 dark:bg-violet-600/50",
+  late_half_day:
+    "border-violet-600 bg-violet-400/45 shadow-sm shadow-violet-600/25 ring-2 ring-amber-400 dark:border-violet-500 dark:bg-violet-600/50",
+  short_leave:
+    "border-cyan-700 bg-cyan-400/50 shadow-sm shadow-cyan-600/30 dark:border-cyan-400 dark:bg-cyan-700/55",
+  late_short_leave:
+    "border-cyan-700 bg-cyan-400/50 shadow-sm shadow-cyan-600/30 ring-2 ring-amber-400 dark:border-cyan-400 dark:bg-cyan-700/55",
+  absent:
+    "border-red-600 bg-red-400/45 shadow-sm shadow-red-600/25 dark:border-red-500 dark:bg-red-600/50",
+  sunday_leave:
+    "border-orange-600 bg-orange-400/45 shadow-sm shadow-orange-600/25 dark:border-orange-500 dark:bg-orange-600/50",
+};
+
+export const ATTENDANCE_STATUS_SUMMARY: Record<AttendanceStatus, string> = {
+  present: "border-emerald-600/70 bg-emerald-400/30 dark:bg-emerald-600/35",
+  late: "border-amber-500/70 bg-amber-400/30 dark:bg-amber-600/35",
+  paid_leave: "border-blue-600/70 bg-blue-400/30 dark:bg-blue-600/35",
+  half_day: "border-violet-600/70 bg-violet-400/30 dark:bg-violet-600/35",
+  late_half_day:
+    "border-violet-600/70 bg-violet-400/30 ring-1 ring-amber-400 dark:bg-violet-600/35",
+  short_leave: "border-cyan-700/70 bg-cyan-400/35 dark:bg-cyan-700/40",
+  late_short_leave:
+    "border-cyan-700/70 bg-cyan-400/35 ring-1 ring-amber-400 dark:bg-cyan-700/40",
+  absent: "border-red-600/70 bg-red-400/30 dark:bg-red-600/35",
+  sunday_leave: "border-orange-600/70 bg-orange-400/30 dark:bg-orange-600/35",
 };
 
 export type GridDay = {
@@ -55,6 +99,8 @@ export const EDITABLE_STATUSES: AttendanceStatus[] = [
   "late",
   "paid_leave",
   "half_day",
+  "late_half_day",
   "short_leave",
+  "late_short_leave",
   "absent",
 ];

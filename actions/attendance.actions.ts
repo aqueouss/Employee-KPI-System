@@ -17,6 +17,7 @@ import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import {
   applyWeeklySundayRules,
   currentMonthStart,
+  requiresShortLeaveType,
   type AttendanceRecordInput,
 } from "@/services/attendance/attendance.engine";
 import { startOfMonthDateString, endOfMonthDateString, normalizeDateString } from "@/lib/utils/dates";
@@ -151,8 +152,9 @@ export async function applyAttendanceMark(
       employee_id: params.employeeId,
       attendance_date: date,
       status: params.status,
-      short_leave_type:
-        params.status === "short_leave" ? params.shortLeaveType ?? null : null,
+      short_leave_type: requiresShortLeaveType(params.status)
+        ? params.shortLeaveType ?? null
+        : null,
       notes: params.notes ?? null,
       is_auto_generated: false,
       marked_by: params.markedBy,
@@ -199,10 +201,9 @@ export async function markAttendanceAction(
       employee_id: parsed.data.employee_id,
       attendance_date: normalizeDateString(parsed.data.attendance_date),
       status: parsed.data.status,
-      short_leave_type:
-        parsed.data.status === "short_leave"
-          ? parsed.data.short_leave_type
-          : null,
+      short_leave_type: requiresShortLeaveType(parsed.data.status)
+        ? parsed.data.short_leave_type
+        : null,
       notes: parsed.data.notes,
       is_auto_generated: false,
       marked_by: admin.id,
@@ -272,10 +273,9 @@ export async function markAttendanceQuickAction(
       employee_id: parsed.data.employee_id,
       attendance_date: date,
       status: parsed.data.status,
-      short_leave_type:
-        parsed.data.status === "short_leave"
-          ? parsed.data.short_leave_type
-          : null,
+      short_leave_type: requiresShortLeaveType(parsed.data.status)
+        ? parsed.data.short_leave_type
+        : null,
       is_auto_generated: false,
       marked_by: admin.id,
       updated_at: new Date().toISOString(),
@@ -324,8 +324,9 @@ export async function markBulkAttendanceAction(
         employee_id: entry.employee_id,
         attendance_date: date,
         status: entry.status,
-        short_leave_type:
-          entry.status === "short_leave" ? entry.short_leave_type : null,
+        short_leave_type: requiresShortLeaveType(entry.status)
+          ? entry.short_leave_type
+          : null,
         is_auto_generated: false,
         marked_by: admin.id,
         updated_at: now,

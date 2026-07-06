@@ -910,7 +910,9 @@ export type Database = {
         | "late"
         | "paid_leave"
         | "half_day"
+        | "late_half_day"
         | "short_leave"
+        | "late_short_leave"
         | "absent"
         | "sunday_leave"
       kpi_flag: "green" | "yellow" | "red" | "no_tasks"
@@ -1057,7 +1059,9 @@ export const Constants = {
         "late",
         "paid_leave",
         "half_day",
+        "late_half_day",
         "short_leave",
+        "late_short_leave",
         "absent",
         "sunday_leave",
       ],

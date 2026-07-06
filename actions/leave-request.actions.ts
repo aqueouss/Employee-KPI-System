@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { applyAttendanceMark } from "@/actions/attendance.actions";
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { validateLeaveRequestEligibility } from "@/lib/leave/leave-request-eligibility";
+import { validateLeaveRequestEligibility, attendanceBlocksLeaveRequest } from "@/lib/leave/leave-request-eligibility";
 import { getKpiRules } from "@/services/kpi/kpi.service";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -58,10 +58,11 @@ async function assertNoConflictingRequest(
   return null;
 }
 
-async function assertNoExistingAttendance(
+async function assertAttendanceAllowsLeaveRequest(
   supabase: Awaited<ReturnType<typeof createClient>>,
   employeeId: string,
   leaveDate: string,
+  leaveType: LeaveRequestType,
 ) {
   const { data } = await supabase
     .from("attendance_records")
@@ -70,9 +71,19 @@ async function assertNoExistingAttendance(
     .eq("attendance_date", leaveDate)
     .maybeSingle();
 
-  if (!data || data.is_auto_generated) return null;
+  if (!data) return null;
 
-  return "Attendance is already marked for this date.";
+  if (
+    attendanceBlocksLeaveRequest(
+      data.status,
+      leaveType,
+      data.is_auto_generated,
+    )
+  ) {
+    return "Attendance is already marked for this date.";
+  }
+
+  return null;
 }
 
 export async function createLeaveRequestAction(
@@ -114,10 +125,11 @@ export async function createLeaveRequestAction(
   );
   if (conflictError) return { error: conflictError };
 
-  const attendanceError = await assertNoExistingAttendance(
+  const attendanceError = await assertAttendanceAllowsLeaveRequest(
     supabase,
     profile.id,
     leaveDate,
+    parsed.data.leave_type,
   );
   if (attendanceError) return { error: attendanceError };
 
@@ -210,10 +222,11 @@ export async function reviewLeaveRequestAction(
   const now = new Date().toISOString();
 
   if (parsed.data.decision === "approved") {
-    const attendanceError = await assertNoExistingAttendance(
+    const attendanceError = await assertAttendanceAllowsLeaveRequest(
       supabase,
       request.employee_id,
       leaveDate,
+      request.leave_type,
     );
     if (attendanceError) return { error: attendanceError };
 

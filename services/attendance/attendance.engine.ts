@@ -9,9 +9,31 @@ export type AttendanceStatus =
   | "late"
   | "paid_leave"
   | "half_day"
+  | "late_half_day"
   | "short_leave"
+  | "late_short_leave"
   | "absent"
   | "sunday_leave";
+
+export function countsAsLate(status: AttendanceStatus): boolean {
+  return (
+    status === "late" ||
+    status === "late_half_day" ||
+    status === "late_short_leave"
+  );
+}
+
+export function countsAsHalfDay(status: AttendanceStatus): boolean {
+  return status === "half_day" || status === "late_half_day";
+}
+
+export function countsAsShortLeave(status: AttendanceStatus): boolean {
+  return status === "short_leave" || status === "late_short_leave";
+}
+
+export function requiresShortLeaveType(status: AttendanceStatus): boolean {
+  return status === "short_leave" || status === "late_short_leave";
+}
 
 export type ShortLeaveType = "late_arrival" | "early_departure";
 
@@ -154,11 +176,13 @@ export function computeLeaveBalance(
   const paidLeaveUsed = monthRecords.filter(
     (r) => r.status === "paid_leave",
   ).length;
-  const halfDayUsed = monthRecords.filter((r) => r.status === "half_day").length;
-  const shortLeaveUsed = monthRecords.filter(
-    (r) => r.status === "short_leave",
+  const halfDayUsed = monthRecords.filter((r) =>
+    countsAsHalfDay(r.status),
   ).length;
-  const lateCount = monthRecords.filter((r) => r.status === "late").length;
+  const shortLeaveUsed = monthRecords.filter((r) =>
+    countsAsShortLeave(r.status),
+  ).length;
+  const lateCount = monthRecords.filter((r) => countsAsLate(r.status)).length;
   const autoSundayAbsents = monthRecords.filter(
     (r) => r.status === "absent" && r.is_auto_generated && isSunday(r.attendance_date),
   ).length;
@@ -478,7 +502,9 @@ function salariedDayCredit(status: AttendanceStatus): number {
     case "late":
     case "paid_leave":
     case "short_leave":
+    case "late_short_leave":
     case "half_day":
+    case "late_half_day":
     case "sunday_leave":
       return 1;
     default:
@@ -577,11 +603,11 @@ export function computeSalarySummary(
     }
   }
 
-  const halfDayUsed = eligibleMonthRecords.filter(
-    (r) => r.status === "half_day",
+  const halfDayUsed = eligibleMonthRecords.filter((r) =>
+    countsAsHalfDay(r.status),
   ).length;
-  const lateCount = eligibleMonthRecords.filter(
-    (r) => r.status === "late",
+  const lateCount = eligibleMonthRecords.filter((r) =>
+    countsAsLate(r.status),
   ).length;
   const penaltyHalfDays = Math.max(0, lateCount - allowances.late);
   const paidLeaveUsed = eligibleMonthRecords.filter(

@@ -9,7 +9,9 @@ const META: Record<
   late: { label: "Late", variant: "warning" },
   paid_leave: { label: "Paid leave", variant: "secondary" },
   half_day: { label: "Half day", variant: "secondary" },
+  late_half_day: { label: "Late + Half day", variant: "warning" },
   short_leave: { label: "Short leave", variant: "secondary" },
+  late_short_leave: { label: "Late + Short leave", variant: "warning" },
   absent: { label: "Absent", variant: "destructive" },
   sunday_leave: { label: "Sunday leave", variant: "outline" },
 };

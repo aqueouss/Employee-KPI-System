@@ -23,10 +23,14 @@ export function attendanceDayCode(
       return "A";
     case "half_day":
       return "HD";
+    case "late_half_day":
+      return "LHD";
     case "paid_leave":
       return "PL";
     case "short_leave":
       return "SL";
+    case "late_short_leave":
+      return "LSL";
     case "sunday_leave":
       return "S";
     default:

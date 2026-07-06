@@ -18,7 +18,9 @@ const STATUSES: { value: AttendanceStatus; label: string }[] = [
   { value: "late", label: "Late" },
   { value: "paid_leave", label: "Paid leave" },
   { value: "half_day", label: "Half day" },
+  { value: "late_half_day", label: "Late + Half day" },
   { value: "short_leave", label: "Short leave" },
+  { value: "late_short_leave", label: "Late + Short leave" },
   { value: "absent", label: "Absent (unpaid)" },
 ];
 
@@ -77,7 +79,7 @@ export function AttendanceMarkForm({
             <option value="early_departure">Leave 4:30 PM</option>
           </select>
           <p className="text-xs text-muted-foreground">
-            Required when status is short leave.
+            Required when status is short leave or late + short leave.
           </p>
         </div>
         <div className="space-y-1.5">
