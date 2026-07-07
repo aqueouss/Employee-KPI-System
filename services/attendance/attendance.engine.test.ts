@@ -262,7 +262,7 @@ test("computeSalarySummary: unmarked eligible days are not paid", () => {
   assert.equal(s.calculated_salary, 6000);
 });
 
-test("computeSalarySummary: unmarked Sundays only through previous week", () => {
+test("computeSalarySummary: unmarked Sundays through as-of date are paid", () => {
   const s = computeSalarySummary([], "2026-06-01", {
     paid_leave: 1,
     overtime_hours: 0,
@@ -272,6 +272,28 @@ test("computeSalarySummary: unmarked Sundays only through previous week", () => 
   }, 30000, { asOfDate: "2026-06-15" });
   assert.equal(s.salaried_days, 2);
   assert.equal(s.calculated_salary, 2000);
+});
+
+test("computeSalarySummary: current week marked days count toward salary", () => {
+  const records = Array.from({ length: 7 }, (_, i) => ({
+    attendance_date: `2026-07-0${i + 1}`,
+    status: "present" as const,
+  }));
+  const s = computeSalarySummary(
+    records,
+    "2026-07-01",
+    {
+      paid_leave: 1,
+      overtime_hours: 0,
+      half_day: 1,
+      short_leave: 1,
+      late: 4,
+    },
+    31000,
+    { asOfDate: "2026-07-07" },
+  );
+  assert.equal(s.salaried_days, 7);
+  assert.equal(s.calculated_salary, 7000);
 });
 
 test("computeSalarySummary: unmarked Sundays in eligible period are paid", () => {

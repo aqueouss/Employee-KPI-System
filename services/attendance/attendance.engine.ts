@@ -480,9 +480,7 @@ export function salaryPeriodEnd(
   if (asOf < monthStart) return null;
   if (asOf > monthEnd) return monthEnd;
 
-  const prevWeekEnd = addDaysToDateString(startOfWeekDateString(asOf), -1);
-  const end = prevWeekEnd < monthStart ? asOf : prevWeekEnd;
-  return end > monthEnd ? monthEnd : end;
+  return asOf;
 }
 
 function eligibleCalendarDaysForSalary(
