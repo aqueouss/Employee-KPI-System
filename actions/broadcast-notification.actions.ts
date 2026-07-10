@@ -15,10 +15,10 @@ export type BroadcastNotificationActionState = {
 };
 
 function revalidateBroadcastPaths() {
-  revalidatePath("/admin");
-  revalidatePath("/employee");
-  revalidatePath("/profile");
-  revalidatePath("/rankings");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/employee", "layout");
+  revalidatePath("/profile", "layout");
+  revalidatePath("/rankings", "layout");
 }
 
 export async function sendBroadcastNotificationAction(

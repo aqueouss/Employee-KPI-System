@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { loadPendingBroadcastNotifications } from "@/lib/broadcast-notifications";
 import type { Profile } from "@/types/domain";
 
 export type NotificationCounts = Record<string, number>;
@@ -65,5 +66,13 @@ export async function getNotificationCounts(
     .eq("created_by_admin", true)
     .eq("seen_by_employee", false);
 
-  return { newTasks: newTasks ?? 0 };
+  const pendingBroadcasts = await loadPendingBroadcastNotifications(
+    supabase,
+    profile.id,
+  );
+
+  return {
+    newTasks: newTasks ?? 0,
+    broadcasts: pendingBroadcasts.length,
+  };
 }

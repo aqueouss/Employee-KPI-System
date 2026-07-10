@@ -666,6 +666,38 @@ export type Database = {
           },
         ]
       }
+      employee_fixed_daily_tasks: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_fixed_daily_tasks_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -679,6 +711,7 @@ export type Database = {
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          source_fixed_task_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           submitted_at: string | null
           task_date: string
@@ -697,6 +730,7 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          source_fixed_task_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           submitted_at?: string | null
           task_date: string
@@ -715,6 +749,7 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          source_fixed_task_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           submitted_at?: string | null
           task_date?: string
@@ -734,6 +769,13 @@ export type Database = {
             columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_source_fixed_task_id_fkey"
+            columns: ["source_fixed_task_id"]
+            isOneToOne: false
+            referencedRelation: "employee_fixed_daily_tasks"
             referencedColumns: ["id"]
           },
         ]

@@ -31,12 +31,12 @@ export type TaskActionState = {
 
 function revalidateTaskViews() {
   revalidatePath("/employee/tasks");
-  revalidatePath("/employee");
+  revalidatePath("/employee", "layout");
 }
 
 function revalidateApprovalViews() {
   revalidatePath("/admin/approvals");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
 }
 
 /** Recompute KPI impact after task approval or deletion. */

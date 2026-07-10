@@ -22,6 +22,8 @@ import {
 
 import { AdminEmployeeTasksPanel } from "@/components/admin/admin-employee-tasks-panel";
 
+import { AdminFixedDailyTasksCard } from "@/components/admin/admin-fixed-daily-tasks-card";
+
 import { EmployeeDetailsForm } from "@/components/admin/employee-details-form";
 
 import { EmployeePayrollOnlyButton } from "@/components/admin/employee-payroll-only-button";
@@ -132,6 +134,8 @@ export default async function EmployeeDetailPage({
 
     { data: salaryRevisionData },
 
+    { data: fixedDailyTaskData },
+
   ] = await Promise.all([
 
     supabase
@@ -190,6 +194,16 @@ export default async function EmployeeDetailPage({
 
       .order("effective_month", { ascending: true }),
 
+    supabase
+
+      .from("employee_fixed_daily_tasks")
+
+      .select("id, title")
+
+      .eq("employee_id", id)
+
+      .order("created_at", { ascending: true }),
+
   ]);
 
 
@@ -201,6 +215,14 @@ export default async function EmployeeDetailPage({
   const rewards = (rewardData ?? []) as Tables<"rewards">[];
 
   const tasks = (taskData ?? []) as Tables<"tasks">[];
+
+  const fixedDailyTasks = (fixedDailyTaskData ?? []) as Array<{
+
+    id: string;
+
+    title: string;
+
+  }>;
 
   const salaryRevisions = ((salaryRevisionData ?? []) as Array<{
 
@@ -643,6 +665,16 @@ export default async function EmployeeDetailPage({
             </Card>
 
           </div>
+
+
+
+          <AdminFixedDailyTasksCard
+
+            employeeId={id}
+
+            tasks={fixedDailyTasks}
+
+          />
 
 
 

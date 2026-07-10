@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { playNotificationBeep } from "@/lib/notifications/play-notification-beep";
+
 type Counts = Record<string, number>;
 type PermissionState = NotificationPermission | "unsupported";
 
@@ -28,7 +30,7 @@ export function useNotifications() {
   return useContext(NotificationsContext);
 }
 
-const POLL_INTERVAL_MS = 20000;
+const POLL_INTERVAL_MS = 10000;
 
 const MESSAGES: Record<string, string> = {
   approvals: "A task is awaiting your approval",
@@ -38,6 +40,7 @@ const MESSAGES: Record<string, string> = {
   reminders: "An employee raised a reminder / blocker",
   leaveRequests: "A leave request needs your approval",
   newTasks: "An admin assigned you a new task",
+  broadcasts: "You have a new message from admin",
 };
 
 export function NotificationsProvider({
@@ -50,7 +53,7 @@ export function NotificationsProvider({
   const [counts, setCounts] = useState<Counts>(initialCounts);
   const [permission, setPermission] = useState<PermissionState>("default");
   const prevCounts = useRef<Counts>(initialCounts);
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const bootstrapped = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -60,45 +63,17 @@ export function NotificationsProvider({
     setPermission(Notification.permission);
   }, []);
 
-  const beep = useCallback(() => {
-    try {
-      const Ctor =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!Ctor) return;
-      const ctx = audioCtxRef.current ?? new Ctor();
-      audioCtxRef.current = ctx;
-      if (ctx.state === "suspended") void ctx.resume();
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.36);
-    } catch {
-      // Audio is best-effort; ignore failures (e.g. autoplay policy).
-    }
-  }, []);
-
   const enable = useCallback(async () => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     try {
       const result = await Notification.requestPermission();
       setPermission(result);
-      // The click is a user gesture, so unlock audio for later beeps.
       const Ctor =
         window.AudioContext ||
         (window as unknown as { webkitAudioContext?: typeof AudioContext })
           .webkitAudioContext;
       if (Ctor) {
-        const ctx = audioCtxRef.current ?? new Ctor();
-        audioCtxRef.current = ctx;
+        const ctx = new Ctor();
         void ctx.resume();
       }
     } catch {
@@ -106,40 +81,42 @@ export function NotificationsProvider({
     }
   }, []);
 
-  const fireNotifications = useCallback(
-    (next: Counts) => {
-      const newMessages: string[] = [];
-      for (const key of Object.keys(next)) {
-        const before = prevCounts.current[key] ?? 0;
-        if (next[key] > before && MESSAGES[key]) {
-          newMessages.push(MESSAGES[key]);
-        }
-      }
-      if (newMessages.length === 0) return;
+  const fireNotifications = useCallback((next: Counts) => {
+    if (!bootstrapped.current) {
+      bootstrapped.current = true;
+      return;
+    }
 
-      beep();
-
-      if (
-        typeof window !== "undefined" &&
-        "Notification" in window &&
-        Notification.permission === "granted"
-      ) {
-        const title =
-          newMessages.length === 1
-            ? "KPI System"
-            : `KPI System · ${newMessages.length} updates`;
-        try {
-          new Notification(title, {
-            body: newMessages.join("\n"),
-            icon: "/icon.png",
-          });
-        } catch {
-          // ignore
-        }
+    const newMessages: string[] = [];
+    for (const key of Object.keys(next)) {
+      const before = prevCounts.current[key] ?? 0;
+      if (next[key] > before && MESSAGES[key]) {
+        newMessages.push(MESSAGES[key]);
       }
-    },
-    [beep],
-  );
+    }
+    if (newMessages.length === 0) return;
+
+    playNotificationBeep();
+
+    if (
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ) {
+      const title =
+        newMessages.length === 1
+          ? "KPI System"
+          : `KPI System · ${newMessages.length} updates`;
+      try {
+        new Notification(title, {
+          body: newMessages.join("\n"),
+          icon: "/icon.png",
+        });
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -158,14 +135,21 @@ export function NotificationsProvider({
       }
     };
 
+    void poll();
     const id = window.setInterval(poll, POLL_INTERVAL_MS);
-    const onFocus = () => poll();
+    const onFocus = () => void poll();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       active = false;
       window.clearInterval(id);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [fireNotifications]);
 

@@ -14,6 +14,7 @@ import {
 import { payrollOtherExpensesSchema, parsePayrollOtherExpensesItems } from "@/lib/validators/payroll-other-expenses.schema";
 import { payrollOtherExpensesToJson } from "@/lib/payroll/other-expenses";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { syncFixedDailyTasksForAttendance } from "@/lib/tasks/fixed-daily-tasks";
 import {
   applyWeeklySundayRules,
   currentMonthStart,
@@ -128,8 +129,11 @@ function revalidateAttendancePaths(employeeIds: string[] = []) {
   revalidatePath("/admin/attendance/today");
   revalidatePath("/admin/attendance/leaves");
   revalidatePath("/employee/attendance");
+  revalidatePath("/employee");
+  revalidatePath("/employee/tasks");
   for (const employeeId of employeeIds) {
     revalidatePath(`/admin/attendance/${employeeId}`);
+    revalidatePath(`/admin/employees/${employeeId}`);
   }
 }
 
@@ -171,6 +175,12 @@ export async function applyAttendanceMark(
     params.employeeId,
     params.markedBy,
     rows,
+  );
+  await syncFixedDailyTasksForAttendance(
+    supabase,
+    params.employeeId,
+    date,
+    params.status,
   );
 }
 
@@ -231,6 +241,13 @@ export async function markAttendanceAction(
     monthStart,
   );
 
+  await syncFixedDailyTasksForAttendance(
+    supabase,
+    parsed.data.employee_id,
+    parsed.data.attendance_date,
+    parsed.data.status,
+  );
+
   await supabase.from("audit_logs").insert({
     actor_id: admin.id,
     action: "attendance.marked",
@@ -288,6 +305,13 @@ export async function markAttendanceQuickAction(
   let rows = await loadEmployeeRecords(supabase, parsed.data.employee_id, monthStart);
   await syncAutoSundayLeaves(supabase, parsed.data.employee_id, admin.id, rows);
 
+  await syncFixedDailyTasksForAttendance(
+    supabase,
+    parsed.data.employee_id,
+    date,
+    parsed.data.status,
+  );
+
   revalidateAttendancePaths([parsed.data.employee_id]);
   return { success: "Saved." };
 }
@@ -336,6 +360,12 @@ export async function markBulkAttendanceAction(
 
     if (error) return { error: error.message };
     employeeIds.add(entry.employee_id);
+    await syncFixedDailyTasksForAttendance(
+      supabase,
+      entry.employee_id,
+      date,
+      entry.status,
+    );
   }
 
   for (const employeeId of employeeIds) {
