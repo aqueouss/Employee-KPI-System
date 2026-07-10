@@ -13,7 +13,7 @@ import {
   addDaysToDateString,
   type TaskPeriod,
 } from "@/lib/utils/dates";
-import { getKpiRules, upsertDailySnapshot } from "@/services/kpi/kpi.service";
+import { getKpiRules, markWeeklyOverdueRedSnapshots, upsertDailySnapshot } from "@/services/kpi/kpi.service";
 import { reconcileMonthlyWarning } from "@/services/warnings/warning.service";
 import {
   adminCreateTaskSchema,
@@ -57,7 +57,9 @@ async function recomputeKpiAfterTaskChange(
     }
 
     if (period === "weekly") {
-      await reconcileMonthlyWarning(admin, employeeId, today, rules, today);
+      await upsertDailySnapshot(admin, employeeId, taskDate, rules);
+      await markWeeklyOverdueRedSnapshots(admin, employeeId, today, rules);
+      await reconcileMonthlyWarning(admin, employeeId, taskDate, rules, today);
     }
   } catch {
     // Best-effort; the nightly pipeline will reconcile.

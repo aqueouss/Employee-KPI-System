@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { sortEmployeesByDepartment } from "@/lib/departments/department-utils";
 import { normalizeDateString } from "@/lib/utils/dates";
 import type { AttendanceStatus, ShortLeaveType } from "@/types/domain";
 import type { Database, Tables } from "@/types/database.types";
@@ -17,30 +18,10 @@ export type TodayAttendanceOverview = {
   counts: Record<AttendanceStatus | "unmarked", number>;
 };
 
-const STATUS_ORDER: (AttendanceStatus | "unmarked")[] = [
-  "present",
-  "late",
-  "half_day",
-  "late_half_day",
-  "short_leave",
-  "late_short_leave",
-  "paid_leave",
-  "sunday_leave",
-  "absent",
-  "unmarked",
-];
-
 export function sortTodayAttendanceEmployees(
   employees: TodayAttendanceEmployee[],
 ): TodayAttendanceEmployee[] {
-  const rank = new Map(STATUS_ORDER.map((status, index) => [status, index]));
-
-  return [...employees].sort((a, b) => {
-    const aRank = rank.get(a.status ?? "unmarked") ?? 99;
-    const bRank = rank.get(b.status ?? "unmarked") ?? 99;
-    if (aRank !== bRank) return aRank - bRank;
-    return a.full_name.localeCompare(b.full_name);
-  });
+  return sortEmployeesByDepartment(employees);
 }
 
 export async function loadTodayAttendanceOverview(

@@ -1,8 +1,5 @@
-import {
-  isOpenTask,
-  isTaskWithinDeadline,
-  taskDeadline,
-} from "@/lib/utils/dates";
+import { isVisibleAdminWeeklyTask } from "@/lib/tasks/admin-weekly-task";
+import { isOpenTask, taskDeadline } from "@/lib/utils/dates";
 import type { Tables } from "@/types/database.types";
 
 export type AdminEmployeeTaskSection = {
@@ -11,16 +8,6 @@ export type AdminEmployeeTaskSection = {
   description: string;
   tasks: Tables<"tasks">[];
 };
-
-function isActiveAdminWeeklyTask(
-  task: Tables<"tasks">,
-  today: string,
-): boolean {
-  if (task.period !== "weekly" || !task.created_by_admin) return false;
-  const deadline = taskDeadline("weekly", task.task_date, task.due_date);
-  if (task.status === "completed") return deadline >= today;
-  return isTaskWithinDeadline("weekly", task.task_date, today, task.due_date);
-}
 
 function sortByDeadline(tasks: Tables<"tasks">[]): Tables<"tasks">[] {
   return [...tasks].sort((a, b) => {
@@ -45,7 +32,7 @@ export function partitionAdminEmployeeTasks(
   today: string,
 ): AdminEmployeeTaskSection[] {
   const adminWeekly = sortByDeadline(
-    tasks.filter((task) => isActiveAdminWeeklyTask(task, today)),
+    tasks.filter((task) => isVisibleAdminWeeklyTask(task, today)),
   );
   const adminWeeklyIds = new Set(adminWeekly.map((task) => task.id));
 
@@ -77,7 +64,8 @@ export function partitionAdminEmployeeTasks(
     {
       id: "admin_weekly",
       title: "Weekly tasks (admin assigned)",
-      description: "Due 7 days after assignment",
+      description:
+        "Due 7 days after assignment · overdue tasks stay until approved",
       tasks: adminWeekly,
     },
     {

@@ -28,6 +28,43 @@ export type DepartmentPerformance = DepartmentSummary & {
 
 export const UNASSIGNED_DEPARTMENT = "Unassigned";
 
+/** Preferred department order on admin views (Sales first, Marketing second). */
+export const DEPARTMENT_DISPLAY_ORDER = ["Sales", "Marketing"] as const;
+
+export function departmentSortRank(department: string | null | undefined): number {
+  const normalized = normalizeDepartment(department);
+  const lower = normalized.toLowerCase();
+  const preferredIndex = DEPARTMENT_DISPLAY_ORDER.findIndex(
+    (name) => name.toLowerCase() === lower,
+  );
+  if (preferredIndex >= 0) return preferredIndex;
+  if (normalized === UNASSIGNED_DEPARTMENT) return Number.MAX_SAFE_INTEGER;
+  return DEPARTMENT_DISPLAY_ORDER.length;
+}
+
+export function compareDepartments(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): number {
+  const rankA = departmentSortRank(a);
+  const rankB = departmentSortRank(b);
+  if (rankA !== rankB) return rankA - rankB;
+  if (rankA === DEPARTMENT_DISPLAY_ORDER.length) {
+    return normalizeDepartment(a).localeCompare(normalizeDepartment(b));
+  }
+  return 0;
+}
+
+export function sortEmployeesByDepartment<
+  T extends { full_name: string; department?: string | null },
+>(employees: T[]): T[] {
+  return [...employees].sort((a, b) => {
+    const deptCmp = compareDepartments(a.department, b.department);
+    if (deptCmp !== 0) return deptCmp;
+    return a.full_name.localeCompare(b.full_name);
+  });
+}
+
 export function departmentToSlug(department: string): string {
   return encodeURIComponent(department.trim());
 }
@@ -61,11 +98,7 @@ export function groupEmployeesByDepartment(
       activeCount: group.filter((e) => e.is_active).length,
       employees: group.sort((a, b) => a.full_name.localeCompare(b.full_name)),
     }))
-    .sort((a, b) => {
-      if (a.name === UNASSIGNED_DEPARTMENT) return 1;
-      if (b.name === UNASSIGNED_DEPARTMENT) return -1;
-      return a.name.localeCompare(b.name);
-    });
+    .sort((a, b) => compareDepartments(a.name, b.name));
 }
 
 export function emptyFlagCounts(): Record<KpiFlag, number> {

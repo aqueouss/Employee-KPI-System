@@ -12,23 +12,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  isOverdueAdminWeeklyTask,
+  isVisibleAdminWeeklyTask,
+} from "@/lib/tasks/admin-weekly-task";
+import {
   formatDateLabel,
   isTaskEditableNow,
-  isTaskWithinDeadline,
   periodLabel,
   taskDeadline,
 } from "@/lib/utils/dates";
 import type { Tables } from "@/types/database.types";
-
-function isActiveAdminWeeklyTask(
-  task: Tables<"tasks">,
-  today: string,
-): boolean {
-  if (task.period !== "weekly" || !task.created_by_admin) return false;
-  const deadline = taskDeadline("weekly", task.task_date, task.due_date);
-  if (task.status === "completed") return deadline >= today;
-  return isTaskWithinDeadline("weekly", task.task_date, today, task.due_date);
-}
 
 export function WeeklyTasksSection({
   tasks,
@@ -38,9 +31,12 @@ export function WeeklyTasksSection({
   today: string;
 }) {
   const weeklyTasks = tasks
-    .filter((task) => isActiveAdminWeeklyTask(task, today))
+    .filter((task) => isVisibleAdminWeeklyTask(task, today))
     .filter(
-      (task) => task.status === "pending" || task.status === "submitted",
+      (task) =>
+        task.status === "pending" ||
+        task.status === "submitted" ||
+        task.status === "rejected",
     )
     .sort((a, b) => {
       const deadlineA = taskDeadline("weekly", a.task_date, a.due_date);
@@ -57,7 +53,8 @@ export function WeeklyTasksSection({
           <div>
             <CardTitle>Weekly tasks</CardTitle>
             <CardDescription>
-              Admin-assigned tasks due 7 days after assignment
+              Admin-assigned tasks due 7 days after assignment · overdue tasks
+              stay until approved
             </CardDescription>
           </div>
           <Button asChild variant="outline" size="sm">
@@ -79,6 +76,7 @@ export function WeeklyTasksSection({
                 {formatDateLabel(
                   taskDeadline("weekly", task.task_date, task.due_date),
                 )}
+                {isOverdueAdminWeeklyTask(task, today) ? " · Overdue" : ""}
               </span>
             </div>
             <TaskItem

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { sortEmployeesByDepartment } from "@/lib/departments/department-utils";
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateLabel, getTodayDateString, normalizeDateString } from "@/lib/utils/dates";
@@ -64,18 +65,20 @@ export default async function AdminTodayAttendancePage() {
     }
   }
 
-  const bulkEmployees: BulkAttendanceEmployee[] = employees.map((emp) => {
-    const attendance = attendanceByEmployee.get(emp.id);
-    return {
-      id: emp.id,
-      full_name: emp.full_name,
-      department: emp.department,
-      status: (attendance?.status as AttendanceStatus | undefined) ?? null,
-      short_leave_type:
-        (attendance?.short_leave_type as ShortLeaveType | undefined) ?? null,
-      is_auto_generated: attendance?.is_auto_generated ?? false,
-    };
-  });
+  const bulkEmployees: BulkAttendanceEmployee[] = sortEmployeesByDepartment(
+    employees.map((emp) => {
+      const attendance = attendanceByEmployee.get(emp.id);
+      return {
+        id: emp.id,
+        full_name: emp.full_name,
+        department: emp.department,
+        status: (attendance?.status as AttendanceStatus | undefined) ?? null,
+        short_leave_type:
+          (attendance?.short_leave_type as ShortLeaveType | undefined) ?? null,
+        is_auto_generated: attendance?.is_auto_generated ?? false,
+      };
+    }),
+  );
 
   return (
     <div className="space-y-6">

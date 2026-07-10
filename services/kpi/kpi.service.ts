@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database, Tables } from "@/types/database.types";
-import { getTodayDateString, addDaysToDateString } from "@/lib/utils/dates";
+import { getTodayDateString, addDaysToDateString, taskDeadline } from "@/lib/utils/dates";
 import {
   evaluateAndIssueWarning,
   evaluateAndOpenTerminationReview,
@@ -85,6 +85,42 @@ export async function upsertDailySnapshot(
   return result;
 }
 
+/** Marks task start dates red for overdue admin weekly tasks not sent for approval. */
+export async function markWeeklyOverdueRedSnapshots(
+  client: Client,
+  employeeId: string,
+  asOfDate: string,
+  rules: Tables<"kpi_rules">,
+): Promise<void> {
+  const { data: tasks, error } = await client
+    .from("tasks")
+    .select("task_date, due_date")
+    .eq("employee_id", employeeId)
+    .eq("period", "weekly")
+    .eq("created_by_admin", true)
+    .eq("status", "pending");
+
+  if (error) {
+    throw new Error(`Failed to load weekly tasks: ${error.message}`);
+  }
+
+  for (const task of tasks ?? []) {
+    const deadline = taskDeadline("weekly", task.task_date, task.due_date);
+    if (asOfDate <= deadline) continue;
+
+    const taskDate = task.task_date.slice(0, 10);
+    await upsertDailySnapshot(client, employeeId, taskDate, rules);
+    await client
+      .from("daily_kpi_snapshots")
+      .update({
+        flag: "red",
+        calculated_at: new Date().toISOString(),
+      })
+      .eq("employee_id", employeeId)
+      .eq("kpi_date", taskDate);
+  }
+}
+
 export interface DailyPipelineSummary {
   kpiDate: string;
   processed: number;
@@ -105,6 +141,7 @@ export async function runDailyKpiPipeline(
   const rules = await getKpiRules(client);
   const kpiDate =
     date ?? addDaysToDateString(getTodayDateString(rules.company_timezone), -1);
+  const today = getTodayDateString(rules.company_timezone);
 
   const { data: employees, error } = await client
     .from("profiles")
@@ -133,6 +170,7 @@ export async function runDailyKpiPipeline(
       kpiDate,
       rules,
     );
+    await markWeeklyOverdueRedSnapshots(client, employee.id, today, rules);
     flags[result.flag] = (flags[result.flag] ?? 0) + 1;
 
     // Warning + termination engines run after the snapshot is persisted.

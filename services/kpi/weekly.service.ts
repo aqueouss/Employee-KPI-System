@@ -36,8 +36,8 @@ export async function loadMonthlyWeeklyRedFlagDates(
   }
 
   const tasksInMonth = (tasks ?? []).filter((task) => {
-    const deadline = taskDeadline("weekly", task.task_date, task.due_date);
-    return deadline >= monthStart && deadline < monthEnd;
+    const start = task.task_date.slice(0, 10);
+    return start >= monthStart && start < monthEnd;
   });
 
   return weeklyIncompleteRedFlagDates(tasksInMonth, asOfDate);

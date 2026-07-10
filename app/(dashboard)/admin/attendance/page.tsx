@@ -4,6 +4,7 @@ import { CalendarCheck } from "lucide-react";
 
 
 
+import { sortEmployeesByDepartment } from "@/lib/departments/department-utils";
 import { requireRole } from "@/lib/auth/require-role";
 
 import { createClient } from "@/lib/supabase/server";
@@ -100,23 +101,18 @@ export default async function AdminAttendancePage({
 
     .from("profiles")
 
-    .select("id, full_name, email, role, is_active")
+    .select("id, full_name, email, role, is_active, department")
 
     .eq("role", "employee")
 
-    .eq("is_active", true)
+    .eq("is_active", true);
 
-    .order("full_name");
-
-
-
-  const list = (employees ?? []) as Pick<
-
-    Tables<"profiles">,
-
-    "id" | "full_name" | "email" | "role" | "is_active"
-
-  >[];
+  const list = sortEmployeesByDepartment(
+    (employees ?? []) as Pick<
+      Tables<"profiles">,
+      "id" | "full_name" | "email" | "role" | "is_active" | "department"
+    >[],
+  );
 
 
 

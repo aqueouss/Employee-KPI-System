@@ -198,6 +198,13 @@ export function TaskItem({
                 <p className="text-xs text-muted-foreground">
                   Submit again before the due date.
                 </p>
+              ) : !editable &&
+                task.created_by_admin &&
+                task.period === "weekly" &&
+                (status === "pending" || status === "rejected") ? (
+                <p className="text-xs text-muted-foreground">
+                  Overdue — only an admin can approve this task.
+                </p>
               ) : null}
             </>
           )}

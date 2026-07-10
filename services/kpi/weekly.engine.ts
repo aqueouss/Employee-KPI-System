@@ -12,7 +12,7 @@ export type WeeklyTaskRecord = {
   due_date?: string | null;
 };
 
-/** One red flag per incomplete admin weekly task after its deadline passes. */
+/** One red flag on task start date per overdue admin weekly task not sent for approval. */
 export function weeklyIncompleteRedFlagDates(
   tasks: WeeklyTaskRecord[],
   asOfDate: string,
@@ -20,10 +20,10 @@ export function weeklyIncompleteRedFlagDates(
   const flags: string[] = [];
 
   for (const task of tasks) {
-    if (task.status === "completed") continue;
+    if (task.status !== "pending") continue;
     const deadline = taskDeadline("weekly", task.task_date, task.due_date);
-    if (deadline <= asOfDate) {
-      flags.push(deadline);
+    if (asOfDate > deadline) {
+      flags.push(task.task_date.slice(0, 10));
     }
   }
 
