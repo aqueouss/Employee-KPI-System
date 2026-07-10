@@ -1,4 +1,4 @@
-import { isVisibleAdminWeeklyTask } from "@/lib/tasks/admin-weekly-task";
+import { isVisibleAdminWeeklyTaskForAdmin } from "@/lib/tasks/admin-weekly-task";
 import { isOpenTask, taskDeadline } from "@/lib/utils/dates";
 import type { Tables } from "@/types/database.types";
 
@@ -32,7 +32,7 @@ export function partitionAdminEmployeeTasks(
   today: string,
 ): AdminEmployeeTaskSection[] {
   const adminWeekly = sortByDeadline(
-    tasks.filter((task) => isVisibleAdminWeeklyTask(task, today)),
+    tasks.filter((task) => isVisibleAdminWeeklyTaskForAdmin(task, today)),
   );
   const adminWeeklyIds = new Set(adminWeekly.map((task) => task.id));
 

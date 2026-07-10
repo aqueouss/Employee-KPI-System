@@ -8,8 +8,8 @@ type AdminWeeklyTask = {
   due_date?: string | null;
 };
 
-/** Admin weekly tasks stay visible until approved; they are not hidden after due_date. */
-export function isVisibleAdminWeeklyTask(
+/** Admin views keep unresolved weekly tasks visible after the due date. */
+export function isVisibleAdminWeeklyTaskForAdmin(
   task: AdminWeeklyTask,
   today: string,
 ): boolean {
@@ -19,12 +19,22 @@ export function isVisibleAdminWeeklyTask(
   return deadline >= today;
 }
 
+/** Employee views hide admin weekly tasks once the due date passes. */
+export function isVisibleAdminWeeklyTaskForEmployee(
+  task: AdminWeeklyTask,
+  today: string,
+): boolean {
+  if (task.period !== "weekly" || !task.created_by_admin) return false;
+  if (task.status === "completed") return false;
+  return isTaskWithinDeadline("weekly", task.task_date, today, task.due_date);
+}
+
 /** True when an admin weekly task is past its due date but still unresolved. */
 export function isOverdueAdminWeeklyTask(
   task: AdminWeeklyTask,
   today: string,
 ): boolean {
-  if (!isVisibleAdminWeeklyTask(task, today)) return false;
+  if (task.period !== "weekly" || !task.created_by_admin) return false;
   if (task.status === "completed") return false;
   return !isTaskWithinDeadline("weekly", task.task_date, today, task.due_date);
 }

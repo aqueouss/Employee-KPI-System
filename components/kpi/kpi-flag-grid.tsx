@@ -3,6 +3,7 @@ import {
   addDaysToDateString,
   formatDateLabel,
 } from "@/lib/utils/dates";
+import { effectiveKpiFlag } from "@/lib/kpi/weekly-red-flags";
 import { KPI_FLAG_CELL_STYLES } from "@/components/kpi/flag-badge";
 import type { Tables } from "@/types/database.types";
 
@@ -20,16 +21,25 @@ export function KpiFlagGrid({
   snapshots,
   endDate,
   days = 30,
+  weeklyRedFlagDates = [],
 }: {
   snapshots: Pick<Tables<"daily_kpi_snapshots">, "kpi_date" | "flag">[];
   endDate: string;
   days?: number;
+  weeklyRedFlagDates?: string[];
 }) {
   const flagByDate = new Map(snapshots.map((s) => [s.kpi_date, s.flag]));
+  const weeklyRedDates = new Set(
+    weeklyRedFlagDates.map((date) => date.slice(0, 10)),
+  );
 
   const cells = Array.from({ length: days }, (_, i) => {
     const date = addDaysToDateString(endDate, -(days - 1 - i));
-    const flag = (flagByDate.get(date) ?? "none") as Flag | "none";
+    const flag = effectiveKpiFlag(
+      (flagByDate.get(date) ?? "none") as Flag | "none",
+      date,
+      weeklyRedDates,
+    );
     return { date, flag };
   });
 

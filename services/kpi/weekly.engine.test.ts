@@ -23,7 +23,7 @@ test("weeklyIncompleteRedFlagDates: ignores submitted tasks past deadline", () =
     [{ status: "submitted", task_date: "2026-03-06", due_date: "2026-03-13" }],
     "2026-03-20",
   );
-  assert.deepEqual(flags, []);
+  assert.deepEqual(flags, ["2026-03-06"]);
 });
 
 test("weeklyIncompleteRedFlagDates: ignores tasks before deadline", () => {

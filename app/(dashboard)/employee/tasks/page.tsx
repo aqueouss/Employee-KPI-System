@@ -1,6 +1,6 @@
 import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
-import { isVisibleAdminWeeklyTask } from "@/lib/tasks/admin-weekly-task";
+import { isVisibleAdminWeeklyTaskForEmployee } from "@/lib/tasks/admin-weekly-task";
 import {
   getTodayDateString,
   isEditableDate,
@@ -107,7 +107,7 @@ export default async function EmployeeTasksPage({
 
   const nonDailyTasks = (nonDailyData ?? []) as Tables<"tasks">[];
   const adminWeeklyTasks = ((adminWeeklyData ?? []) as Tables<"tasks">[]).filter(
-    (task) => isVisibleAdminWeeklyTask(task, today),
+    (task) => isVisibleAdminWeeklyTaskForEmployee(task, today),
   );
   const customTasks = ((customTaskData ?? []) as Tables<"tasks">[]).filter(
     (task) =>

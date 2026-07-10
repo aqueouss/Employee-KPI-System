@@ -35,6 +35,7 @@ export async function upsertDailySnapshot(
   employeeId: string,
   date: string,
   rules: Tables<"kpi_rules">,
+  asOfDate?: string,
 ): Promise<DailyKpiResult> {
   const { data: tasks, error } = await client
     .from("tasks")
@@ -62,6 +63,27 @@ export async function upsertDailySnapshot(
     attendanceStatus: attendance?.status ?? null,
   });
 
+  const effectiveAsOf = asOfDate ?? date;
+  const { data: weeklyTasks, error: weeklyError } = await client
+    .from("tasks")
+    .select("status, due_date")
+    .eq("employee_id", employeeId)
+    .eq("task_date", date)
+    .eq("period", "weekly")
+    .eq("created_by_admin", true);
+
+  if (weeklyError) {
+    throw new Error(`Failed to load weekly tasks: ${weeklyError.message}`);
+  }
+
+  const weeklyOverdueRed = (weeklyTasks ?? []).some((task) => {
+    if (task.status === "completed") return false;
+    const deadline = taskDeadline("weekly", date, task.due_date);
+    return effectiveAsOf > deadline;
+  });
+
+  const flag = weeklyOverdueRed ? "red" : result.flag;
+
   const { error: upsertError } = await client
     .from("daily_kpi_snapshots")
     .upsert(
@@ -71,7 +93,7 @@ export async function upsertDailySnapshot(
         total_tasks: result.totalTasks,
         completed_tasks: result.completedTasks,
         completion_pct: result.completionPct,
-        flag: result.flag,
+        flag,
         rules_version: rules.version,
         calculated_at: new Date().toISOString(),
       },
@@ -82,10 +104,10 @@ export async function upsertDailySnapshot(
     throw new Error(`Failed to upsert snapshot: ${upsertError.message}`);
   }
 
-  return result;
+  return { ...result, flag };
 }
 
-/** Marks task start dates red for overdue admin weekly tasks not sent for approval. */
+/** Marks task start dates red for overdue incomplete admin weekly tasks. */
 export async function markWeeklyOverdueRedSnapshots(
   client: Client,
   employeeId: string,
@@ -98,26 +120,22 @@ export async function markWeeklyOverdueRedSnapshots(
     .eq("employee_id", employeeId)
     .eq("period", "weekly")
     .eq("created_by_admin", true)
-    .eq("status", "pending");
+    .neq("status", "completed");
 
   if (error) {
     throw new Error(`Failed to load weekly tasks: ${error.message}`);
   }
 
+  const taskDates = new Set<string>();
   for (const task of tasks ?? []) {
     const deadline = taskDeadline("weekly", task.task_date, task.due_date);
-    if (asOfDate <= deadline) continue;
+    if (asOfDate > deadline) {
+      taskDates.add(task.task_date.slice(0, 10));
+    }
+  }
 
-    const taskDate = task.task_date.slice(0, 10);
-    await upsertDailySnapshot(client, employeeId, taskDate, rules);
-    await client
-      .from("daily_kpi_snapshots")
-      .update({
-        flag: "red",
-        calculated_at: new Date().toISOString(),
-      })
-      .eq("employee_id", employeeId)
-      .eq("kpi_date", taskDate);
+  for (const taskDate of taskDates) {
+    await upsertDailySnapshot(client, employeeId, taskDate, rules, asOfDate);
   }
 }
 

@@ -42,3 +42,22 @@ export async function loadMonthlyWeeklyRedFlagDates(
 
   return weeklyIncompleteRedFlagDates(tasksInMonth, asOfDate);
 }
+
+export async function loadEmployeeWeeklyIncompleteRedFlagDates(
+  client: Client,
+  employeeId: string,
+  asOfDate: string,
+): Promise<string[]> {
+  const { data: tasks, error } = await client
+    .from("tasks")
+    .select("status, task_date, due_date")
+    .eq("employee_id", employeeId)
+    .eq("period", "weekly")
+    .eq("created_by_admin", true);
+
+  if (error) {
+    throw new Error(`Failed to load weekly tasks: ${error.message}`);
+  }
+
+  return weeklyIncompleteRedFlagDates(tasks ?? [], asOfDate);
+}

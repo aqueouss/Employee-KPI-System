@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import {
   isOverdueAdminWeeklyTask,
-  isVisibleAdminWeeklyTask,
+  isVisibleAdminWeeklyTaskForEmployee,
 } from "@/lib/tasks/admin-weekly-task";
 import {
   formatDateLabel,
@@ -31,7 +31,7 @@ export function WeeklyTasksSection({
   today: string;
 }) {
   const weeklyTasks = tasks
-    .filter((task) => isVisibleAdminWeeklyTask(task, today))
+    .filter((task) => isVisibleAdminWeeklyTaskForEmployee(task, today))
     .filter(
       (task) =>
         task.status === "pending" ||
@@ -53,8 +53,7 @@ export function WeeklyTasksSection({
           <div>
             <CardTitle>Weekly tasks</CardTitle>
             <CardDescription>
-              Admin-assigned tasks due 7 days after assignment · overdue tasks
-              stay until approved
+              Admin-assigned tasks due 7 days after assignment
             </CardDescription>
           </div>
           <Button asChild variant="outline" size="sm">

@@ -1,7 +1,10 @@
 import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
+import { applyWeeklyRedFlagsToSnapshots } from "@/lib/kpi/weekly-red-flags";
+import { syncWeeklyOverdueSnapshotsForEmployee } from "@/lib/kpi/sync-weekly-overdue-snapshots";
 import { getTodayDateString, formatDateLabel } from "@/lib/utils/dates";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
+import { loadEmployeeWeeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.service";
 import { getKpiCaption } from "@/lib/captions/funny-captions";
 import { FunnyCaption } from "@/components/ui/funny-caption";
 import { FlagBadge } from "@/components/kpi/flag-badge";
@@ -27,6 +30,7 @@ export default async function EmployeeKpiPage() {
   const profile = await requireKpiEmployee();
   const today = getTodayDateString();
   const supabase = await createClient();
+  await syncWeeklyOverdueSnapshotsForEmployee(profile.id);
 
   // Live preview for today (tasks not yet finalized by cron)
   const { data: todayTasks } = await supabase
@@ -35,7 +39,8 @@ export default async function EmployeeKpiPage() {
     .eq("employee_id", profile.id)
     .eq("task_date", today);
 
-  const [{ data: rules }, { data: todayAttendance }] = await Promise.all([
+  const [{ data: rules }, { data: todayAttendance }, weeklyRedFlagDates] =
+    await Promise.all([
     supabase
       .from("kpi_rules")
       .select("green_threshold, yellow_threshold")
@@ -47,6 +52,7 @@ export default async function EmployeeKpiPage() {
       .eq("employee_id", profile.id)
       .eq("attendance_date", today)
       .maybeSingle(),
+    loadEmployeeWeeklyIncompleteRedFlagDates(supabase, profile.id, today),
   ]);
 
   const total = todayTasks?.length ?? 0;
@@ -67,7 +73,10 @@ export default async function EmployeeKpiPage() {
     .order("kpi_date", { ascending: false })
     .limit(30);
 
-  const snapshots = (snapshotData ?? []) as Tables<"daily_kpi_snapshots">[];
+  const snapshots = applyWeeklyRedFlagsToSnapshots(
+    (snapshotData ?? []) as Tables<"daily_kpi_snapshots">[],
+    weeklyRedFlagDates,
+  );
 
   const last7 = snapshots.slice(0, 7);
   const flagCounts = last7.reduce<Record<string, number>>((acc, s) => {

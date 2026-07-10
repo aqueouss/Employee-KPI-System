@@ -5,7 +5,10 @@ import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString, startOfMonthDateString } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { applyWeeklyRedFlagsToSnapshots } from "@/lib/kpi/weekly-red-flags";
+import { syncWeeklyOverdueSnapshotsForEmployee } from "@/lib/kpi/sync-weekly-overdue-snapshots";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
+import { loadEmployeeWeeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.service";
 import {
   getEmployeeDashboardCaption,
   getRankingCaption,
@@ -36,7 +39,9 @@ export default async function EmployeeDashboardPage() {
   const monthStart = startOfMonthDateString(today);
 
   const supabase = await createClient();
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }] =
+  await syncWeeklyOverdueSnapshotsForEmployee(profile.id);
+
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }, weeklyRedFlagDates] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -86,6 +91,7 @@ export default async function EmployeeDashboardPage() {
         .eq("employee_id", profile.id)
         .eq("attendance_date", today)
         .maybeSingle(),
+      loadEmployeeWeeklyIncompleteRedFlagDates(supabase, profile.id, today),
     ]);
 
   const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
@@ -96,10 +102,13 @@ export default async function EmployeeDashboardPage() {
     title: string;
   }[];
 
-  const flagSnapshots = (snapshotRows ?? []) as Pick<
-    Tables<"daily_kpi_snapshots">,
-    "kpi_date" | "flag"
-  >[];
+  const flagSnapshots = applyWeeklyRedFlagsToSnapshots(
+    (snapshotRows ?? []) as Pick<
+      Tables<"daily_kpi_snapshots">,
+      "kpi_date" | "flag"
+    >[],
+    weeklyRedFlagDates,
+  );
 
   const tasks = (data ?? []) as Tables<"tasks">[];
   const total = tasks.length;
@@ -213,7 +222,12 @@ export default async function EmployeeDashboardPage() {
           <CardDescription>Your daily KPI flags</CardDescription>
         </CardHeader>
         <CardContent>
-          <KpiFlagGrid snapshots={flagSnapshots} endDate={today} days={30} />
+          <KpiFlagGrid
+            snapshots={flagSnapshots}
+            endDate={today}
+            days={30}
+            weeklyRedFlagDates={weeklyRedFlagDates}
+          />
         </CardContent>
       </Card>
 
