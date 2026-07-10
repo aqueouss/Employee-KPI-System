@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 
 import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
+import { syncWeeklyOverdueSnapshotsForEmployee } from "@/lib/kpi/sync-weekly-overdue-snapshots";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateLabel } from "@/lib/utils/dates";
 import { WarningStatusBadge } from "@/components/warnings/warning-status-badge";
@@ -24,6 +25,7 @@ function formatMonth(value: string) {
 
 export default async function EmployeeWarningsPage() {
   const profile = await requireKpiEmployee();
+  await syncWeeklyOverdueSnapshotsForEmployee(profile.id);
   const supabase = await createClient();
 
   const { data } = await supabase

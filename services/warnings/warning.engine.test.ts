@@ -40,6 +40,16 @@ test("evaluateMonthlyWarning: idempotent when warning exists", () => {
   assert.equal(r.redFlagCount, 4);
 });
 
+test("reconcileMonthlyWarningState: deduplicates overlapping daily and weekly dates", () => {
+  const r = reconcileMonthlyWarningState(
+    ["2026-07-02", "2026-07-02", "2026-07-05"],
+    3,
+    false,
+  );
+  assert.equal(r.redFlagCount, 2);
+  assert.equal(r.shouldIssue, false);
+});
+
 test("reconcileMonthlyWarningState: revokes active warning below threshold", () => {
   const r = reconcileMonthlyWarningState(
     ["2026-06-10", "2026-06-03"],

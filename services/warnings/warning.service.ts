@@ -50,7 +50,9 @@ async function loadMonthlyRedFlagDates(
 
   return {
     monthKey,
-    redFlagDates: [...dailyRedFlagDates, ...weeklyRedFlagDates].sort(),
+    redFlagDates: [
+      ...new Set([...dailyRedFlagDates, ...weeklyRedFlagDates].map((d) => d.slice(0, 10))),
+    ].sort(),
   };
 }
 

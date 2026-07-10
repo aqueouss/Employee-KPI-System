@@ -53,7 +53,7 @@ export function reconcileMonthlyWarningState(
   threshold: number,
   existingWarning: { status: "active" | "acknowledged" } | null,
 ): WarningReconciliation {
-  const sorted = [...redFlagDates].sort();
+  const sorted = [...new Set(redFlagDates.map((date) => date.slice(0, 10)))].sort();
   const redFlagCount = sorted.length;
 
   if (!existingWarning) {

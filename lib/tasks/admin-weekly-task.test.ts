@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  isOverdueAdminWeeklyTask,
   isVisibleAdminWeeklyTaskForAdmin,
   isVisibleAdminWeeklyTaskForEmployee,
+  isVisibleAdminWeeklyTaskOnEmployeeTasksPage,
 } from "@/lib/tasks/admin-weekly-task";
 
 const adminWeekly = {
@@ -41,9 +41,12 @@ test("isVisibleAdminWeeklyTaskForAdmin: keeps pending tasks after due date", () 
   );
 });
 
-test("isOverdueAdminWeeklyTask: flags unresolved tasks past deadline", () => {
+test("isVisibleAdminWeeklyTaskOnEmployeeTasksPage: keeps overdue pending tasks", () => {
   assert.equal(
-    isOverdueAdminWeeklyTask({ ...adminWeekly, status: "pending" }, "2026-07-10"),
+    isVisibleAdminWeeklyTaskOnEmployeeTasksPage({
+      ...adminWeekly,
+      status: "pending",
+    }),
     true,
   );
 });

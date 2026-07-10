@@ -19,7 +19,7 @@ export function isVisibleAdminWeeklyTaskForAdmin(
   return deadline >= today;
 }
 
-/** Employee views hide admin weekly tasks once the due date passes. */
+/** Employee dashboard hides admin weekly tasks once the due date passes. */
 export function isVisibleAdminWeeklyTaskForEmployee(
   task: AdminWeeklyTask,
   today: string,
@@ -27,6 +27,14 @@ export function isVisibleAdminWeeklyTaskForEmployee(
   if (task.period !== "weekly" || !task.created_by_admin) return false;
   if (task.status === "completed") return false;
   return isTaskWithinDeadline("weekly", task.task_date, today, task.due_date);
+}
+
+/** Employee tasks page keeps overdue admin weekly tasks visible until approved. */
+export function isVisibleAdminWeeklyTaskOnEmployeeTasksPage(
+  task: AdminWeeklyTask,
+): boolean {
+  if (task.period !== "weekly" || !task.created_by_admin) return false;
+  return task.status !== "completed";
 }
 
 /** True when an admin weekly task is past its due date but still unresolved. */
