@@ -1,21 +1,33 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  countsAsHalfDay,
+  countsAsLate,
+  countsAsShortLeave,
+  type AttendanceStatus,
+} from "@/services/attendance/attendance.engine";
 import { normalizeDateString } from "@/lib/utils/dates";
-import type { AttendanceStatus } from "@/types/domain";
 import type { Database } from "@/types/database.types";
 
 type Client = SupabaseClient<Database>;
 
 export const FIXED_TASK_ATTENDANCE_STATUSES: AttendanceStatus[] = [
   "present",
+  "late",
   "half_day",
-  "short_leave",
   "late_half_day",
+  "short_leave",
   "late_short_leave",
 ];
 
 export function attendanceQualifiesForFixedTasks(status: string): boolean {
-  return FIXED_TASK_ATTENDANCE_STATUSES.includes(status as AttendanceStatus);
+  const attendanceStatus = status as AttendanceStatus;
+  return (
+    attendanceStatus === "present" ||
+    countsAsLate(attendanceStatus) ||
+    countsAsHalfDay(attendanceStatus) ||
+    countsAsShortLeave(attendanceStatus)
+  );
 }
 
 export async function syncFixedDailyTasksForAttendance(
@@ -23,8 +35,8 @@ export async function syncFixedDailyTasksForAttendance(
   employeeId: string,
   attendanceDate: string,
   status: string,
-): Promise<void> {
-  if (!attendanceQualifiesForFixedTasks(status)) return;
+): Promise<number> {
+  if (!attendanceQualifiesForFixedTasks(status)) return 0;
 
   const date = normalizeDateString(attendanceDate);
 
@@ -34,14 +46,14 @@ export async function syncFixedDailyTasksForAttendance(
     .eq("id", employeeId)
     .single();
 
-  if (profileError || profile?.kpi_tracked === false) return;
+  if (profileError || profile?.kpi_tracked === false) return 0;
 
   const { data: fixedTasks, error: fixedError } = await client
     .from("employee_fixed_daily_tasks")
     .select("id, title")
     .eq("employee_id", employeeId);
 
-  if (fixedError || !fixedTasks?.length) return;
+  if (fixedError || !fixedTasks?.length) return 0;
 
   const { data: existingRows, error: existingError } = await client
     .from("tasks")
@@ -50,7 +62,7 @@ export async function syncFixedDailyTasksForAttendance(
     .eq("task_date", date)
     .not("source_fixed_task_id", "is", null);
 
-  if (existingError) return;
+  if (existingError) return 0;
 
   const existingIds = new Set(
     (existingRows ?? [])
@@ -59,7 +71,7 @@ export async function syncFixedDailyTasksForAttendance(
   );
 
   const toInsert = fixedTasks.filter((task) => !existingIds.has(task.id));
-  if (toInsert.length === 0) return;
+  if (toInsert.length === 0) return 0;
 
   const { error: insertError } = await client.from("tasks").insert(
     toInsert.map((task) => ({
@@ -76,4 +88,6 @@ export async function syncFixedDailyTasksForAttendance(
   if (insertError) {
     throw new Error(`Failed to sync fixed daily tasks: ${insertError.message}`);
   }
+
+  return toInsert.length;
 }

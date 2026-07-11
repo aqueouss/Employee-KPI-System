@@ -81,7 +81,7 @@ export function AdminFixedDailyTasksCard({
           <div>
             <CardTitle>Fixed daily tasks</CardTitle>
             <CardDescription>
-              Auto-added when attendance is present, half day, or short leave.
+              Auto-added when attendance is present, late, half day, or short leave.
             </CardDescription>
           </div>
           <span className="text-xs text-muted-foreground">

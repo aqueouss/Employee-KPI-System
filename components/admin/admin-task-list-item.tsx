@@ -45,7 +45,13 @@ function TaskDates({
   );
 }
 
-export function AdminTaskListItem({ task }: { task: Tables<"tasks"> }) {
+export function AdminTaskListItem({
+  task,
+  onReviewed,
+}: {
+  task: Tables<"tasks">;
+  onReviewed?: (taskId: string) => void;
+}) {
   const meta = STATUS_META[task.status];
 
   return (
@@ -73,7 +79,7 @@ export function AdminTaskListItem({ task }: { task: Tables<"tasks"> }) {
         ) : null}
       </div>
       <div className="w-full shrink-0 lg:max-w-md xl:max-w-lg">
-        <AdminTaskActions task={task} />
+        <AdminTaskActions task={task} onReviewed={onReviewed} />
       </div>
     </div>
   );

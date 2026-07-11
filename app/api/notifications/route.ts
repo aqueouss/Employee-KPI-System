@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { getNotificationCounts } from "@/lib/notifications";
+import { getNotificationCounts, getEmployeeNotificationExtras } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +12,13 @@ export async function GET() {
   }
 
   const counts = await getNotificationCounts(profile);
+  const extras =
+    profile.role === "employee"
+      ? await getEmployeeNotificationExtras(profile)
+      : { attendanceMessage: null };
+
   return NextResponse.json(
-    { role: profile.role, counts },
+    { role: profile.role, counts, ...extras },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

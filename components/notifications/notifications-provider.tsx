@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { playNotificationBeep } from "@/lib/notifications/play-notification-beep";
+import { createClient } from "@/lib/supabase/client";
 
 type Counts = Record<string, number>;
 type PermissionState = NotificationPermission | "unsupported";
@@ -41,13 +42,16 @@ const MESSAGES: Record<string, string> = {
   leaveRequests: "A leave request needs your approval",
   newTasks: "An admin assigned you a new task",
   broadcasts: "You have a new message from admin",
+  attendanceMarked: "Your attendance was marked for today",
 };
 
 export function NotificationsProvider({
   initialCounts,
+  employeeId,
   children,
 }: {
   initialCounts: Counts;
+  employeeId?: string;
   children: React.ReactNode;
 }) {
   const [counts, setCounts] = useState<Counts>(initialCounts);
@@ -81,42 +85,49 @@ export function NotificationsProvider({
     }
   }, []);
 
-  const fireNotifications = useCallback((next: Counts) => {
-    if (!bootstrapped.current) {
-      bootstrapped.current = true;
-      return;
-    }
-
-    const newMessages: string[] = [];
-    for (const key of Object.keys(next)) {
-      const before = prevCounts.current[key] ?? 0;
-      if (next[key] > before && MESSAGES[key]) {
-        newMessages.push(MESSAGES[key]);
+  const fireNotifications = useCallback(
+    (next: Counts, attendanceMessage?: string | null) => {
+      if (!bootstrapped.current) {
+        bootstrapped.current = true;
+        return;
       }
-    }
-    if (newMessages.length === 0) return;
 
-    playNotificationBeep();
-
-    if (
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "granted"
-    ) {
-      const title =
-        newMessages.length === 1
-          ? "KPI System"
-          : `KPI System · ${newMessages.length} updates`;
-      try {
-        new Notification(title, {
-          body: newMessages.join("\n"),
-          icon: "/icon.png",
-        });
-      } catch {
-        // ignore
+      const newMessages: string[] = [];
+      for (const key of Object.keys(next)) {
+        const before = prevCounts.current[key] ?? 0;
+        if (next[key] > before && MESSAGES[key]) {
+          if (key === "attendanceMarked" && attendanceMessage) {
+            newMessages.push(attendanceMessage);
+          } else {
+            newMessages.push(MESSAGES[key]);
+          }
+        }
       }
-    }
-  }, []);
+      if (newMessages.length === 0) return;
+
+      playNotificationBeep();
+
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        const title =
+          newMessages.length === 1
+            ? "KPI System"
+            : `KPI System · ${newMessages.length} updates`;
+        try {
+          new Notification(title, {
+            body: newMessages.join("\n"),
+            icon: "/icon.png",
+          });
+        } catch {
+          // ignore
+        }
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -125,9 +136,12 @@ export function NotificationsProvider({
       try {
         const res = await fetch("/api/notifications", { cache: "no-store" });
         if (!res.ok || !active) return;
-        const data = (await res.json()) as { counts?: Counts };
+        const data = (await res.json()) as {
+          counts?: Counts;
+          attendanceMessage?: string | null;
+        };
         if (!active || !data.counts) return;
-        fireNotifications(data.counts);
+        fireNotifications(data.counts, data.attendanceMessage);
         prevCounts.current = data.counts;
         setCounts(data.counts);
       } catch {
@@ -152,6 +166,43 @@ export function NotificationsProvider({
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [fireNotifications]);
+
+  useEffect(() => {
+    if (!employeeId) return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`attendance-notifications-${employeeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "attendance_mark_notifications",
+          filter: `employee_id=eq.${employeeId}`,
+        },
+        () => {
+          void fetch("/api/notifications", { cache: "no-store" })
+            .then(async (res) => {
+              if (!res.ok) return;
+              const data = (await res.json()) as {
+                counts?: Counts;
+                attendanceMessage?: string | null;
+              };
+              if (!data.counts) return;
+              fireNotifications(data.counts, data.attendanceMessage);
+              prevCounts.current = data.counts;
+              setCounts(data.counts);
+            })
+            .catch(() => {});
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [employeeId, fireNotifications]);
 
   return (
     <NotificationsContext.Provider value={{ counts, permission, enable }}>

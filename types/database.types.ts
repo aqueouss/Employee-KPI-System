@@ -68,6 +68,47 @@ export type Database = {
           },
         ]
       }
+      attendance_mark_notifications: {
+        Row: {
+          attendance_date: string
+          created_at: string
+          employee_id: string
+          id: string
+          message: string
+          seen_at: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at: string
+        }
+        Insert: {
+          attendance_date: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          message: string
+          seen_at?: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+        }
+        Update: {
+          attendance_date?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          message?: string
+          seen_at?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_mark_notifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string

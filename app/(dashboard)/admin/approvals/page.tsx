@@ -1,15 +1,6 @@
-import Link from "next/link";
-
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { AdminTaskListItem } from "@/components/admin/admin-task-list-item";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AdminApprovalsPanel } from "@/components/admin/admin-approvals-panel";
 import type { Tables } from "@/types/database.types";
 
 export default async function AdminApprovalsPage() {
@@ -27,14 +18,9 @@ export default async function AdminApprovalsPage() {
   const { data: profileData } = await supabase
     .from("profiles")
     .select("id, full_name");
-  const nameById = new Map((profileData ?? []).map((p) => [p.id, p.full_name]));
-
-  const byEmployee = new Map<string, Tables<"tasks">[]>();
-  for (const task of tasks) {
-    const list = byEmployee.get(task.employee_id) ?? [];
-    list.push(task);
-    byEmployee.set(task.employee_id, list);
-  }
+  const nameById = Object.fromEntries(
+    (profileData ?? []).map((p) => [p.id, p.full_name]),
+  );
 
   return (
     <div className="space-y-6">
@@ -50,39 +36,7 @@ export default async function AdminApprovalsPage() {
         </p>
       </div>
 
-      {tasks.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Nothing awaiting approval. You&apos;re all caught up.
-          </CardContent>
-        </Card>
-      ) : (
-        Array.from(byEmployee.entries()).map(([employeeId, employeeTasks]) => (
-          <Card key={employeeId}>
-            <CardHeader>
-              <CardTitle className="text-base">
-                <Link
-                  href={`/admin/employees/${employeeId}`}
-                  className="hover:underline"
-                >
-                  {nameById.get(employeeId) ?? "Unknown employee"}
-                </Link>
-              </CardTitle>
-              <CardDescription>
-                {employeeTasks.length} task
-                {employeeTasks.length === 1 ? "" : "s"} awaiting approval
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto p-0">
-              <div className="divide-y divide-border/60">
-                {employeeTasks.map((task) => (
-                  <AdminTaskListItem key={task.id} task={task} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))
-      )}
+      <AdminApprovalsPanel tasks={tasks} nameById={nameById} />
     </div>
   );
 }

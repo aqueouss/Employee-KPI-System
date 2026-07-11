@@ -35,7 +35,6 @@ function revalidateTaskViews() {
 }
 
 function revalidateApprovalViews() {
-  revalidatePath("/admin/approvals");
   revalidatePath("/admin", "layout");
 }
 

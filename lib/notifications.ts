@@ -1,8 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  countUnseenAttendanceNotifications,
+  loadUnseenAttendanceNotificationMessage,
+} from "@/lib/attendance/attendance-notifications";
 import { loadPendingBroadcastNotifications } from "@/lib/broadcast-notifications";
 import type { Profile } from "@/types/domain";
 
 export type NotificationCounts = Record<string, number>;
+
+export type EmployeeNotificationExtras = {
+  attendanceMessage: string | null;
+};
 
 /**
  * Pending-action counts used to drive nav badges and browser notifications.
@@ -70,9 +78,25 @@ export async function getNotificationCounts(
     supabase,
     profile.id,
   );
+  const attendanceMarked = await countUnseenAttendanceNotifications(
+    supabase,
+    profile.id,
+  );
 
   return {
     newTasks: newTasks ?? 0,
     broadcasts: pendingBroadcasts.length,
+    attendanceMarked,
   };
+}
+
+export async function getEmployeeNotificationExtras(
+  profile: Profile,
+): Promise<EmployeeNotificationExtras> {
+  const supabase = await createClient();
+  const attendanceMessage = await loadUnseenAttendanceNotificationMessage(
+    supabase,
+    profile.id,
+  );
+  return { attendanceMessage };
 }

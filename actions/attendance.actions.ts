@@ -14,6 +14,7 @@ import {
 import { payrollOtherExpensesSchema, parsePayrollOtherExpensesItems } from "@/lib/validators/payroll-other-expenses.schema";
 import { payrollOtherExpensesToJson } from "@/lib/payroll/other-expenses";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import { syncAttendanceMarkNotification } from "@/lib/attendance/attendance-notifications";
 import { syncFixedDailyTasksForAttendance } from "@/lib/tasks/fixed-daily-tasks";
 import {
   applyWeeklySundayRules,
@@ -23,6 +24,7 @@ import {
 } from "@/services/attendance/attendance.engine";
 import { startOfMonthDateString, endOfMonthDateString, normalizeDateString } from "@/lib/utils/dates";
 import type { Tables } from "@/types/database.types";
+import type { AttendanceStatus } from "@/types/domain";
 
 export type AttendanceActionState = {
   error?: string;
@@ -176,12 +178,19 @@ export async function applyAttendanceMark(
     params.markedBy,
     rows,
   );
-  await syncFixedDailyTasksForAttendance(
+  const fixedTasksAdded = await syncFixedDailyTasksForAttendance(
     supabase,
     params.employeeId,
     date,
     params.status,
   );
+  await syncAttendanceMarkNotification(supabase, {
+    employeeId: params.employeeId,
+    attendanceDate: date,
+    status: params.status as AttendanceStatus,
+    shortLeaveType: params.shortLeaveType ?? null,
+    fixedTasksAdded,
+  });
 }
 
 export async function markAttendanceAction(
@@ -241,12 +250,19 @@ export async function markAttendanceAction(
     monthStart,
   );
 
-  await syncFixedDailyTasksForAttendance(
+  const fixedTasksAdded = await syncFixedDailyTasksForAttendance(
     supabase,
     parsed.data.employee_id,
     parsed.data.attendance_date,
     parsed.data.status,
   );
+  await syncAttendanceMarkNotification(supabase, {
+    employeeId: parsed.data.employee_id,
+    attendanceDate: parsed.data.attendance_date,
+    status: parsed.data.status,
+    shortLeaveType: parsed.data.short_leave_type ?? null,
+    fixedTasksAdded,
+  });
 
   await supabase.from("audit_logs").insert({
     actor_id: admin.id,
@@ -305,12 +321,19 @@ export async function markAttendanceQuickAction(
   let rows = await loadEmployeeRecords(supabase, parsed.data.employee_id, monthStart);
   await syncAutoSundayLeaves(supabase, parsed.data.employee_id, admin.id, rows);
 
-  await syncFixedDailyTasksForAttendance(
+  const fixedTasksAdded = await syncFixedDailyTasksForAttendance(
     supabase,
     parsed.data.employee_id,
     date,
     parsed.data.status,
   );
+  await syncAttendanceMarkNotification(supabase, {
+    employeeId: parsed.data.employee_id,
+    attendanceDate: date,
+    status: parsed.data.status,
+    shortLeaveType: parsed.data.short_leave_type ?? null,
+    fixedTasksAdded,
+  });
 
   revalidateAttendancePaths([parsed.data.employee_id]);
   return { success: "Saved." };
@@ -360,12 +383,19 @@ export async function markBulkAttendanceAction(
 
     if (error) return { error: error.message };
     employeeIds.add(entry.employee_id);
-    await syncFixedDailyTasksForAttendance(
+    const fixedTasksAdded = await syncFixedDailyTasksForAttendance(
       supabase,
       entry.employee_id,
       date,
       entry.status,
     );
+    await syncAttendanceMarkNotification(supabase, {
+      employeeId: entry.employee_id,
+      attendanceDate: date,
+      status: entry.status as AttendanceStatus,
+      shortLeaveType: entry.short_leave_type ?? null,
+      fixedTasksAdded,
+    });
   }
 
   for (const employeeId of employeeIds) {

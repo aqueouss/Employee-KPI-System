@@ -5,6 +5,10 @@ import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, addDaysToDateString, startOfMonthDateString } from "@/lib/utils/dates";
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
+import {
+  loadTodayAttendanceNotification,
+  markAttendanceNotificationSeen,
+} from "@/lib/attendance/attendance-notifications";
 import { applyWeeklyRedFlagsToSnapshots } from "@/lib/kpi/weekly-red-flags";
 import { syncWeeklyOverdueSnapshotsForEmployee } from "@/lib/kpi/sync-weekly-overdue-snapshots";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
@@ -41,7 +45,7 @@ export default async function EmployeeDashboardPage() {
   const supabase = await createClient();
   await syncWeeklyOverdueSnapshotsForEmployee(profile.id);
 
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }, weeklyRedFlagDates] =
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }, weeklyRedFlagDates, attendanceNotification] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -92,7 +96,16 @@ export default async function EmployeeDashboardPage() {
         .eq("attendance_date", today)
         .maybeSingle(),
       loadEmployeeWeeklyIncompleteRedFlagDates(supabase, profile.id, today),
+      loadTodayAttendanceNotification(supabase, profile.id),
     ]);
+
+  if (attendanceNotification && !attendanceNotification.seen_at) {
+    await markAttendanceNotificationSeen(
+      supabase,
+      attendanceNotification.id,
+      profile.id,
+    );
+  }
 
   const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
   const weeklyTasks = (weeklyTaskRows ?? []) as Tables<"tasks">[];
@@ -128,11 +141,13 @@ export default async function EmployeeDashboardPage() {
     avg_completion: number;
     days_tracked: number;
   }>;
-  const dashboardCaption = getEmployeeDashboardCaption({
-    todayCompletionPct: pct,
-    rankingCaption: getRankingCaption(rankings, profile.id, profile.full_name),
-    seed: `${profile.id}-${today}`,
-  });
+  const dashboardCaption = attendanceNotification?.message
+    ? attendanceNotification.message
+    : getEmployeeDashboardCaption({
+        todayCompletionPct: pct,
+        rankingCaption: getRankingCaption(rankings, profile.id, profile.full_name),
+        seed: `${profile.id}-${today}`,
+      });
 
   return (
     <div className="space-y-6">

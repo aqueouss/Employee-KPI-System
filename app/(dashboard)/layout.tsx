@@ -84,7 +84,10 @@ export default async function DashboardLayout({
   );
 
   return (
-    <NotificationsProvider initialCounts={initialCounts}>
+    <NotificationsProvider
+      initialCounts={initialCounts}
+      employeeId={profile.role === "employee" ? profile.id : undefined}
+    >
       {profile.role === "employee" ? (
         <BroadcastNotificationGate notifications={pendingBroadcastNotifications}>
           {shell}

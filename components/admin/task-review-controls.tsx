@@ -37,10 +37,12 @@ function ReviewForm({
   taskId,
   mode,
   showDelete = false,
+  onReviewed,
 }: {
   taskId: string;
   mode: "pending" | "submitted" | "completed";
   showDelete?: boolean;
+  onReviewed?: (taskId: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState("");
@@ -50,7 +52,11 @@ function ReviewForm({
     setError(null);
     startTransition(async () => {
       const res = await reviewTaskAction(taskId, decision, note.trim());
-      if (res.error) setError(res.error);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      onReviewed?.(taskId);
     });
   }
 
@@ -118,8 +124,10 @@ function ReviewForm({
 
 export function AdminTaskActions({
   task,
+  onReviewed,
 }: {
   task: Tables<"tasks">;
+  onReviewed?: (taskId: string) => void;
 }) {
   if (task.status === "rejected") {
     return <AdminTaskDeleteButton taskId={task.id} compact />;
@@ -132,7 +140,14 @@ export function AdminTaskActions({
         ? "submitted"
         : "completed";
 
-  return <ReviewForm taskId={task.id} mode={mode} showDelete />;
+  return (
+    <ReviewForm
+      taskId={task.id}
+      mode={mode}
+      showDelete
+      onReviewed={onReviewed}
+    />
+  );
 }
 
 export function TaskReviewControls({ taskId }: { taskId: string }) {
