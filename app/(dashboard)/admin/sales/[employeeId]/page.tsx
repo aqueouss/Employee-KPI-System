@@ -1,13 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { isSalesDepartment, requireSalesAccess } from "@/lib/sales/sales-access";
-import {
-  formatSalesCurrency,
-  loadSalesReport,
-  type SalesReportPeriod,
-} from "@/lib/sales/sales-report";
+import { loadSalesReport, type SalesReportPeriod } from "@/lib/sales/sales-report";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, normalizeDateString } from "@/lib/utils/dates";
 import { SalesPeriodFilter } from "@/components/sales/sales-period-filter";
@@ -105,15 +102,17 @@ export default async function AdminSalesEmployeePage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <SalesPeriodFilter
-            period={period}
-            anchorDate={anchorDate}
-            basePath={`/admin/sales/${employee.id}`}
-          />
+          <Suspense fallback={<div className="h-20 animate-pulse rounded-lg bg-muted" />}>
+            <SalesPeriodFilter
+              period={period}
+              anchorDate={anchorDate}
+              basePath={`/admin/sales/${employee.id}`}
+            />
+          </Suspense>
           <SalesReportPanel
             summary={report.summary}
             entries={report.entries}
-            canDeleteEntry={() => true}
+            deletableEntryIds={report.entries.map((entry) => entry.id)}
           />
         </CardContent>
       </Card>

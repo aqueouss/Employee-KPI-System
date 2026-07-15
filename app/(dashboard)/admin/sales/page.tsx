@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -159,11 +160,13 @@ export default async function AdminSalesPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <SalesPeriodFilter
-            period={period}
-            anchorDate={anchorDate}
-            basePath="/admin/sales"
-          />
+          <Suspense fallback={<div className="h-20 animate-pulse rounded-lg bg-muted" />}>
+            <SalesPeriodFilter
+              period={period}
+              anchorDate={anchorDate}
+              basePath="/admin/sales"
+            />
+          </Suspense>
           <div className="overflow-x-auto rounded-xl border">
             <table className="min-w-full text-sm">
               <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">

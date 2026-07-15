@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { requireSalesEmployee } from "@/lib/sales/sales-access";
 import { loadSalesReport, type SalesReportPeriod } from "@/lib/sales/sales-report";
 import { createClient } from "@/lib/supabase/server";
@@ -63,6 +65,11 @@ export default async function EmployeeSalesPage({
 
   const monthStart = startOfMonthDateString(today);
   const monthEnd = endOfMonthDateString(today);
+  const deletableEntryIds = report.entries
+    .filter(
+      (entry) => entry.sale_date >= monthStart && entry.sale_date <= monthEnd,
+    )
+    .map((entry) => entry.id);
 
   return (
     <div className="space-y-6">
@@ -94,17 +101,17 @@ export default async function EmployeeSalesPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <SalesPeriodFilter
-            period={period}
-            anchorDate={anchorDate}
-            basePath="/employee/sales"
-          />
+          <Suspense fallback={<div className="h-20 animate-pulse rounded-lg bg-muted" />}>
+            <SalesPeriodFilter
+              period={period}
+              anchorDate={anchorDate}
+              basePath="/employee/sales"
+            />
+          </Suspense>
           <SalesReportPanel
             summary={report.summary}
             entries={report.entries}
-            canDeleteEntry={(entry) =>
-              entry.sale_date >= monthStart && entry.sale_date <= monthEnd
-            }
+            deletableEntryIds={deletableEntryIds}
           />
         </CardContent>
       </Card>

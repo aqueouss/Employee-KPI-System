@@ -46,12 +46,15 @@ function DeleteSaleButton({ id }: { id: string }) {
 export function SalesReportPanel({
   summary,
   entries,
-  canDeleteEntry,
+  deletableEntryIds,
 }: {
   summary: SalesReportSummary;
   entries: SalesEntryRow[];
-  canDeleteEntry?: (entry: SalesEntryRow) => boolean;
+  deletableEntryIds?: string[];
 }) {
+  const deletableIds = new Set(deletableEntryIds ?? []);
+  const showDeleteColumn = deletableEntryIds !== undefined;
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -89,14 +92,14 @@ export function SalesReportPanel({
               <th className="px-4 py-3 text-right">Price</th>
               <th className="px-4 py-3 text-right">Total</th>
               <th className="px-4 py-3">Remarks</th>
-              {canDeleteEntry ? <th className="px-4 py-3" /> : null}
+              {showDeleteColumn ? <th className="px-4 py-3" /> : null}
             </tr>
           </thead>
           <tbody className="divide-y">
             {entries.length === 0 ? (
               <tr>
                 <td
-                  colSpan={canDeleteEntry ? 9 : 8}
+                  colSpan={showDeleteColumn ? 9 : 8}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   No sales recorded for this period.
@@ -133,12 +136,12 @@ export function SalesReportPanel({
                   <td className="px-4 py-3 text-muted-foreground">
                     {entry.remarks || "—"}
                   </td>
-                  {canDeleteEntry?.(entry) ? (
+                  {showDeleteColumn ? (
                     <td className="px-4 py-3">
-                      <DeleteSaleButton id={entry.id} />
+                      {deletableIds.has(entry.id) ? (
+                        <DeleteSaleButton id={entry.id} />
+                      ) : null}
                     </td>
-                  ) : canDeleteEntry ? (
-                    <td className="px-4 py-3" />
                   ) : null}
                 </tr>
               ))
