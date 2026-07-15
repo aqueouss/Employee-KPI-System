@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
-import { Trash2 } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import {
   deleteSalesEntryAction,
   type SalesActionState,
 } from "@/actions/sales.actions";
+import { SalesEntryEditDialog } from "@/components/sales/sales-entry-edit-dialog";
 import { Button } from "@/components/ui/button";
 import {
   formatSalesCurrency,
@@ -50,17 +51,34 @@ function DeleteSaleButton({ id }: { id: string }) {
 export function SalesReportPanel({
   summary,
   entries,
+  editableEntryIds,
   deletableEntryIds,
+  minOrderDate,
+  maxOrderDate,
 }: {
   summary: SalesReportSummary;
   entries: SalesEntryRow[];
+  editableEntryIds?: string[];
   deletableEntryIds?: string[];
+  minOrderDate?: string | null;
+  maxOrderDate?: string;
 }) {
+  const [editingEntry, setEditingEntry] = useState<SalesEntryRow | null>(null);
+  const editableIds = new Set(editableEntryIds ?? []);
   const deletableIds = new Set(deletableEntryIds ?? []);
-  const showDeleteColumn = deletableEntryIds !== undefined;
+  const showActionsColumn =
+    editableEntryIds !== undefined || deletableEntryIds !== undefined;
 
   return (
     <div className="space-y-6">
+      <SalesEntryEditDialog
+        entry={editingEntry}
+        open={editingEntry !== null}
+        onClose={() => setEditingEntry(null)}
+        minOrderDate={minOrderDate}
+        maxOrderDate={maxOrderDate ?? ""}
+      />
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border bg-card/60 p-4">
           <p className="text-xs text-muted-foreground">Report</p>
@@ -98,14 +116,14 @@ export function SalesReportPanel({
               <th className="px-4 py-3 text-right">Total</th>
               <th className="px-4 py-3">Order</th>
               <th className="px-4 py-3">Dispatch</th>
-              {showDeleteColumn ? <th className="px-4 py-3" /> : null}
+              {showActionsColumn ? <th className="px-4 py-3">Actions</th> : null}
             </tr>
           </thead>
           <tbody className="divide-y">
             {entries.length === 0 ? (
               <tr>
                 <td
-                  colSpan={showDeleteColumn ? 11 : 10}
+                  colSpan={showActionsColumn ? 11 : 10}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   No sales recorded for this period.
@@ -148,11 +166,25 @@ export function SalesReportPanel({
                   <td className="px-4 py-3">
                     {formatSalesDispatchStatus(entry.dispatch_status)}
                   </td>
-                  {showDeleteColumn ? (
+                  {showActionsColumn ? (
                     <td className="px-4 py-3">
-                      {deletableIds.has(entry.id) ? (
-                        <DeleteSaleButton id={entry.id} />
-                      ) : null}
+                      <div className="flex items-center gap-1">
+                        {editableIds.has(entry.id) ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => setEditingEntry(entry)}
+                            aria-label="Edit sale"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                        {deletableIds.has(entry.id) ? (
+                          <DeleteSaleButton id={entry.id} />
+                        ) : null}
+                      </div>
                     </td>
                   ) : null}
                 </tr>

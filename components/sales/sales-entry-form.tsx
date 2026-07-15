@@ -16,6 +16,7 @@ import {
   SALES_ORDER_STATUS_LABELS,
   SALES_ORDER_STATUSES,
 } from "@/lib/sales/sales-status";
+import { nativeSelectClassName } from "@/lib/ui/native-select";
 
 const initialState: SalesActionState = {};
 
@@ -165,7 +166,7 @@ export function SalesEntryForm({
             name="order_status"
             required
             defaultValue="pending"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className={nativeSelectClassName}
           >
             {SALES_ORDER_STATUSES.map((status) => (
               <option key={status} value={status}>
@@ -181,7 +182,7 @@ export function SalesEntryForm({
             name="dispatch_status"
             required
             defaultValue="pending"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className={nativeSelectClassName}
           >
             {SALES_DISPATCH_STATUSES.map((status) => (
               <option key={status} value={status}>

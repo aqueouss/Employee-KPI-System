@@ -17,6 +17,7 @@ import {
 import {
   createSalesEntrySchema,
   salesEntryIdSchema,
+  updateSalesEntrySchema,
 } from "@/lib/validators/sales-entry.schema";
 
 export type SalesActionState = {
@@ -113,6 +114,100 @@ export async function createSalesEntryAction(
   return { success: "Sale recorded." };
 }
 
+export async function updateSalesEntryAction(
+  _prev: SalesActionState,
+  formData: FormData,
+): Promise<SalesActionState> {
+  const profile = await getSessionProfile();
+  if (!profile) return { error: "Not authenticated." };
+
+  const parsed = updateSalesEntrySchema.safeParse({
+    id: formData.get("id"),
+    customer_name: formData.get("customer_name"),
+    customer_phone: formData.get("customer_phone") || null,
+    customer_email: formData.get("customer_email") || null,
+    customer_address: formData.get("customer_address") || null,
+    customer_region: formData.get("customer_region") || null,
+    item_sold: formData.get("item_sold"),
+    quantity: formData.get("quantity"),
+    unit_price: formData.get("unit_price"),
+    gst_amount: formData.get("gst_amount"),
+    total_amount: formData.get("total_amount"),
+    order_status: formData.get("order_status"),
+    dispatch_status: formData.get("dispatch_status"),
+    order_date: formData.get("order_date"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const supabase = await createClient();
+  const { data: entry, error: fetchError } = await supabase
+    .from("sales_entries")
+    .select("employee_id")
+    .eq("id", parsed.data.id)
+    .single();
+
+  if (fetchError || !entry) return { error: "Sale not found." };
+
+  let hireDate: string | null = null;
+  const today = await getCompanyToday();
+
+  if (profile.role === "employee") {
+    if (!isSalesDepartment(profile.department)) {
+      return { error: "Forbidden." };
+    }
+    if (entry.employee_id !== profile.id) return { error: "Forbidden." };
+    hireDate = profile.hire_date;
+  } else if (profile.role === "admin") {
+    const { data: owner } = await supabase
+      .from("profiles")
+      .select("department, role, hire_date")
+      .eq("id", entry.employee_id)
+      .single();
+
+    if (
+      !owner ||
+      owner.role !== "employee" ||
+      !isSalesDepartment(owner.department)
+    ) {
+      return { error: "Forbidden." };
+    }
+    hireDate = owner.hire_date;
+  } else {
+    return { error: "Forbidden." };
+  }
+
+  const orderDate = normalizeDateString(parsed.data.order_date);
+  const dateError = assertOrderDateAllowed(orderDate, today, hireDate);
+  if (dateError) return { error: dateError };
+
+  const { error } = await supabase
+    .from("sales_entries")
+    .update({
+      order_date: orderDate,
+      customer_name: parsed.data.customer_name,
+      customer_phone: parsed.data.customer_phone,
+      customer_email: parsed.data.customer_email,
+      customer_address: parsed.data.customer_address,
+      customer_region: parsed.data.customer_region,
+      item_sold: parsed.data.item_sold,
+      quantity: parsed.data.quantity,
+      unit_price: parsed.data.unit_price,
+      gst_amount: parsed.data.gst_amount,
+      total_amount: parsed.data.total_amount,
+      order_status: parsed.data.order_status,
+      dispatch_status: parsed.data.dispatch_status,
+    })
+    .eq("id", parsed.data.id);
+
+  if (error) return { error: error.message };
+
+  revalidateSalesPaths(entry.employee_id);
+  return { success: "Sale updated." };
+}
+
 export async function deleteSalesEntryAction(
   _prev: SalesActionState,
   formData: FormData,
@@ -126,6 +221,7 @@ export async function deleteSalesEntryAction(
   }
 
   const supabase = await createClient();
+  let employeeIdForRevalidate: string | undefined;
 
   if (profile.role === "employee") {
     if (!isSalesDepartment(profile.department)) {
@@ -144,7 +240,15 @@ export async function deleteSalesEntryAction(
 
     const dateError = assertOrderDateAllowed(entry.order_date, today, profile.hire_date);
     if (dateError) return { error: "Future-month sales cannot be removed." };
-  } else if (profile.role !== "admin") {
+    employeeIdForRevalidate = profile.id;
+  } else if (profile.role === "admin") {
+    const { data: entry } = await supabase
+      .from("sales_entries")
+      .select("employee_id")
+      .eq("id", parsed.data.id)
+      .single();
+    employeeIdForRevalidate = entry?.employee_id;
+  } else {
     return { error: "Forbidden." };
   }
 
@@ -155,7 +259,7 @@ export async function deleteSalesEntryAction(
 
   if (error) return { error: error.message };
 
-  revalidateSalesPaths(profile.role === "employee" ? profile.id : undefined);
+  revalidateSalesPaths(employeeIdForRevalidate);
   return { success: "Sale removed." };
 }
 

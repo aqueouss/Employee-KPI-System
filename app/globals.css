@@ -178,6 +178,21 @@
     background-attachment: fixed;
   }
 
+  select {
+    color-scheme: light dark;
+    background-color: var(--card);
+    color: var(--foreground);
+  }
+
+  select option {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
+
+  .dark select {
+    color-scheme: dark;
+  }
+
   .dark body {
     background-image:
       radial-gradient(

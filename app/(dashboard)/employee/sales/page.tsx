@@ -59,7 +59,7 @@ export default async function EmployeeSalesPage({
   );
 
   const monthEnd = endOfMonthDateString(today);
-  const deletableEntryIds = report.entries
+  const manageableEntryIds = report.entries
     .filter((entry) => entry.order_date <= monthEnd)
     .map((entry) => entry.id);
 
@@ -107,7 +107,10 @@ export default async function EmployeeSalesPage({
           <SalesReportPanel
             summary={report.summary}
             entries={report.entries}
-            deletableEntryIds={deletableEntryIds}
+            editableEntryIds={manageableEntryIds}
+            deletableEntryIds={manageableEntryIds}
+            minOrderDate={profile.hire_date}
+            maxOrderDate={monthEnd}
           />
         </CardContent>
       </Card>

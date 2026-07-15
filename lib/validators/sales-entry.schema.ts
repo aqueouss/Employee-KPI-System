@@ -15,39 +15,40 @@ const optionalText = (max: number) =>
     .nullable()
     .transform((value) => (value ? value : null));
 
-export const createSalesEntrySchema = z
-  .object({
-    customer_name: z.string().trim().min(1, "Customer name is required.").max(200),
-    customer_phone: optionalText(30),
-    customer_email: z
-      .string()
-      .trim()
-      .max(200)
-      .optional()
-      .nullable()
-      .transform((value) => (value ? value : null))
-      .refine((value) => !value || z.string().email().safeParse(value).success, {
-        message: "Enter a valid email address.",
-      }),
-    customer_address: optionalText(500),
-    customer_region: optionalText(120),
-    item_sold: z.string().trim().min(1, "Item sold is required.").max(200),
-    quantity: z.coerce.number().positive("Quantity must be greater than zero."),
-    unit_price: z.coerce.number().min(0, "Price cannot be negative."),
-    gst_amount: z.coerce.number().min(0, "GST amount cannot be negative."),
-    total_amount: z.coerce.number().min(0, "Total amount cannot be negative."),
-    order_status: z.enum(SALES_ORDER_STATUSES, {
-      message: "Select a valid order status.",
+const salesEntryFieldsSchema = z.object({
+  customer_name: z.string().trim().min(1, "Customer name is required.").max(200),
+  customer_phone: optionalText(30),
+  customer_email: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .nullable()
+    .transform((value) => (value ? value : null))
+    .refine((value) => !value || z.string().email().safeParse(value).success, {
+      message: "Enter a valid email address.",
     }),
-    dispatch_status: z.enum(SALES_DISPATCH_STATUSES, {
-      message: "Select a valid dispatch status.",
-    }),
-    order_date: z
-      .string()
-      .refine((value) => parseDateString(value) !== null, "Invalid order date."),
-  })
-  .refine(
-    (data) =>
+  customer_address: optionalText(500),
+  customer_region: optionalText(120),
+  item_sold: z.string().trim().min(1, "Item sold is required.").max(200),
+  quantity: z.coerce.number().positive("Quantity must be greater than zero."),
+  unit_price: z.coerce.number().min(0, "Price cannot be negative."),
+  gst_amount: z.coerce.number().min(0, "GST amount cannot be negative."),
+  total_amount: z.coerce.number().min(0, "Total amount cannot be negative."),
+  order_status: z.enum(SALES_ORDER_STATUSES, {
+    message: "Select a valid order status.",
+  }),
+  dispatch_status: z.enum(SALES_DISPATCH_STATUSES, {
+    message: "Select a valid dispatch status.",
+  }),
+  order_date: z
+    .string()
+    .refine((value) => parseDateString(value) !== null, "Invalid order date."),
+});
+
+function withTotalAmountCheck<T extends z.ZodTypeAny>(schema: T) {
+  return schema.refine(
+    (data: z.infer<typeof salesEntryFieldsSchema>) =>
       Math.abs(
         data.total_amount - (data.quantity * data.unit_price + data.gst_amount),
       ) < 0.02,
@@ -56,6 +57,15 @@ export const createSalesEntrySchema = z
       path: ["total_amount"],
     },
   );
+}
+
+export const createSalesEntrySchema = withTotalAmountCheck(salesEntryFieldsSchema);
+
+export const updateSalesEntrySchema = withTotalAmountCheck(
+  salesEntryFieldsSchema.extend({
+    id: z.string().uuid("Invalid sale id."),
+  }),
+);
 
 export const salesEntryIdSchema = z.object({
   id: z.string().uuid("Invalid sale id."),

@@ -6,7 +6,11 @@ import { notFound } from "next/navigation";
 import { isSalesDepartment, requireSalesAccess } from "@/lib/sales/sales-access";
 import { loadSalesReport, type SalesReportPeriod } from "@/lib/sales/sales-report";
 import { createClient } from "@/lib/supabase/server";
-import { getTodayDateString, normalizeDateString } from "@/lib/utils/dates";
+import {
+  endOfMonthDateString,
+  getTodayDateString,
+  normalizeDateString,
+} from "@/lib/utils/dates";
 import { SalesPeriodFilter } from "@/components/sales/sales-period-filter";
 import { SalesReportPanel } from "@/components/sales/sales-report-panel";
 import { Button } from "@/components/ui/button";
@@ -75,6 +79,9 @@ export default async function AdminSalesEmployeePage({
     employee.hire_date,
   );
 
+  const monthEnd = endOfMonthDateString(today);
+  const entryIds = report.entries.map((entry) => entry.id);
+
   return (
     <div className="space-y-6">
       <div>
@@ -112,7 +119,10 @@ export default async function AdminSalesEmployeePage({
           <SalesReportPanel
             summary={report.summary}
             entries={report.entries}
-            deletableEntryIds={report.entries.map((entry) => entry.id)}
+            editableEntryIds={entryIds}
+            deletableEntryIds={entryIds}
+            minOrderDate={employee.hire_date}
+            maxOrderDate={monthEnd}
           />
         </CardContent>
       </Card>
