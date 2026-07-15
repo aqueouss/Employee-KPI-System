@@ -13,7 +13,6 @@ import {
   endOfMonthDateString,
   getTodayDateString,
   normalizeDateString,
-  startOfMonthDateString,
 } from "@/lib/utils/dates";
 import {
   createSalesEntrySchema,
@@ -43,11 +42,18 @@ function revalidateSalesPaths(employeeId?: string) {
   }
 }
 
-function assertSaleDateInCurrentMonth(saleDate: string, today: string) {
-  const monthStart = startOfMonthDateString(today);
+function assertOrderDateAllowed(
+  orderDate: string,
+  today: string,
+  hireDate?: string | null,
+) {
   const monthEnd = endOfMonthDateString(today);
-  if (saleDate < monthStart || saleDate > monthEnd) {
-    return "Sales can only be logged for the current month.";
+  if (orderDate > monthEnd) {
+    return "Orders cannot be logged for future months.";
+  }
+  const joined = hireDate?.slice(0, 10);
+  if (joined && orderDate < joined) {
+    return "Order date cannot be before your joining date.";
   }
   return null;
 }
@@ -68,23 +74,25 @@ export async function createSalesEntryAction(
     item_sold: formData.get("item_sold"),
     quantity: formData.get("quantity"),
     unit_price: formData.get("unit_price"),
+    gst_amount: formData.get("gst_amount"),
     total_amount: formData.get("total_amount"),
-    remarks: formData.get("remarks") || null,
-    sale_date: formData.get("sale_date") || today,
+    order_status: formData.get("order_status"),
+    dispatch_status: formData.get("dispatch_status"),
+    order_date: formData.get("order_date") || today,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const saleDate = normalizeDateString(parsed.data.sale_date);
-  const monthError = assertSaleDateInCurrentMonth(saleDate, today);
-  if (monthError) return { error: monthError };
+  const orderDate = normalizeDateString(parsed.data.order_date);
+  const dateError = assertOrderDateAllowed(orderDate, today, profile.hire_date);
+  if (dateError) return { error: dateError };
 
   const supabase = await createClient();
   const { error } = await supabase.from("sales_entries").insert({
     employee_id: profile.id,
-    sale_date: saleDate,
+    order_date: orderDate,
     customer_name: parsed.data.customer_name,
     customer_phone: parsed.data.customer_phone,
     customer_email: parsed.data.customer_email,
@@ -93,14 +101,16 @@ export async function createSalesEntryAction(
     item_sold: parsed.data.item_sold,
     quantity: parsed.data.quantity,
     unit_price: parsed.data.unit_price,
+    gst_amount: parsed.data.gst_amount,
     total_amount: parsed.data.total_amount,
-    remarks: parsed.data.remarks,
+    order_status: parsed.data.order_status,
+    dispatch_status: parsed.data.dispatch_status,
   });
 
   if (error) return { error: error.message };
 
   revalidateSalesPaths(profile.id);
-  return { success: "Sale recorded for this month." };
+  return { success: "Sale recorded." };
 }
 
 export async function deleteSalesEntryAction(
@@ -125,15 +135,15 @@ export async function deleteSalesEntryAction(
     const today = await getCompanyToday();
     const { data: entry, error: fetchError } = await supabase
       .from("sales_entries")
-      .select("employee_id, sale_date")
+      .select("employee_id, order_date")
       .eq("id", parsed.data.id)
       .single();
 
     if (fetchError || !entry) return { error: "Sale not found." };
     if (entry.employee_id !== profile.id) return { error: "Forbidden." };
 
-    const monthError = assertSaleDateInCurrentMonth(entry.sale_date, today);
-    if (monthError) return { error: "Only current-month sales can be removed." };
+    const dateError = assertOrderDateAllowed(entry.order_date, today, profile.hire_date);
+    if (dateError) return { error: "Future-month sales cannot be removed." };
   } else if (profile.role !== "admin") {
     return { error: "Forbidden." };
   }

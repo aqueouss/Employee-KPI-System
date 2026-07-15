@@ -664,12 +664,14 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           customer_region: string | null
+          dispatch_status: string
           employee_id: string
+          gst_amount: number
           id: string
           item_sold: string
+          order_date: string
+          order_status: string
           quantity: number
-          remarks: string | null
-          sale_date: string
           total_amount: number
           unit_price: number
           updated_at: string
@@ -681,12 +683,14 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           customer_region?: string | null
+          dispatch_status?: string
           employee_id: string
+          gst_amount?: number
           id?: string
           item_sold: string
+          order_date?: string
+          order_status?: string
           quantity: number
-          remarks?: string | null
-          sale_date?: string
           total_amount: number
           unit_price: number
           updated_at?: string
@@ -698,12 +702,14 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           customer_region?: string | null
+          dispatch_status?: string
           employee_id?: string
+          gst_amount?: number
           id?: string
           item_sold?: string
+          order_date?: string
+          order_status?: string
           quantity?: number
-          remarks?: string | null
-          sale_date?: string
           total_amount?: number
           unit_price?: number
           updated_at?: string

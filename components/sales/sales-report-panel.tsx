@@ -13,6 +13,10 @@ import {
   type SalesEntryRow,
   type SalesReportSummary,
 } from "@/lib/sales/sales-report";
+import {
+  formatSalesDispatchStatus,
+  formatSalesOrderStatus,
+} from "@/lib/sales/sales-status";
 import { formatDateLabel } from "@/lib/utils/dates";
 
 const initialState: SalesActionState = {};
@@ -84,14 +88,16 @@ export function SalesReportPanel({
         <table className="min-w-full text-sm">
           <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3">Order date</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Region</th>
               <th className="px-4 py-3">Item</th>
               <th className="px-4 py-3 text-right">Qty</th>
               <th className="px-4 py-3 text-right">Price</th>
+              <th className="px-4 py-3 text-right">GST</th>
               <th className="px-4 py-3 text-right">Total</th>
-              <th className="px-4 py-3">Remarks</th>
+              <th className="px-4 py-3">Order</th>
+              <th className="px-4 py-3">Dispatch</th>
               {showDeleteColumn ? <th className="px-4 py-3" /> : null}
             </tr>
           </thead>
@@ -99,7 +105,7 @@ export function SalesReportPanel({
             {entries.length === 0 ? (
               <tr>
                 <td
-                  colSpan={showDeleteColumn ? 9 : 8}
+                  colSpan={showDeleteColumn ? 11 : 10}
                   className="px-4 py-10 text-center text-muted-foreground"
                 >
                   No sales recorded for this period.
@@ -109,7 +115,7 @@ export function SalesReportPanel({
               entries.map((entry) => (
                 <tr key={entry.id} className="align-top">
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {formatDateLabel(entry.sale_date)}
+                    {formatDateLabel(entry.order_date)}
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium">{entry.customer_name}</p>
@@ -130,11 +136,17 @@ export function SalesReportPanel({
                   <td className="px-4 py-3 text-right">
                     {formatSalesCurrency(entry.unit_price)}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    {formatSalesCurrency(entry.gst_amount)}
+                  </td>
                   <td className="px-4 py-3 text-right font-medium">
                     {formatSalesCurrency(entry.total_amount)}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {entry.remarks || "—"}
+                  <td className="px-4 py-3">
+                    {formatSalesOrderStatus(entry.order_status)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {formatSalesDispatchStatus(entry.dispatch_status)}
                   </td>
                   {showDeleteColumn ? (
                     <td className="px-4 py-3">

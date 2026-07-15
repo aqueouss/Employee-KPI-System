@@ -20,7 +20,7 @@ export type SalesReportPeriod =
 
 export type SalesEntryRow = {
   id: string;
-  sale_date: string;
+  order_date: string;
   customer_name: string;
   customer_phone: string | null;
   customer_email: string | null;
@@ -29,8 +29,10 @@ export type SalesEntryRow = {
   item_sold: string;
   quantity: number;
   unit_price: number;
+  gst_amount: number;
   total_amount: number;
-  remarks: string | null;
+  order_status: string;
+  dispatch_status: string;
   created_at: string;
 };
 
@@ -136,7 +138,7 @@ export function resolveSalesPeriodRange(
 function mapEntry(row: Database["public"]["Tables"]["sales_entries"]["Row"]): SalesEntryRow {
   return {
     id: row.id,
-    sale_date: row.sale_date,
+    order_date: row.order_date,
     customer_name: row.customer_name,
     customer_phone: row.customer_phone,
     customer_email: row.customer_email,
@@ -145,8 +147,10 @@ function mapEntry(row: Database["public"]["Tables"]["sales_entries"]["Row"]): Sa
     item_sold: row.item_sold,
     quantity: Number(row.quantity),
     unit_price: Number(row.unit_price),
+    gst_amount: Number(row.gst_amount),
     total_amount: Number(row.total_amount),
-    remarks: row.remarks,
+    order_status: row.order_status,
+    dispatch_status: row.dispatch_status,
     created_at: row.created_at,
   };
 }
@@ -164,9 +168,9 @@ export async function loadSalesReport(
     .from("sales_entries")
     .select("*")
     .eq("employee_id", employeeId)
-    .gte("sale_date", range.startDate)
-    .lte("sale_date", range.endDate)
-    .order("sale_date", { ascending: false })
+    .gte("order_date", range.startDate)
+    .lte("order_date", range.endDate)
+    .order("order_date", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);

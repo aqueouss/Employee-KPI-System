@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import {
+  SALES_DISPATCH_STATUSES,
+  SALES_ORDER_STATUSES,
+} from "@/lib/sales/sales-status";
 import { parseDateString } from "@/lib/utils/dates";
 
 const optionalText = (max: number) =>
@@ -30,16 +34,25 @@ export const createSalesEntrySchema = z
     item_sold: z.string().trim().min(1, "Item sold is required.").max(200),
     quantity: z.coerce.number().positive("Quantity must be greater than zero."),
     unit_price: z.coerce.number().min(0, "Price cannot be negative."),
+    gst_amount: z.coerce.number().min(0, "GST amount cannot be negative."),
     total_amount: z.coerce.number().min(0, "Total amount cannot be negative."),
-    remarks: optionalText(1000),
-    sale_date: z
+    order_status: z.enum(SALES_ORDER_STATUSES, {
+      message: "Select a valid order status.",
+    }),
+    dispatch_status: z.enum(SALES_DISPATCH_STATUSES, {
+      message: "Select a valid dispatch status.",
+    }),
+    order_date: z
       .string()
-      .refine((value) => parseDateString(value) !== null, "Invalid sale date."),
+      .refine((value) => parseDateString(value) !== null, "Invalid order date."),
   })
   .refine(
-    (data) => Math.abs(data.total_amount - data.quantity * data.unit_price) < 0.02,
+    (data) =>
+      Math.abs(
+        data.total_amount - (data.quantity * data.unit_price + data.gst_amount),
+      ) < 0.02,
     {
-      message: "Total amount must match quantity × price.",
+      message: "Total amount must match quantity × price + GST.",
       path: ["total_amount"],
     },
   );

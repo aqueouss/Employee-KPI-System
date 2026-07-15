@@ -10,15 +10,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  SALES_DISPATCH_STATUS_LABELS,
+  SALES_DISPATCH_STATUSES,
+  SALES_ORDER_STATUS_LABELS,
+  SALES_ORDER_STATUSES,
+} from "@/lib/sales/sales-status";
 
 const initialState: SalesActionState = {};
 
 export function SalesEntryForm({
   today,
-  monthLabel,
+  minOrderDate,
+  maxOrderDate,
 }: {
   today: string;
-  monthLabel: string;
+  minOrderDate?: string | null;
+  maxOrderDate: string;
 }) {
   const [state, formAction, isPending] = useActionState(
     createSalesEntryAction,
@@ -27,31 +35,47 @@ export function SalesEntryForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [quantity, setQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("0");
+  const [gstAmount, setGstAmount] = useState("0");
+  const [orderDate, setOrderDate] = useState(today);
 
   const totalAmount = useMemo(() => {
     const qty = Number(quantity) || 0;
     const price = Number(unitPrice) || 0;
-    return Math.round(qty * price * 100) / 100;
-  }, [quantity, unitPrice]);
+    const gst = Number(gstAmount) || 0;
+    return Math.round((qty * price + gst) * 100) / 100;
+  }, [quantity, unitPrice, gstAmount]);
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
       setQuantity("1");
       setUnitPrice("0");
+      setGstAmount("0");
+      setOrderDate(today);
     }
-  }, [state.success]);
+  }, [state.success, today]);
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
-      <input type="hidden" name="sale_date" value={today} />
-
       <div className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
-        Logging sales for <span className="font-medium text-foreground">{monthLabel}</span>.
-        Entries count toward this month&apos;s report.
+        You can backfill sales from previous months. Order date cannot be in a
+        future month.
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="order_date">Order date</Label>
+          <Input
+            id="order_date"
+            name="order_date"
+            type="date"
+            required
+            min={minOrderDate ?? undefined}
+            max={maxOrderDate}
+            value={orderDate}
+            onChange={(e) => setOrderDate(e.target.value)}
+          />
+        </div>
         <div className="space-y-1.5 md:col-span-2">
           <Label htmlFor="customer_name">Customer name</Label>
           <Input id="customer_name" name="customer_name" required maxLength={200} />
@@ -109,6 +133,19 @@ export function SalesEntryForm({
           />
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="gst_amount">GST amount (INR)</Label>
+          <Input
+            id="gst_amount"
+            name="gst_amount"
+            type="number"
+            min="0"
+            step="0.01"
+            required
+            value={gstAmount}
+            onChange={(e) => setGstAmount(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="total_amount">Total amount (INR)</Label>
           <Input
             id="total_amount"
@@ -121,15 +158,37 @@ export function SalesEntryForm({
             value={totalAmount}
           />
         </div>
-        <div className="space-y-1.5 md:col-span-2">
-          <Label htmlFor="remarks">Remarks</Label>
-          <textarea
-            id="remarks"
-            name="remarks"
-            rows={3}
-            maxLength={1000}
-            className="flex min-h-[4.5rem] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
+        <div className="space-y-1.5">
+          <Label htmlFor="order_status">Order status</Label>
+          <select
+            id="order_status"
+            name="order_status"
+            required
+            defaultValue="pending"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {SALES_ORDER_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {SALES_ORDER_STATUS_LABELS[status]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="dispatch_status">Dispatch status</Label>
+          <select
+            id="dispatch_status"
+            name="dispatch_status"
+            required
+            defaultValue="pending"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {SALES_DISPATCH_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {SALES_DISPATCH_STATUS_LABELS[status]}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

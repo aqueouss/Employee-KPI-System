@@ -7,7 +7,6 @@ import {
   endOfMonthDateString,
   getTodayDateString,
   normalizeDateString,
-  startOfMonthDateString,
 } from "@/lib/utils/dates";
 import { SalesEntryForm } from "@/components/sales/sales-entry-form";
 import { SalesPeriodFilter } from "@/components/sales/sales-period-filter";
@@ -50,10 +49,6 @@ export default async function EmployeeSalesPage({
   const today = getTodayDateString(rules?.company_timezone ?? "UTC");
   const period = parsePeriod(params.period);
   const anchorDate = normalizeDateString(params.anchor ?? today);
-  const monthLabel = new Date(`${startOfMonthDateString(today)}T12:00:00`).toLocaleDateString(
-    "en-IN",
-    { month: "long", year: "numeric" },
-  );
 
   const report = await loadSalesReport(
     supabase,
@@ -63,12 +58,9 @@ export default async function EmployeeSalesPage({
     profile.hire_date,
   );
 
-  const monthStart = startOfMonthDateString(today);
   const monthEnd = endOfMonthDateString(today);
   const deletableEntryIds = report.entries
-    .filter(
-      (entry) => entry.sale_date >= monthStart && entry.sale_date <= monthEnd,
-    )
+    .filter((entry) => entry.order_date <= monthEnd)
     .map((entry) => entry.id);
 
   return (
@@ -76,8 +68,8 @@ export default async function EmployeeSalesPage({
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Sales report</h1>
         <p className="text-muted-foreground">
-          Log customer sales for the current month and review monthly, quarterly,
-          half-yearly, yearly, and lifetime totals.
+          Log customer sales for previous or current months and review monthly,
+          quarterly, half-yearly, yearly, and lifetime totals.
         </p>
       </div>
 
@@ -85,11 +77,15 @@ export default async function EmployeeSalesPage({
         <CardHeader>
           <CardTitle>Add sale</CardTitle>
           <CardDescription>
-            Customer details, item, quantity, price, and remarks.
+            Customer details, order date, item, quantity, price, GST, and status.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SalesEntryForm today={today} monthLabel={monthLabel} />
+          <SalesEntryForm
+            today={today}
+            minOrderDate={profile.hire_date}
+            maxOrderDate={monthEnd}
+          />
         </CardContent>
       </Card>
 
