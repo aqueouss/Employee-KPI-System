@@ -656,6 +656,68 @@ export type Database = {
           },
         ]
       }
+      sales_entries: {
+        Row: {
+          created_at: string
+          customer_address: string | null
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          customer_region: string | null
+          employee_id: string
+          id: string
+          item_sold: string
+          quantity: number
+          remarks: string | null
+          sale_date: string
+          total_amount: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_address?: string | null
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          customer_region?: string | null
+          employee_id: string
+          id?: string
+          item_sold: string
+          quantity: number
+          remarks?: string | null
+          sale_date?: string
+          total_amount: number
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_address?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          customer_region?: string | null
+          employee_id?: string
+          id?: string
+          item_sold?: string
+          quantity?: number
+          remarks?: string | null
+          sale_date?: string
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rewards: {
         Row: {
           eligible_at: string

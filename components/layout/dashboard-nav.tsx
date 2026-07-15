@@ -14,6 +14,7 @@ import {
   CalendarCheck,
   Building2,
   Gauge,
+  IndianRupee,
   MessageSquareWarning,
   ScrollText,
   Trophy,
@@ -59,6 +60,12 @@ const adminNav: NavEntry[] = [
     href: "/admin/departments",
     label: "Departments",
     icon: Building2,
+  },
+  {
+    type: "link",
+    href: "/admin/sales",
+    label: "Sales",
+    icon: IndianRupee,
   },
   {
     type: "link",
@@ -131,6 +138,12 @@ const adminNav: NavEntry[] = [
     icon: ScrollText,
   },
 ];
+
+const salesEmployeeNavItem: NavItem = {
+  href: "/employee/sales",
+  label: "Sales",
+  icon: IndianRupee,
+};
 
 const employeeNav: NavEntry[] = [
   {
@@ -330,15 +343,20 @@ function NavGroupSection({
 export function DashboardNav({
   role,
   kpiTracked = true,
+  salesAccess = false,
   onNavigate,
 }: {
   role: UserRole;
   kpiTracked?: boolean;
+  salesAccess?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const { counts } = useNotifications();
-  const employeeItems = kpiTracked ? employeeNav : payrollEmployeeNav;
+  const employeeItems = [
+    ...(kpiTracked ? employeeNav : payrollEmployeeNav),
+    ...(salesAccess ? [{ type: "link" as const, ...salesEmployeeNavItem }] : []),
+  ];
   const sharedItems = kpiTracked
     ? sharedNav
     : sharedNav.filter(

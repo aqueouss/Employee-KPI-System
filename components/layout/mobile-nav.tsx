@@ -11,9 +11,11 @@ import type { UserRole } from "@/types/domain";
 export function MobileNav({
   role,
   kpiTracked = true,
+  salesAccess = false,
 }: {
   role: UserRole;
   kpiTracked?: boolean;
+  salesAccess?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -59,6 +61,7 @@ export function MobileNav({
             <DashboardNav
               role={role}
               kpiTracked={kpiTracked}
+              salesAccess={salesAccess}
               onNavigate={() => setOpen(false)}
             />
           </div>

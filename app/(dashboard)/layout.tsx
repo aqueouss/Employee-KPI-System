@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { logoutAction } from "@/actions/auth.actions";
 import { AppLogo } from "@/components/layout/app-logo";
 import { requireRole } from "@/lib/auth/require-role";
+import { hasSalesAccess } from "@/lib/sales/sales-access";
 import { loadPendingBroadcastNotifications } from "@/lib/broadcast-notifications";
 import { getNotificationCounts } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +22,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const profile = await requireRole(["admin", "employee"]);
+  const salesAccess = hasSalesAccess(profile);
   const initialCounts = await getNotificationCounts(profile);
   const supabase = await createClient();
   const pendingBroadcastNotifications =
@@ -33,7 +35,11 @@ export default async function DashboardLayout({
       <header className="sticky top-0 z-40 border-b border-border/60 bg-surface/80 shadow-sm backdrop-blur-xl dark:bg-card/80">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:px-4">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <MobileNav role={profile.role} kpiTracked={profile.kpi_tracked} />
+            <MobileNav
+              role={profile.role}
+              kpiTracked={profile.kpi_tracked}
+              salesAccess={salesAccess}
+            />
             <AppLogo />
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
@@ -74,7 +80,11 @@ export default async function DashboardLayout({
         <aside className="hidden w-56 shrink-0 md:block">
           <div className="sticky top-20">
             <div className="glass-panel rounded-xl p-2">
-              <DashboardNav role={profile.role} kpiTracked={profile.kpi_tracked} />
+              <DashboardNav
+                role={profile.role}
+                kpiTracked={profile.kpi_tracked}
+                salesAccess={salesAccess}
+              />
             </div>
           </div>
         </aside>
