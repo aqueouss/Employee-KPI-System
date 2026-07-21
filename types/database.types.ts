@@ -658,6 +658,7 @@ export type Database = {
       }
       sales_entries: {
         Row: {
+          advance_received: number | null
           created_at: string
           customer_address: string | null
           customer_email: string | null
@@ -668,15 +669,20 @@ export type Database = {
           employee_id: string
           gst_amount: number
           id: string
+          is_advance_payment: boolean
           item_sold: string
+          net_amount: number
           order_date: string
           order_status: string
+          other_amount: number
           quantity: number
+          remaining_amount: number | null
           total_amount: number
           unit_price: number
           updated_at: string
         }
         Insert: {
+          advance_received?: number | null
           created_at?: string
           customer_address?: string | null
           customer_email?: string | null
@@ -687,15 +693,20 @@ export type Database = {
           employee_id: string
           gst_amount?: number
           id?: string
+          is_advance_payment?: boolean
           item_sold: string
+          net_amount?: number
           order_date?: string
           order_status?: string
+          other_amount?: number
           quantity: number
+          remaining_amount?: number | null
           total_amount: number
           unit_price: number
           updated_at?: string
         }
         Update: {
+          advance_received?: number | null
           created_at?: string
           customer_address?: string | null
           customer_email?: string | null
@@ -706,10 +717,14 @@ export type Database = {
           employee_id?: string
           gst_amount?: number
           id?: string
+          is_advance_payment?: boolean
           item_sold?: string
+          net_amount?: number
           order_date?: string
           order_status?: string
+          other_amount?: number
           quantity?: number
+          remaining_amount?: number | null
           total_amount?: number
           unit_price?: number
           updated_at?: string

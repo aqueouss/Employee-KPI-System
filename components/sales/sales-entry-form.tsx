@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 
 import {
   createSalesEntryAction,
   type SalesActionState,
 } from "@/actions/sales.actions";
+import { SalesEntryPricingFields } from "@/components/sales/sales-entry-pricing-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,22 +37,19 @@ export function SalesEntryForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [quantity, setQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("0");
-  const [gstAmount, setGstAmount] = useState("0");
+  const [otherAmount, setOtherAmount] = useState("0");
+  const [isAdvancePayment, setIsAdvancePayment] = useState(false);
+  const [advanceReceived, setAdvanceReceived] = useState("0");
   const [orderDate, setOrderDate] = useState(today);
-
-  const totalAmount = useMemo(() => {
-    const qty = Number(quantity) || 0;
-    const price = Number(unitPrice) || 0;
-    const gst = Number(gstAmount) || 0;
-    return Math.round((qty * price + gst) * 100) / 100;
-  }, [quantity, unitPrice, gstAmount]);
 
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset();
       setQuantity("1");
       setUnitPrice("0");
-      setGstAmount("0");
+      setOtherAmount("0");
+      setIsAdvancePayment(false);
+      setAdvanceReceived("0");
       setOrderDate(today);
     }
   }, [state.success, today]);
@@ -59,8 +57,9 @@ export function SalesEntryForm({
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
       <div className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
-        You can backfill sales from previous months. Order date cannot be in a
-        future month.
+        Net amount is qty × unit price. Total includes other charges plus 18% GST
+        on (net + other). You can backfill previous months; order date cannot be
+        in a future month.
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -107,58 +106,20 @@ export function SalesEntryForm({
           <Label htmlFor="item_sold">Item sold</Label>
           <Input id="item_sold" name="item_sold" required maxLength={200} />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="quantity">Quantity</Label>
-          <Input
-            id="quantity"
-            name="quantity"
-            type="number"
-            min="0.01"
-            step="0.01"
-            required
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="unit_price">Unit price (INR)</Label>
-          <Input
-            id="unit_price"
-            name="unit_price"
-            type="number"
-            min="0"
-            step="0.01"
-            required
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="gst_amount">GST amount (INR)</Label>
-          <Input
-            id="gst_amount"
-            name="gst_amount"
-            type="number"
-            min="0"
-            step="0.01"
-            required
-            value={gstAmount}
-            onChange={(e) => setGstAmount(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="total_amount">Total amount (INR)</Label>
-          <Input
-            id="total_amount"
-            name="total_amount"
-            type="number"
-            min="0"
-            step="0.01"
-            required
-            readOnly
-            value={totalAmount}
-          />
-        </div>
+
+        <SalesEntryPricingFields
+          quantity={quantity}
+          unitPrice={unitPrice}
+          otherAmount={otherAmount}
+          isAdvancePayment={isAdvancePayment}
+          advanceReceived={advanceReceived}
+          onQuantityChange={setQuantity}
+          onUnitPriceChange={setUnitPrice}
+          onOtherAmountChange={setOtherAmount}
+          onAdvancePaymentChange={setIsAdvancePayment}
+          onAdvanceReceivedChange={setAdvanceReceived}
+        />
+
         <div className="space-y-1.5">
           <Label htmlFor="order_status">Order status</Label>
           <select

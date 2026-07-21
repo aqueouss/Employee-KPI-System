@@ -29,8 +29,13 @@ export type SalesEntryRow = {
   item_sold: string;
   quantity: number;
   unit_price: number;
+  other_amount: number;
+  net_amount: number;
   gst_amount: number;
   total_amount: number;
+  is_advance_payment: boolean;
+  advance_received: number | null;
+  remaining_amount: number | null;
   order_status: string;
   dispatch_status: string;
   created_at: string;
@@ -43,6 +48,7 @@ export type SalesReportSummary = {
   endDate: string;
   entryCount: number;
   totalQuantity: number;
+  totalNetAmount: number;
   totalAmount: number;
 };
 
@@ -147,8 +153,19 @@ function mapEntry(row: Database["public"]["Tables"]["sales_entries"]["Row"]): Sa
     item_sold: row.item_sold,
     quantity: Number(row.quantity),
     unit_price: Number(row.unit_price),
+    other_amount: Number(row.other_amount ?? 0),
+    net_amount: Number(row.net_amount ?? row.quantity * row.unit_price),
     gst_amount: Number(row.gst_amount),
     total_amount: Number(row.total_amount),
+    is_advance_payment: Boolean(row.is_advance_payment),
+    advance_received:
+      row.advance_received === null || row.advance_received === undefined
+        ? null
+        : Number(row.advance_received),
+    remaining_amount:
+      row.remaining_amount === null || row.remaining_amount === undefined
+        ? null
+        : Number(row.remaining_amount),
     order_status: row.order_status,
     dispatch_status: row.dispatch_status,
     created_at: row.created_at,
@@ -177,6 +194,7 @@ export async function loadSalesReport(
 
   const entries = (data ?? []).map(mapEntry);
   const totalQuantity = entries.reduce((sum, row) => sum + row.quantity, 0);
+  const totalNetAmount = entries.reduce((sum, row) => sum + row.net_amount, 0);
   const totalAmount = entries.reduce((sum, row) => sum + row.total_amount, 0);
 
   return {
@@ -188,6 +206,7 @@ export async function loadSalesReport(
       endDate: range.endDate,
       entryCount: entries.length,
       totalQuantity,
+      totalNetAmount,
       totalAmount,
     },
   };

@@ -77,7 +77,7 @@ export default async function EmployeeSalesPage({
         <CardHeader>
           <CardTitle>Add sale</CardTitle>
           <CardDescription>
-            Customer details, order date, item, quantity, price, GST, and status.
+            Customer details, order date, item, pricing, payment type, and status.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Pencil, X } from "lucide-react";
 
 import {
   updateSalesEntryAction,
   type SalesActionState,
 } from "@/actions/sales.actions";
+import { SalesEntryPricingFields } from "@/components/sales/sales-entry-pricing-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,14 +41,18 @@ export function SalesEntryEditDialog({
   );
   const [quantity, setQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("0");
-  const [gstAmount, setGstAmount] = useState("0");
+  const [otherAmount, setOtherAmount] = useState("0");
+  const [isAdvancePayment, setIsAdvancePayment] = useState(false);
+  const [advanceReceived, setAdvanceReceived] = useState("0");
   const [orderDate, setOrderDate] = useState("");
 
   useEffect(() => {
     if (!entry) return;
     setQuantity(String(entry.quantity));
     setUnitPrice(String(entry.unit_price));
-    setGstAmount(String(entry.gst_amount));
+    setOtherAmount(String(entry.other_amount));
+    setIsAdvancePayment(entry.is_advance_payment);
+    setAdvanceReceived(String(entry.advance_received ?? 0));
     setOrderDate(entry.order_date);
   }, [entry]);
 
@@ -56,13 +61,6 @@ export function SalesEntryEditDialog({
       onClose();
     }
   }, [state.success, onClose]);
-
-  const totalAmount = useMemo(() => {
-    const qty = Number(quantity) || 0;
-    const price = Number(unitPrice) || 0;
-    const gst = Number(gstAmount) || 0;
-    return Math.round((qty * price + gst) * 100) / 100;
-  }, [quantity, unitPrice, gstAmount]);
 
   if (!open || !entry) return null;
 
@@ -80,7 +78,7 @@ export function SalesEntryEditDialog({
               Edit sale
             </h3>
             <p className="text-sm text-muted-foreground">
-              Update customer, order, and dispatch details.
+              Update customer, pricing, payment, and dispatch details.
             </p>
           </div>
           <Button
@@ -171,58 +169,21 @@ export function SalesEntryEditDialog({
                 defaultValue={entry.item_sold}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_quantity">Quantity</Label>
-              <Input
-                id="edit_quantity"
-                name="quantity"
-                type="number"
-                min="0.01"
-                step="0.01"
-                required
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_unit_price">Unit price (INR)</Label>
-              <Input
-                id="edit_unit_price"
-                name="unit_price"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_gst_amount">GST amount (INR)</Label>
-              <Input
-                id="edit_gst_amount"
-                name="gst_amount"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={gstAmount}
-                onChange={(e) => setGstAmount(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="edit_total_amount">Total amount (INR)</Label>
-              <Input
-                id="edit_total_amount"
-                name="total_amount"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                readOnly
-                value={totalAmount}
-              />
-            </div>
+
+            <SalesEntryPricingFields
+              idPrefix="edit"
+              quantity={quantity}
+              unitPrice={unitPrice}
+              otherAmount={otherAmount}
+              isAdvancePayment={isAdvancePayment}
+              advanceReceived={advanceReceived}
+              onQuantityChange={setQuantity}
+              onUnitPriceChange={setUnitPrice}
+              onOtherAmountChange={setOtherAmount}
+              onAdvancePaymentChange={setIsAdvancePayment}
+              onAdvanceReceivedChange={setAdvanceReceived}
+            />
+
             <div className="space-y-1.5">
               <Label htmlFor="edit_order_status">Order status</Label>
               <select

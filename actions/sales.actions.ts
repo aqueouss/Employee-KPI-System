@@ -16,6 +16,7 @@ import {
 } from "@/lib/utils/dates";
 import {
   createSalesEntrySchema,
+  resolveSalesPaymentFields,
   salesEntryIdSchema,
   updateSalesEntrySchema,
 } from "@/lib/validators/sales-entry.schema";
@@ -59,14 +60,11 @@ function assertOrderDateAllowed(
   return null;
 }
 
-export async function createSalesEntryAction(
-  _prev: SalesActionState,
-  formData: FormData,
-): Promise<SalesActionState> {
-  const profile = await requireSalesEmployee();
-  const today = await getCompanyToday();
+function parseSalesEntryFormData(formData: FormData, includeId = false) {
+  const isAdvance = formData.get("is_advance_payment") === "true";
 
-  const parsed = createSalesEntrySchema.safeParse({
+  return {
+    ...(includeId ? { id: formData.get("id") } : {}),
     customer_name: formData.get("customer_name"),
     customer_phone: formData.get("customer_phone") || null,
     customer_email: formData.get("customer_email") || null,
@@ -75,18 +73,56 @@ export async function createSalesEntryAction(
     item_sold: formData.get("item_sold"),
     quantity: formData.get("quantity"),
     unit_price: formData.get("unit_price"),
+    other_amount: formData.get("other_amount"),
+    net_amount: formData.get("net_amount"),
     gst_amount: formData.get("gst_amount"),
     total_amount: formData.get("total_amount"),
+    is_advance_payment: formData.get("is_advance_payment"),
+    advance_received: isAdvance ? formData.get("advance_received") : null,
+    remaining_amount: isAdvance ? formData.get("remaining_amount") : null,
     order_status: formData.get("order_status"),
     dispatch_status: formData.get("dispatch_status"),
-    order_date: formData.get("order_date") || today,
-  });
+    order_date: formData.get("order_date"),
+  };
+}
 
+function buildSalesEntryRecord(
+  parsed: ReturnType<typeof createSalesEntrySchema.parse>,
+) {
+  const payment = resolveSalesPaymentFields(parsed);
+
+  return {
+    customer_name: parsed.customer_name,
+    customer_phone: parsed.customer_phone,
+    customer_email: parsed.customer_email,
+    customer_address: parsed.customer_address,
+    customer_region: parsed.customer_region,
+    item_sold: parsed.item_sold,
+    quantity: parsed.quantity,
+    unit_price: parsed.unit_price,
+    other_amount: parsed.other_amount,
+    net_amount: parsed.net_amount,
+    gst_amount: parsed.gst_amount,
+    total_amount: parsed.total_amount,
+    order_status: parsed.order_status,
+    dispatch_status: parsed.dispatch_status,
+    ...payment,
+  };
+}
+
+export async function createSalesEntryAction(
+  _prev: SalesActionState,
+  formData: FormData,
+): Promise<SalesActionState> {
+  const profile = await requireSalesEmployee();
+  const today = await getCompanyToday();
+
+  const parsed = createSalesEntrySchema.safeParse(parseSalesEntryFormData(formData));
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const orderDate = normalizeDateString(parsed.data.order_date);
+  const orderDate = normalizeDateString(parsed.data.order_date || today);
   const dateError = assertOrderDateAllowed(orderDate, today, profile.hire_date);
   if (dateError) return { error: dateError };
 
@@ -94,18 +130,7 @@ export async function createSalesEntryAction(
   const { error } = await supabase.from("sales_entries").insert({
     employee_id: profile.id,
     order_date: orderDate,
-    customer_name: parsed.data.customer_name,
-    customer_phone: parsed.data.customer_phone,
-    customer_email: parsed.data.customer_email,
-    customer_address: parsed.data.customer_address,
-    customer_region: parsed.data.customer_region,
-    item_sold: parsed.data.item_sold,
-    quantity: parsed.data.quantity,
-    unit_price: parsed.data.unit_price,
-    gst_amount: parsed.data.gst_amount,
-    total_amount: parsed.data.total_amount,
-    order_status: parsed.data.order_status,
-    dispatch_status: parsed.data.dispatch_status,
+    ...buildSalesEntryRecord(parsed.data),
   });
 
   if (error) return { error: error.message };
@@ -121,23 +146,9 @@ export async function updateSalesEntryAction(
   const profile = await getSessionProfile();
   if (!profile) return { error: "Not authenticated." };
 
-  const parsed = updateSalesEntrySchema.safeParse({
-    id: formData.get("id"),
-    customer_name: formData.get("customer_name"),
-    customer_phone: formData.get("customer_phone") || null,
-    customer_email: formData.get("customer_email") || null,
-    customer_address: formData.get("customer_address") || null,
-    customer_region: formData.get("customer_region") || null,
-    item_sold: formData.get("item_sold"),
-    quantity: formData.get("quantity"),
-    unit_price: formData.get("unit_price"),
-    gst_amount: formData.get("gst_amount"),
-    total_amount: formData.get("total_amount"),
-    order_status: formData.get("order_status"),
-    dispatch_status: formData.get("dispatch_status"),
-    order_date: formData.get("order_date"),
-  });
-
+  const parsed = updateSalesEntrySchema.safeParse(
+    parseSalesEntryFormData(formData, true),
+  );
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
@@ -187,18 +198,7 @@ export async function updateSalesEntryAction(
     .from("sales_entries")
     .update({
       order_date: orderDate,
-      customer_name: parsed.data.customer_name,
-      customer_phone: parsed.data.customer_phone,
-      customer_email: parsed.data.customer_email,
-      customer_address: parsed.data.customer_address,
-      customer_region: parsed.data.customer_region,
-      item_sold: parsed.data.item_sold,
-      quantity: parsed.data.quantity,
-      unit_price: parsed.data.unit_price,
-      gst_amount: parsed.data.gst_amount,
-      total_amount: parsed.data.total_amount,
-      order_status: parsed.data.order_status,
-      dispatch_status: parsed.data.dispatch_status,
+      ...buildSalesEntryRecord(parsed.data),
     })
     .eq("id", parsed.data.id);
 

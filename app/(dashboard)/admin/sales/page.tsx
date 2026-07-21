@@ -82,6 +82,10 @@ export default async function AdminSalesPage({
     }),
   );
 
+  const teamMonthlyNetTotal = reports.reduce(
+    (sum, row) => sum + row.monthlyReport.summary.totalNetAmount,
+    0,
+  );
   const teamMonthlyTotal = reports.reduce(
     (sum, row) => sum + row.monthlyReport.summary.totalAmount,
     0,
@@ -97,7 +101,7 @@ export default async function AdminSalesPage({
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Sales team members</CardDescription>
@@ -106,7 +110,15 @@ export default async function AdminSalesPage({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Team total this month</CardDescription>
+            <CardDescription>Team net sales this month</CardDescription>
+            <CardTitle className="text-3xl">
+              {formatSalesCurrency(teamMonthlyNetTotal)}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Team total sales this month</CardDescription>
             <CardTitle className="text-3xl">
               {formatSalesCurrency(teamMonthlyTotal)}
             </CardTitle>
@@ -135,7 +147,8 @@ export default async function AdminSalesPage({
                   <p className="font-medium">{employee.full_name}</p>
                   <p className="text-sm text-muted-foreground">{employee.email}</p>
                   <p className="mt-1 text-sm">
-                    This month: {formatSalesCurrency(monthlyReport.summary.totalAmount)} ·{" "}
+                    This month: net {formatSalesCurrency(monthlyReport.summary.totalNetAmount)} · total{" "}
+                    {formatSalesCurrency(monthlyReport.summary.totalAmount)} ·{" "}
                     {monthlyReport.summary.entryCount} sale
                     {monthlyReport.summary.entryCount === 1 ? "" : "s"}
                   </p>
@@ -172,7 +185,8 @@ export default async function AdminSalesPage({
               <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Employee</th>
-                  <th className="px-4 py-3 text-right">Sales</th>
+                  <th className="px-4 py-3 text-right">Net sales</th>
+                  <th className="px-4 py-3 text-right">Total sales</th>
                   <th className="px-4 py-3 text-right">Qty</th>
                   <th className="px-4 py-3 text-right">Entries</th>
                 </tr>
@@ -187,6 +201,9 @@ export default async function AdminSalesPage({
                       >
                         {employee.full_name}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {formatSalesCurrency(periodReport.summary.totalNetAmount)}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
                       {formatSalesCurrency(periodReport.summary.totalAmount)}
