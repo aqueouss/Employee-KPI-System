@@ -82,11 +82,17 @@ export async function getNotificationCounts(
     supabase,
     profile.id,
   );
+  const { count: rewardEligible } = await supabase
+    .from("rewards")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_id", profile.id)
+    .eq("status", "eligible");
 
   return {
     newTasks: newTasks ?? 0,
     broadcasts: pendingBroadcasts.length,
     attendanceMarked,
+    rewardEligible: rewardEligible ?? 0,
   };
 }
 

@@ -1,7 +1,6 @@
 import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { applyWeeklyRedFlagsToSnapshots } from "@/lib/kpi/weekly-red-flags";
-import { syncWeeklyOverdueSnapshotsForEmployee } from "@/lib/kpi/sync-weekly-overdue-snapshots";
 import { getTodayDateString, formatDateLabel } from "@/lib/utils/dates";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
 import { loadEmployeeWeeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.service";
@@ -30,7 +29,6 @@ export default async function EmployeeKpiPage() {
   const profile = await requireKpiEmployee();
   const today = getTodayDateString();
   const supabase = await createClient();
-  await syncWeeklyOverdueSnapshotsForEmployee(profile.id);
 
   // Live preview for today (tasks not yet finalized by cron)
   const { data: todayTasks } = await supabase

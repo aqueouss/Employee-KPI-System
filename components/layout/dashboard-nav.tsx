@@ -174,7 +174,7 @@ const employeeNav: NavEntry[] = [
     label: "Attendance",
     icon: CalendarCheck,
   },
-  { type: "link", href: "/employee/rewards", label: "Rewards", icon: Award },
+  { type: "link", href: "/employee/rewards", label: "Rewards", icon: Award, badgeKey: "rewardEligible" },
   {
     type: "link",
     href: "/employee/warnings",

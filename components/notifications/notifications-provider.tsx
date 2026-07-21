@@ -31,13 +31,14 @@ export function useNotifications() {
   return useContext(NotificationsContext);
 }
 
-const POLL_INTERVAL_MS = 10000;
+const POLL_INTERVAL_MS = 60000;
 
 const MESSAGES: Record<string, string> = {
   approvals: "A task is awaiting your approval",
   warnings: "A new warning was issued",
   reviews: "A termination review needs attention",
   rewards: "An employee is eligible for a reward",
+  rewardEligible: "You are eligible for a reward",
   reminders: "An employee raised a reminder / blocker",
   leaveRequests: "A leave request needs your approval",
   newTasks: "An admin assigned you a new task",

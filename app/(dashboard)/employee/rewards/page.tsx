@@ -4,6 +4,7 @@ import { requireKpiEmployee } from "@/lib/auth/require-kpi-employee";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString, formatDateLabel } from "@/lib/utils/dates";
 import { computeGreenStreak } from "@/services/rewards/reward.engine";
+import { loadRewardStreakContext } from "@/services/rewards/reward.service";
 import { RewardStatusBadge } from "@/components/rewards/reward-status-badge";
 import {
   Card,
@@ -13,7 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Tables } from "@/types/database.types";
-import type { KpiFlag } from "@/types/domain";
 
 export default async function EmployeeRewardsPage() {
   const profile = await requireKpiEmployee();
@@ -28,20 +28,26 @@ export default async function EmployeeRewardsPage() {
 
   const required = rules?.green_streak_for_reward ?? 30;
 
-  // Current finalized streak (snapshots up to yesterday typically).
   const { data: snapshots } = await supabase
     .from("daily_kpi_snapshots")
-    .select("kpi_date, flag")
+    .select("kpi_date")
     .eq("employee_id", profile.id)
     .order("kpi_date", { ascending: false })
-    .limit(required * 2 + 30);
+    .limit(1);
 
-  const flagByDate = new Map<string, KpiFlag>(
-    (snapshots ?? []).map((s) => [s.kpi_date, s.flag]),
-  );
-  // Evaluate streak ending at the most recent finalized snapshot date.
   const latestDate = snapshots?.[0]?.kpi_date ?? today;
-  const streak = computeGreenStreak(flagByDate, latestDate);
+  const { flagByDate, neutralDates, lookbackDays } = await loadRewardStreakContext(
+    supabase,
+    profile.id,
+    latestDate,
+    required,
+  );
+  const streak = computeGreenStreak(
+    flagByDate,
+    latestDate,
+    lookbackDays + 5,
+    neutralDates,
+  );
   const progress = Math.min(100, Math.round((streak.length / required) * 100));
 
   const { data: rewardData } = await supabase
@@ -51,14 +57,16 @@ export default async function EmployeeRewardsPage() {
     .order("eligible_at", { ascending: false });
 
   const rewards = (rewardData ?? []) as Tables<"rewards">[];
+  const pendingReward = rewards.find((reward) => reward.status === "eligible");
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Rewards</h1>
         <p className="text-muted-foreground">
-          Earn a reward with {required} consecutive green-flag days (Sundays
-          excluded).
+          Earn a reward with {required} consecutive green-flag days. Sundays,
+          paid leave, and absences are skipped. Yellow and red flags break your
+          streak.
         </p>
       </div>
 
@@ -78,9 +86,11 @@ export default async function EmployeeRewardsPage() {
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            {streak.length >= required
+            {pendingReward
               ? "Eligible! Awaiting admin fulfillment."
-              : `${required - streak.length} more green days to go.`}
+              : streak.length >= required
+                ? "You reached the streak. Your reward will appear after the daily KPI run."
+                : `${required - streak.length} more green days to go.`}
           </p>
         </CardContent>
       </Card>

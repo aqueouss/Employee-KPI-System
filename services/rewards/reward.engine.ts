@@ -1,11 +1,11 @@
-import type { KpiFlag } from "@/types/domain";
+import type { AttendanceStatus, KpiFlag } from "@/types/domain";
 
 /**
  * Pure reward streak engine. No I/O.
  *
  * Rule: N consecutive green-flag days ending at `asOfDate` => reward eligible.
- * Non-green days (yellow/red/no_tasks) break the streak. A missing snapshot for
- * a counted day also breaks it. Sundays are always skipped (office closed).
+ * Sundays, paid leave, and absent days are skipped (neutral).
+ * Red and yellow flags break the streak.
  */
 
 export interface StreakResult {
@@ -13,6 +13,11 @@ export interface StreakResult {
   startDate: string | null;
   endDate: string | null;
 }
+
+const NEUTRAL_ATTENDANCE: ReadonlySet<AttendanceStatus> = new Set([
+  "paid_leave",
+  "absent",
+]);
 
 function previousDay(date: string): string {
   const d = new Date(`${date}T00:00:00Z`);
@@ -24,16 +29,39 @@ function isSunday(date: string): boolean {
   return new Date(`${date}T00:00:00Z`).getUTCDay() === 0;
 }
 
+export function isNeutralStreakDay(
+  date: string,
+  attendanceStatus?: AttendanceStatus | null,
+): boolean {
+  if (isSunday(date)) return true;
+  if (!attendanceStatus) return false;
+  return NEUTRAL_ATTENDANCE.has(attendanceStatus);
+}
+
+export function buildNeutralStreakDates(
+  attendanceRows: Array<{ attendance_date: string; status: AttendanceStatus }>,
+): Set<string> {
+  const neutralDates = new Set<string>();
+  for (const row of attendanceRows) {
+    if (NEUTRAL_ATTENDANCE.has(row.status)) {
+      neutralDates.add(row.attendance_date.slice(0, 10));
+    }
+  }
+  return neutralDates;
+}
+
+function breaksGreenStreak(flag: KpiFlag | undefined): boolean {
+  return flag === "red" || flag === "yellow";
+}
+
 /**
  * Computes the current consecutive green streak ending at `asOfDate`.
- * @param flagByDate  map of YYYY-MM-DD => flag for finalized snapshots
- * @param asOfDate    the day to evaluate the streak up to (inclusive)
- * @param maxLookback safety bound on days walked backward (default 400)
  */
 export function computeGreenStreak(
   flagByDate: Map<string, KpiFlag>,
   asOfDate: string,
   maxLookback = 400,
+  neutralDates: Set<string> = new Set(),
 ): StreakResult {
   let cursor = asOfDate;
   let length = 0;
@@ -41,7 +69,7 @@ export function computeGreenStreak(
   let endDate: string | null = null;
 
   for (let i = 0; i < maxLookback; i++) {
-    if (isSunday(cursor)) {
+    if (isSunday(cursor) || neutralDates.has(cursor)) {
       cursor = previousDay(cursor);
       continue;
     }
@@ -52,9 +80,14 @@ export function computeGreenStreak(
       startDate = cursor;
       length += 1;
       cursor = previousDay(cursor);
-    } else {
+      continue;
+    }
+
+    if (breaksGreenStreak(flag)) {
       break;
     }
+
+    break;
   }
 
   return { length, startDate, endDate };
@@ -65,18 +98,14 @@ export interface RewardEvaluation {
   streak: StreakResult;
 }
 
-/**
- * Decides whether a reward is due.
- * @param hasOverlappingReward whether an existing reward already covers this streak end
- */
 export function evaluateReward(
   streak: StreakResult,
   requiredLength: number,
-  hasOverlappingReward: boolean,
+  hasExistingRewardForStreakEnd: boolean,
 ): RewardEvaluation {
   return {
     eligible:
-      !hasOverlappingReward &&
+      !hasExistingRewardForStreakEnd &&
       streak.length >= requiredLength &&
       streak.startDate !== null,
     streak,

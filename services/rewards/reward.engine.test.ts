@@ -44,6 +44,23 @@ test("computeGreenStreak: no_tasks breaks streak", () => {
   assert.equal(r.length, 2); // 29..30
 });
 
+test("computeGreenStreak: skips paid leave and absent days", () => {
+  const map = buildGreenRange("2026-05-01", 30);
+  map.set("2026-05-20", "no_tasks");
+  map.set("2026-05-25", "no_tasks");
+  const neutralDates = new Set(["2026-05-20", "2026-05-25"]);
+  const r = computeGreenStreak(map, "2026-05-30", 400, neutralDates);
+  assert.equal(r.length, 26);
+});
+
+test("computeGreenStreak: breaks on yellow day in streak", () => {
+  const map = buildGreenRange("2026-05-01", 30);
+  map.set("2026-05-22", "yellow");
+  const r = computeGreenStreak(map, "2026-05-30");
+  assert.equal(r.length, 7); // 23..30 minus Sunday 2026-05-24
+  assert.equal(r.startDate, "2026-05-23");
+});
+
 test("computeGreenStreak: zero when asOf is not green", () => {
   const map = buildGreenRange("2026-05-01", 10);
   map.set("2026-05-08", "yellow"); // Friday

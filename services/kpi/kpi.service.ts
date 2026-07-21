@@ -209,16 +209,14 @@ export async function runDailyKpiPipeline(
       if (review) terminationReviewsOpened += 1;
     }
 
-    // Reward engine: only worth checking when today's flag is green.
-    if (result.flag === "green") {
-      const reward = await evaluateAndCreateReward(
-        client,
-        employee.id,
-        kpiDate,
-        rules,
-      );
-      if (reward) rewardsCreated += 1;
-    }
+    // Reward engine runs after each finalized snapshot (end-of-day cron).
+    const reward = await evaluateAndCreateReward(
+      client,
+      employee.id,
+      kpiDate,
+      rules,
+    );
+    if (reward) rewardsCreated += 1;
   }
 
   return {

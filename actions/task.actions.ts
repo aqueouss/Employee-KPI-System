@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTodayDateString,
@@ -11,10 +10,7 @@ import {
   isTaskEditableNow,
   periodStartDate,
   addDaysToDateString,
-  type TaskPeriod,
 } from "@/lib/utils/dates";
-import { getKpiRules, markWeeklyOverdueRedSnapshots, upsertDailySnapshot } from "@/services/kpi/kpi.service";
-import { reconcileMonthlyWarning } from "@/services/warnings/warning.service";
 import {
   adminCreateTaskSchema,
   createTaskSchema,
@@ -36,33 +32,6 @@ function revalidateTaskViews() {
 
 function revalidateApprovalViews() {
   revalidatePath("/admin", "layout");
-}
-
-/** Recompute KPI impact after task approval or deletion. */
-async function recomputeKpiAfterTaskChange(
-  employeeId: string,
-  taskDate: string,
-  period: TaskPeriod,
-) {
-  try {
-    const admin = createAdminClient();
-    const rules = await getKpiRules(admin);
-    const today = getTodayDateString();
-
-    if (period === "daily") {
-      await upsertDailySnapshot(admin, employeeId, taskDate, rules);
-      await reconcileMonthlyWarning(admin, employeeId, taskDate, rules, today);
-      return;
-    }
-
-    if (period === "weekly") {
-      await upsertDailySnapshot(admin, employeeId, taskDate, rules);
-      await markWeeklyOverdueRedSnapshots(admin, employeeId, today, rules);
-      await reconcileMonthlyWarning(admin, employeeId, taskDate, rules, today);
-    }
-  } catch {
-    // Best-effort; the nightly pipeline will reconcile.
-  }
 }
 
 export async function createTaskAction(
@@ -315,12 +284,6 @@ export async function reviewTaskAction(
     metadata: parsed.data.note ? { note: parsed.data.note } : {},
   });
 
-  await recomputeKpiAfterTaskChange(
-    task.employee_id,
-    task.task_date,
-    task.period,
-  );
-
   revalidateApprovalViews();
   revalidateTaskViews();
   revalidatePath("/employee/kpi");
@@ -473,12 +436,6 @@ export async function adminDeleteTaskAction(
     entity_id: parsed.data.id,
     metadata: { employee_id: task.employee_id, task_date: task.task_date },
   });
-
-  await recomputeKpiAfterTaskChange(
-    task.employee_id,
-    task.task_date,
-    task.period,
-  );
 
   revalidateTaskViews();
   revalidateApprovalViews();

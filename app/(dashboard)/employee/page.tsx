@@ -10,7 +10,6 @@ import {
   markAttendanceNotificationSeen,
 } from "@/lib/attendance/attendance-notifications";
 import { applyWeeklyRedFlagsToSnapshots } from "@/lib/kpi/weekly-red-flags";
-import { syncWeeklyOverdueSnapshotsForEmployee } from "@/lib/kpi/sync-weekly-overdue-snapshots";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
 import { loadEmployeeWeeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.service";
 import {
@@ -43,7 +42,6 @@ export default async function EmployeeDashboardPage() {
   const monthStart = startOfMonthDateString(today);
 
   const supabase = await createClient();
-  await syncWeeklyOverdueSnapshotsForEmployee(profile.id);
 
   const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }, weeklyRedFlagDates, attendanceNotification] =
     await Promise.all([

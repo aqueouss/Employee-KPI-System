@@ -12,7 +12,7 @@ import { playNotificationBeep } from "@/lib/notifications/play-notification-beep
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const POLL_INTERVAL_MS = 10000;
+const POLL_INTERVAL_MS = 60000;
 const initialState: BroadcastNotificationActionState = {};
 
 function BroadcastNotificationModal({
