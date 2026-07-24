@@ -64,9 +64,8 @@ export default async function EmployeeRewardsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Rewards</h1>
         <p className="text-muted-foreground">
-          Earn a reward with {required} consecutive green-flag days. Sundays,
-          paid leave, and absences are skipped. Yellow and red flags break your
-          streak.
+          Earn a reward with {required} consecutive green-flag days. Sundays and
+          paid leave are skipped. Yellow, red, and absent days break your streak.
         </p>
       </div>
 

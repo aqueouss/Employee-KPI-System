@@ -7,11 +7,10 @@ import { getTodayDateString, addDaysToDateString, startOfMonthDateString } from 
 import { loadMonthAttendance } from "@/lib/attendance/month-data";
 import {
   loadTodayAttendanceNotification,
-  markAttendanceNotificationSeen,
 } from "@/lib/attendance/attendance-notifications";
 import { applyWeeklyRedFlagsToSnapshots } from "@/lib/kpi/weekly-red-flags";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
-import { loadEmployeeWeeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.service";
+import { weeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.engine";
 import {
   getEmployeeDashboardCaption,
   getRankingCaption,
@@ -43,7 +42,7 @@ export default async function EmployeeDashboardPage() {
 
   const supabase = await createClient();
 
-  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }, weeklyRedFlagDates, attendanceNotification] =
+  const [{ data }, { data: snapshotRows }, { data: suggestionRows }, { data: openTaskRows }, { data: weeklyTaskRows }, attendanceData, { data: rankingData }, { data: rules }, { data: todayAttendance }, attendanceNotification] =
     await Promise.all([
       supabase
         .from("tasks")
@@ -93,20 +92,19 @@ export default async function EmployeeDashboardPage() {
         .eq("employee_id", profile.id)
         .eq("attendance_date", today)
         .maybeSingle(),
-      loadEmployeeWeeklyIncompleteRedFlagDates(supabase, profile.id, today),
       loadTodayAttendanceNotification(supabase, profile.id),
     ]);
 
-  if (attendanceNotification && !attendanceNotification.seen_at) {
-    await markAttendanceNotificationSeen(
-      supabase,
-      attendanceNotification.id,
-      profile.id,
-    );
-  }
-
   const openTaskCandidates = (openTaskRows ?? []) as Tables<"tasks">[];
   const weeklyTasks = (weeklyTaskRows ?? []) as Tables<"tasks">[];
+  const weeklyRedFlagDates = weeklyIncompleteRedFlagDates(
+    weeklyTasks.map((task) => ({
+      status: task.status,
+      task_date: task.task_date,
+      due_date: task.due_date,
+    })),
+    today,
+  );
 
   const suggestions = (suggestionRows ?? []) as {
     id: string;

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { applyWeeklyRedFlagsToSnapshots } from "@/lib/kpi/weekly-red-flags";
 import { getTodayDateString, formatDateLabel } from "@/lib/utils/dates";
 import { computeDailyKpi } from "@/services/kpi/kpi.engine";
-import { loadEmployeeWeeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.service";
+import { weeklyIncompleteRedFlagDates } from "@/services/kpi/weekly.engine";
 import { getKpiCaption } from "@/lib/captions/funny-captions";
 import { FunnyCaption } from "@/components/ui/funny-caption";
 import { FlagBadge } from "@/components/kpi/flag-badge";
@@ -37,7 +37,7 @@ export default async function EmployeeKpiPage() {
     .eq("employee_id", profile.id)
     .eq("task_date", today);
 
-  const [{ data: rules }, { data: todayAttendance }, weeklyRedFlagDates] =
+  const [{ data: rules }, { data: todayAttendance }, { data: weeklyTasks }] =
     await Promise.all([
     supabase
       .from("kpi_rules")
@@ -50,8 +50,18 @@ export default async function EmployeeKpiPage() {
       .eq("employee_id", profile.id)
       .eq("attendance_date", today)
       .maybeSingle(),
-    loadEmployeeWeeklyIncompleteRedFlagDates(supabase, profile.id, today),
+    supabase
+      .from("tasks")
+      .select("status, task_date, due_date")
+      .eq("employee_id", profile.id)
+      .eq("period", "weekly")
+      .eq("created_by_admin", true),
   ]);
+
+  const weeklyRedFlagDates = weeklyIncompleteRedFlagDates(
+    weeklyTasks ?? [],
+    today,
+  );
 
   const total = todayTasks?.length ?? 0;
   const completed =

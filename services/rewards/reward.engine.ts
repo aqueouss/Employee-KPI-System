@@ -4,8 +4,8 @@ import type { AttendanceStatus, KpiFlag } from "@/types/domain";
  * Pure reward streak engine. No I/O.
  *
  * Rule: N consecutive green-flag days ending at `asOfDate` => reward eligible.
- * Sundays, paid leave, and absent days are skipped (neutral).
- * Red and yellow flags break the streak.
+ * Sundays and paid leave are skipped (neutral).
+ * Red, yellow, and absent days break the streak.
  */
 
 export interface StreakResult {
@@ -14,10 +14,7 @@ export interface StreakResult {
   endDate: string | null;
 }
 
-const NEUTRAL_ATTENDANCE: ReadonlySet<AttendanceStatus> = new Set([
-  "paid_leave",
-  "absent",
-]);
+const NEUTRAL_ATTENDANCE: ReadonlySet<AttendanceStatus> = new Set(["paid_leave"]);
 
 function previousDay(date: string): string {
   const d = new Date(`${date}T00:00:00Z`);

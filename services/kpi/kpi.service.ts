@@ -11,6 +11,22 @@ import { computeDailyKpi, type DailyKpiResult } from "./kpi.engine";
 
 type Client = SupabaseClient<Database>;
 
+async function employeeHasIncompleteWeeklyAdminTasks(
+  client: Client,
+  employeeId: string,
+): Promise<boolean> {
+  const { count, error } = await client
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_id", employeeId)
+    .eq("period", "weekly")
+    .eq("created_by_admin", true)
+    .neq("status", "completed");
+
+  if (error) return false;
+  return (count ?? 0) > 0;
+}
+
 /** Loads the singleton KPI rules row (id = 1). */
 export async function getKpiRules(client: Client): Promise<Tables<"kpi_rules">> {
   const { data, error } = await client
@@ -188,7 +204,9 @@ export async function runDailyKpiPipeline(
       kpiDate,
       rules,
     );
-    await markWeeklyOverdueRedSnapshots(client, employee.id, today, rules);
+    if (await employeeHasIncompleteWeeklyAdminTasks(client, employee.id)) {
+      await markWeeklyOverdueRedSnapshots(client, employee.id, today, rules);
+    }
     flags[result.flag] = (flags[result.flag] ?? 0) + 1;
 
     // Warning + termination engines run after the snapshot is persisted.

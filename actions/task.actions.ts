@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getSessionProfile } from "@/lib/auth/get-session";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTodayDateString,
@@ -10,7 +11,9 @@ import {
   isTaskEditableNow,
   periodStartDate,
   addDaysToDateString,
+  type TaskPeriod,
 } from "@/lib/utils/dates";
+import { getKpiRules, upsertDailySnapshot } from "@/services/kpi/kpi.service";
 import {
   adminCreateTaskSchema,
   createTaskSchema,
@@ -32,6 +35,23 @@ function revalidateTaskViews() {
 
 function revalidateApprovalViews() {
   revalidatePath("/admin", "layout");
+}
+
+/** Refresh stored KPI for a day after admin changes task completion. */
+async function recomputeDailyKpiSnapshotAfterTaskChange(
+  employeeId: string,
+  taskDate: string,
+  period: TaskPeriod,
+) {
+  if (period !== "daily" && period !== "weekly") return;
+
+  try {
+    const admin = createAdminClient();
+    const rules = await getKpiRules(admin);
+    await upsertDailySnapshot(admin, employeeId, taskDate, rules);
+  } catch {
+    // Nightly cron remains the fallback.
+  }
 }
 
 export async function createTaskAction(
@@ -284,6 +304,12 @@ export async function reviewTaskAction(
     metadata: parsed.data.note ? { note: parsed.data.note } : {},
   });
 
+  await recomputeDailyKpiSnapshotAfterTaskChange(
+    task.employee_id,
+    task.task_date,
+    task.period,
+  );
+
   revalidateApprovalViews();
   revalidateTaskViews();
   revalidatePath("/employee/kpi");
@@ -437,8 +463,16 @@ export async function adminDeleteTaskAction(
     metadata: { employee_id: task.employee_id, task_date: task.task_date },
   });
 
+  await recomputeDailyKpiSnapshotAfterTaskChange(
+    task.employee_id,
+    task.task_date,
+    task.period,
+  );
+
   revalidateTaskViews();
   revalidateApprovalViews();
+  revalidatePath("/employee/kpi");
+  revalidatePath("/rankings");
   revalidatePath(`/admin/employees/${task.employee_id}`);
   return { success: true };
 }

@@ -12,7 +12,47 @@ import { playNotificationBeep } from "@/lib/notifications/play-notification-beep
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const POLL_INTERVAL_MS = 60000;
+const POLL_INTERVAL_MS = 120_000;
+
+function schedulePoll(
+  poll: () => void,
+  intervalMs: number,
+): () => void {
+  let intervalId: number | undefined;
+
+  const start = () => {
+    if (intervalId !== undefined || document.visibilityState !== "visible") {
+      return;
+    }
+    intervalId = window.setInterval(poll, intervalMs);
+  };
+
+  const stop = () => {
+    if (intervalId === undefined) return;
+    window.clearInterval(intervalId);
+    intervalId = undefined;
+  };
+
+  const onVisible = () => {
+    if (document.visibilityState === "visible") {
+      poll();
+      start();
+    } else {
+      stop();
+    }
+  };
+
+  if (document.visibilityState === "visible") {
+    start();
+  }
+
+  document.addEventListener("visibilitychange", onVisible);
+
+  return () => {
+    stop();
+    document.removeEventListener("visibilitychange", onVisible);
+  };
+}
 const initialState: BroadcastNotificationActionState = {};
 
 function BroadcastNotificationModal({
@@ -124,6 +164,7 @@ export function BroadcastNotificationGate({
     let active = true;
 
     const poll = async () => {
+      if (document.visibilityState !== "visible") return;
       const next = await refreshNotifications();
       if (!active || !next) return;
 
@@ -138,14 +179,9 @@ export function BroadcastNotificationGate({
     };
 
     void poll();
-    const id = window.setInterval(poll, POLL_INTERVAL_MS);
+    const stopSchedule = schedulePoll(poll, POLL_INTERVAL_MS);
     const onFocus = () => void poll();
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void poll();
-    };
-
     window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisible);
 
     const supabase = createClient();
     const channel = supabase
@@ -165,9 +201,8 @@ export function BroadcastNotificationGate({
 
     return () => {
       active = false;
-      window.clearInterval(id);
+      stopSchedule();
       window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisible);
       void supabase.removeChannel(channel);
     };
   }, [refreshNotifications]);

@@ -64,13 +64,6 @@ export default async function AdminSalesPage({
 
   const reports = await Promise.all(
     salesEmployees.map(async (employee) => {
-      const monthlyReport = await loadSalesReport(
-        supabase,
-        employee.id,
-        "monthly",
-        today,
-        employee.hire_date,
-      );
       const periodReport = await loadSalesReport(
         supabase,
         employee.id,
@@ -78,6 +71,16 @@ export default async function AdminSalesPage({
         anchorDate,
         employee.hire_date,
       );
+      const monthlyReport =
+        period === "monthly"
+          ? periodReport
+          : await loadSalesReport(
+              supabase,
+              employee.id,
+              "monthly",
+              today,
+              employee.hire_date,
+            );
       return { employee, monthlyReport, periodReport };
     }),
   );

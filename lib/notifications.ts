@@ -3,7 +3,7 @@ import {
   countUnseenAttendanceNotifications,
   loadUnseenAttendanceNotificationMessage,
 } from "@/lib/attendance/attendance-notifications";
-import { loadPendingBroadcastNotifications } from "@/lib/broadcast-notifications";
+import { countPendingBroadcastNotifications } from "@/lib/broadcast-notifications";
 import type { Profile } from "@/types/domain";
 
 export type NotificationCounts = Record<string, number>;
@@ -19,8 +19,9 @@ export type EmployeeNotificationExtras = {
  */
 export async function getNotificationCounts(
   profile: Profile,
+  existingClient?: Awaited<ReturnType<typeof createClient>>,
 ): Promise<NotificationCounts> {
-  const supabase = await createClient();
+  const supabase = existingClient ?? (await createClient());
 
   if (profile.role === "admin") {
     const [
@@ -67,30 +68,26 @@ export async function getNotificationCounts(
     };
   }
 
-  const { count: newTasks } = await supabase
-    .from("tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("employee_id", profile.id)
-    .eq("created_by_admin", true)
-    .eq("seen_by_employee", false);
-
-  const pendingBroadcasts = await loadPendingBroadcastNotifications(
-    supabase,
-    profile.id,
-  );
-  const attendanceMarked = await countUnseenAttendanceNotifications(
-    supabase,
-    profile.id,
-  );
-  const { count: rewardEligible } = await supabase
-    .from("rewards")
-    .select("id", { count: "exact", head: true })
-    .eq("employee_id", profile.id)
-    .eq("status", "eligible");
+  const [{ count: newTasks }, broadcasts, attendanceMarked, { count: rewardEligible }] =
+    await Promise.all([
+      supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("employee_id", profile.id)
+        .eq("created_by_admin", true)
+        .eq("seen_by_employee", false),
+      countPendingBroadcastNotifications(supabase, profile.id),
+      countUnseenAttendanceNotifications(supabase, profile.id),
+      supabase
+        .from("rewards")
+        .select("id", { count: "exact", head: true })
+        .eq("employee_id", profile.id)
+        .eq("status", "eligible"),
+    ]);
 
   return {
     newTasks: newTasks ?? 0,
-    broadcasts: pendingBroadcasts.length,
+    broadcasts,
     attendanceMarked,
     rewardEligible: rewardEligible ?? 0,
   };
@@ -98,8 +95,9 @@ export async function getNotificationCounts(
 
 export async function getEmployeeNotificationExtras(
   profile: Profile,
+  existingClient?: Awaited<ReturnType<typeof createClient>>,
 ): Promise<EmployeeNotificationExtras> {
-  const supabase = await createClient();
+  const supabase = existingClient ?? (await createClient());
   const attendanceMessage = await loadUnseenAttendanceNotificationMessage(
     supabase,
     profile.id,

@@ -31,7 +31,7 @@ export function useNotifications() {
   return useContext(NotificationsContext);
 }
 
-const POLL_INTERVAL_MS = 60000;
+const POLL_INTERVAL_MS = 120_000;
 
 const MESSAGES: Record<string, string> = {
   approvals: "A task is awaiting your approval",
@@ -45,6 +45,46 @@ const MESSAGES: Record<string, string> = {
   broadcasts: "You have a new message from admin",
   attendanceMarked: "Your attendance was marked for today",
 };
+
+function schedulePoll(
+  poll: () => void,
+  intervalMs: number,
+): () => void {
+  let intervalId: number | undefined;
+
+  const start = () => {
+    if (intervalId !== undefined || document.visibilityState !== "visible") {
+      return;
+    }
+    intervalId = window.setInterval(poll, intervalMs);
+  };
+
+  const stop = () => {
+    if (intervalId === undefined) return;
+    window.clearInterval(intervalId);
+    intervalId = undefined;
+  };
+
+  const onVisible = () => {
+    if (document.visibilityState === "visible") {
+      poll();
+      start();
+    } else {
+      stop();
+    }
+  };
+
+  if (document.visibilityState === "visible") {
+    start();
+  }
+
+  document.addEventListener("visibilitychange", onVisible);
+
+  return () => {
+    stop();
+    document.removeEventListener("visibilitychange", onVisible);
+  };
+}
 
 export function NotificationsProvider({
   initialCounts,
@@ -134,6 +174,7 @@ export function NotificationsProvider({
     let active = true;
 
     const poll = async () => {
+      if (document.visibilityState !== "visible") return;
       try {
         const res = await fetch("/api/notifications", { cache: "no-store" });
         if (!res.ok || !active) return;
@@ -151,20 +192,14 @@ export function NotificationsProvider({
     };
 
     void poll();
-    const id = window.setInterval(poll, POLL_INTERVAL_MS);
+    const stopSchedule = schedulePoll(() => void poll(), POLL_INTERVAL_MS);
     const onFocus = () => void poll();
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void poll();
-    };
-
     window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       active = false;
-      window.clearInterval(id);
+      stopSchedule();
       window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [fireNotifications]);
 
@@ -183,6 +218,7 @@ export function NotificationsProvider({
           filter: `employee_id=eq.${employeeId}`,
         },
         () => {
+          if (document.visibilityState !== "visible") return;
           void fetch("/api/notifications", { cache: "no-store" })
             .then(async (res) => {
               if (!res.ok) return;

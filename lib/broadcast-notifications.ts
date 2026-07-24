@@ -31,7 +31,8 @@ export async function loadPendingBroadcastNotifications(
   const { data: notifications, error } = await client
     .from("broadcast_notifications")
     .select("id, message, created_at")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(50);
 
   if (error || !notifications?.length) return [];
 
@@ -49,6 +50,32 @@ export async function loadPendingBroadcastNotifications(
   return notifications.filter(
     (notification) => !acknowledgedIds.has(notification.id),
   );
+}
+
+/** Count-only helper for nav badges (avoids loading message bodies). */
+export async function countPendingBroadcastNotifications(
+  client: Client,
+  employeeId: string,
+): Promise<number> {
+  const { data: notifications, error } = await client
+    .from("broadcast_notifications")
+    .select("id")
+    .limit(100);
+
+  if (error || !notifications?.length) return 0;
+
+  const { data: acknowledgments, error: ackError } = await client
+    .from("broadcast_notification_acknowledgments")
+    .select("notification_id")
+    .eq("employee_id", employeeId);
+
+  if (ackError) return 0;
+
+  const acknowledgedIds = new Set(
+    (acknowledgments ?? []).map((row) => row.notification_id),
+  );
+
+  return notifications.filter((row) => !acknowledgedIds.has(row.id)).length;
 }
 
 export async function countBroadcastAcknowledgments(

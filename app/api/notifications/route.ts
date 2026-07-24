@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { getNotificationCounts, getEmployeeNotificationExtras } from "@/lib/notifications";
+import {
+  getEmployeeNotificationExtras,
+  getNotificationCounts,
+} from "@/lib/notifications";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +15,11 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const counts = await getNotificationCounts(profile);
+  const supabase = await createClient();
+  const counts = await getNotificationCounts(profile, supabase);
   const extras =
     profile.role === "employee"
-      ? await getEmployeeNotificationExtras(profile)
+      ? await getEmployeeNotificationExtras(profile, supabase)
       : { attendanceMessage: null };
 
   return NextResponse.json(
