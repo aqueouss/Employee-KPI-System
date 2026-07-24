@@ -14,6 +14,8 @@ import {
   type TaskPeriod,
 } from "@/lib/utils/dates";
 import { getKpiRules, upsertDailySnapshot } from "@/services/kpi/kpi.service";
+import { evaluateAndCreateReward } from "@/services/rewards/reward.service";
+import { reconcileMonthlyWarning } from "@/services/warnings/warning.service";
 import {
   adminCreateTaskSchema,
   createTaskSchema,
@@ -37,7 +39,7 @@ function revalidateApprovalViews() {
   revalidatePath("/admin", "layout");
 }
 
-/** Refresh stored KPI for a day after admin changes task completion. */
+/** Refresh stored KPI and dependent warning/reward state after task changes. */
 async function recomputeDailyKpiSnapshotAfterTaskChange(
   employeeId: string,
   taskDate: string,
@@ -48,7 +50,11 @@ async function recomputeDailyKpiSnapshotAfterTaskChange(
   try {
     const admin = createAdminClient();
     const rules = await getKpiRules(admin);
+    const today = getTodayDateString(rules.company_timezone);
+
     await upsertDailySnapshot(admin, employeeId, taskDate, rules);
+    await reconcileMonthlyWarning(admin, employeeId, taskDate, rules, today);
+    await evaluateAndCreateReward(admin, employeeId, taskDate, rules);
   } catch {
     // Nightly cron remains the fallback.
   }
@@ -314,7 +320,9 @@ export async function reviewTaskAction(
   revalidateTaskViews();
   revalidatePath("/employee/kpi");
   revalidatePath("/employee/warnings");
+  revalidatePath("/employee/rewards");
   revalidatePath("/admin/warnings");
+  revalidatePath("/admin/rewards");
   revalidatePath("/admin/termination-reviews");
   revalidatePath("/rankings");
   revalidatePath(`/admin/employees/${task.employee_id}`);
@@ -472,6 +480,10 @@ export async function adminDeleteTaskAction(
   revalidateTaskViews();
   revalidateApprovalViews();
   revalidatePath("/employee/kpi");
+  revalidatePath("/employee/warnings");
+  revalidatePath("/employee/rewards");
+  revalidatePath("/admin/warnings");
+  revalidatePath("/admin/rewards");
   revalidatePath("/rankings");
   revalidatePath(`/admin/employees/${task.employee_id}`);
   return { success: true };
